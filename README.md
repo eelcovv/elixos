@@ -7,6 +7,12 @@
 de hardware configuratie wordt gemaakt met:
 
 
+handmatig formatteren als je nog geen installatie hebt:
+
+```shell
+nix-shell -p nixpkgs-fmt --run "nixpkgs-fmt ."
+```
+
 
 ``` shell
 nix
