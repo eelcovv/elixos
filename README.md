@@ -1,0 +1,1 @@
+# Eelco's Nixos configuration
