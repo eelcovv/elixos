@@ -18,6 +18,7 @@
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
+          ./nixos/configuration.nix
           ./nixos/hosts/tongfang.nix
         ];
       };
@@ -27,6 +28,7 @@
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
+          ./nixos/configuration.nix
           ./nixos/hosts/singer.nix
         ];
       };
@@ -36,6 +38,7 @@
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
+          ./nixos/configuration.nix
           ./nixos/hosts/contabo.nix
         ];
       };
