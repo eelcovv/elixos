@@ -4,7 +4,8 @@
   imports = [
     ../modules/common.nix
     ../hardware/singer.nix
-    ../users/users.nix
+    ../users/por.nix
+    ../users/eelco.nix
   ];
 
   networking.hostName = "singer";
