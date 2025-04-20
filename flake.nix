@@ -9,10 +9,9 @@
     agenix.url = "github:ryantm/agenix";
   };
 
-
   outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, agenix, ... }@inputs: {
 
-    packages.x86_64-linux.tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
+    # NixOS configuraties
     nixosConfigurations = {
       tongfang = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -22,19 +21,15 @@
         ];
       };
 
-    packages.x86_64-linux.tongfang-vm = self.nixosConfigurations.tongfang-vm.config.system.build.toplevel;
-      nixosConfigurations = {
-        tongfang-vm = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [
-            ./hosts/tongfang-vm.nix
-            disko.nixosModules.disko
-          ];
-          specialArgs = { inherit inputs; };
-        };
+      tongfang-vm = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [
+          ./hosts/tongfang-vm.nix
+          disko.nixosModules.disko
+        ];
       };
 
-      packages.x86_64-linux.singer = self.nixosConfigurations.singer.config.system.build.toplevel;
       singer = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
@@ -43,7 +38,6 @@
         ];
       };
 
-      packages.x86_64-linux.contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
       contabo = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
@@ -51,6 +45,14 @@
           ./nixos/hosts/contabo.nix
         ];
       };
+    };
+
+    # Packages (optioneel, als je ze nodig hebt voor specifieke systemen)
+    packages.x86_64-linux = rec {
+      tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
+      tongfang-vm = self.nixosConfigurations.tongfang-vm.config.system.build.toplevel;
+      singer = self.nixosConfigurations.singer.config.system.build.toplevel;
+      contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
     };
   };
 }
