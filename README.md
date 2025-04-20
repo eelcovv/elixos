@@ -32,6 +32,7 @@ Om een nieuwe host toe te voegen, kun je de volgende stappen volgen:
 Maak een nieuwe .nix-file aan in de hosts/ directory en configureer de nodige instellingen voor de nieuwe machine. Bijvoorbeeld voor een nieuwe laptop:
 
 # hosts/new-laptop.nix
+```text
 { inputs, ... }:
 
 {
@@ -44,12 +45,15 @@ Maak een nieuwe .nix-file aan in de hosts/ directory en configureer de nodige in
   networking.hostName = "new-laptop";
   # Voeg andere host-specifieke instellingen toe hier
 }
+```
 
 3. Test de configuratie met nixos-rebuild in een VM:
 
 Om snel te testen of je configuratie werkt, kun je nixos-rebuild build-vm gebruiken. Dit maakt een virtuele machine met je huidige configuratie:
 
+```shell
 nixos-rebuild build-vm --flake .#new-laptop
+```
 
 Hiermee wordt een VM opgestart met de configuratie van de nieuwe host, die je snel kunt testen.
 
@@ -57,46 +61,60 @@ Snel QEMU-VM Opzetten
 
 Voor een meer gedetailleerde test kun je een volledige QEMU-VM opzetten. Volg deze stappen om een QEMU VM te maken:
 
-Installeren van vereiste pakketten
+## Installeren van vereiste pakketten
 
 Installeer de benodigde QEMU-tools in je NixOS-shell:
 
+```shell
 nix-shell -p qemu-utils
 nix-shell -p qemu
+```
 
-Maak een virtuele schijf
+## Maak een virtuele schijf
 
 Maak een virtuele schijf voor de VM:
 
+```shell
 qemu-img create -f qcow2 /tmp/nixos-vm.qcow2 8G
+```
 
-Mount de schijf
+## Mount de schijf
 
 Mount de schijf zodat je toegang hebt tot het bestandssysteem:
 
+```shell
 sudo mount /tmp/nixos-vm.qcow2 /tmp/nixos-vm
+```
 
-Maak de benodigde directories en clone de repository
+## Maak de benodigde directories en clone de repository
 
 Maak de etc directory en clone je repository:
 
+
+```shell
 mkdir /tmp/nixos-vm/etc
 cd /tmp/nixos-vm/etc
 git clone git@github.com:eelcovv/eelco-nixos.git nixos
 cd /tmp/nixos-vm/etc
+```
 
-Start de QEMU-VM
+## Start de QEMU-VM
 
 Start de VM met de NixOS ISO en koppel de virtuele schijf:
 
+```shell
 qemu-system-x86_64 -m 4096 -smp 2 -boot d -cdrom /tmp/nixos-vm.iso/nixos-minimal-24.11.716947.26d499fc9f1d-x86_64-linux.iso -drive file=/tmp/nixos-vm.qcow2,format=qcow2 -display gtk -net user,hostfwd=tcp::2222-:22 -net nic
+```
 
-SSH Inloggen
+## SSH Inloggen
 
 Na het opstarten kun je inloggen op de VM via SSH. Als je hostfwd=tcp::2222-:22 hebt ingesteld, kun je inloggen met:
 
+```shell
 ssh -p 2222 root@localhost
+```
 
+## SSH Inloggen
 Configureer en Test
 
 Je kunt nu de configuratie testen door bijvoorbeeld nixos-rebuild switch uit te voeren binnen de VM om je nieuwe instellingen toe te passen.
