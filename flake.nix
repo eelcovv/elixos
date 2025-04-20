@@ -22,6 +22,18 @@
         ];
       };
 
+    packages.x86_64-linux.tongfang-vm = self.nixosConfigurations.tongfang-vm.config.system.build.toplevel;
+      nixosConfigurations = {
+        tongfang-vm = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            ./hosts/tongfang-vm.nix
+            disko.nixosModules.disko
+          ];
+          specialArgs = { inherit inputs; };
+        };
+      };
+
       packages.x86_64-linux.singer = self.nixosConfigurations.singer.config.system.build.toplevel;
       singer = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
