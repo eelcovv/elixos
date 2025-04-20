@@ -1,5 +1,8 @@
 { config, lib, pkgs, ... }:
 
 {
-  # Eventueel hardware-specific config, maar voorlopig leeg
+  boot.loader.grub.enable = true;
+  boot.loader.grub.device = "/dev/vda";
+  boot.loader.grub.useOSProber = false;
+  boot.loader.efi.canTouchEfiVariables = false;
 }
