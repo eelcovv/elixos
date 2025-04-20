@@ -98,6 +98,8 @@ git clone git@github.com:eelcovv/eelco-nixos.git nixos
 cd /tmp/nixos-vm/etc
 ```
 
+Dit clonen kan ook later als je je vm opstart in live-usb mode. 
+
 ## Start de QEMU-VM
 
 Start de VM met de NixOS ISO en koppel de virtuele schijf:
@@ -105,6 +107,8 @@ Start de VM met de NixOS ISO en koppel de virtuele schijf:
 ```shell
 qemu-system-x86_64 -m 4096 -smp 2 -boot d -cdrom /tmp/nixos-vm.iso/nixos-minimal-24.11.716947.26d499fc9f1d-x86_64-linux.iso -drive file=/tmp/nixos-vm.qcow2,format=qcow2 -display gtk -net user,hostfwd=tcp::2222-:22 -net nic
 ```
+
+Je hebt nu een qemo geopend also je in feite nixos in een live-usb mode draait. Je wilt nu een installatie van deze live-usb op je virtuele harde schijf maken.
 
 ## SSH Inloggen
 
@@ -114,14 +118,6 @@ Na het opstarten kun je inloggen op de VM via SSH. Als je hostfwd=tcp::2222-:22 
 ssh -p 2222 root@localhost
 ```
 
-## SSH Inloggen
-Configureer en Test
+Je kan nu in deze terminal je repo clonen zodat je met je configuratie verder kan gaan. Maak even een ssh key aan, voeg deze aan je git hub toe en clone je repo:
 
-Je kunt nu de configuratie testen door bijvoorbeeld nixos-rebuild switch uit te voeren binnen de VM om je nieuwe instellingen toe te passen.
-
-Meer informatie
-
-- NixOS Manual (https://nixos.org/manual/)
-- NixOS Flakes (https://nixos.wiki/wiki/Flakes)
-
-
+ssh-keygen
