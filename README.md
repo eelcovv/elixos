@@ -105,10 +105,15 @@ Dit clonen kan ook later als je je vm opstart in live-usb mode.
 Start de VM met de NixOS ISO en koppel de virtuele schijf:
 
 ```shell
-qemu-system-x86_64 -m 4096 -smp 2 -boot d -cdrom /tmp/nixos-vm.iso/nixos-minimal-24.11.716947.26d499fc9f1d-x86_64-linux.iso -drive file=/tmp/nixos-vm.qcow2,format=qcow2 -display gtk -net user,hostfwd=tcp::2222-:22 -net nic
+qemu-system-x86_64 -m 4096 -smp 2 -boot d \
+  -cdrom /tmp/nixos-vm.iso/nixos-minimal-24.11.716947.26d499fc9f1d-x86_64-linux.iso \
+  -drive if=virtio,file=/tmp/nixos-vm.qcow2,format=qcow2 \
+  -display gtk -net user,hostfwd=tcp::2222-:22 -net nic
 ```
 
 Je hebt nu een qemo geopend also je in feite nixos in een live-usb mode draait. Je wilt nu een installatie van deze live-usb op je virtuele harde schijf maken.
+Let op, de optie virtio zorgt ervoor dat je harde schijven vda heten ipv sda. Dit is duidelijker voor als je in een vm werkt en ook sneller.
+
 
 ## SSH Inloggen
 
@@ -120,4 +125,39 @@ ssh -p 2222 root@localhost
 
 Je kan nu in deze terminal je repo clonen zodat je met je configuratie verder kan gaan. Maak even een ssh key aan, voeg deze aan je git hub toe en clone je repo:
 
+Mocht je je qemu vm meerdere keren opstarten dan krijg je de fingerprint warning als je weer met ssh naar de local machine in wilt loggen. Om deze schoon te maken kan je runnen
+
+```shell
+ssh-keygen -R "[localhost]:2222"
+```
+
+```shell
 ssh-keygen
+```
+
+en de inhoud van ~/.ssh/id_ed25519.pub toevoegen aan je keys. 
+
+Nu clone je de repo nu naar je home. Doe dit als nixos user want daarmee heb je de ssh-keys gemaakt
+
+```shell
+git clone git@github.com:eelcovv/eelco-nixos.git 
+```
+
+en verhuis het nu naar je /mnt
+
+```shell
+sudo mv eelco-nixos /mnt
+```
+
+
+Nu heb je de virtuele vm harde schijf nog niet gepartitioneerd en gemount, maar dat wordt met dit commando gedaan
+
+```shell
+sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount /mnt/eelco-nixos/nixos/disks/qemu-vm.nix
+```
+
+Als het goed is, is /mnt nu weer leeg met alleen /mnt/boot. Je moet je eelco-nixos weer opnieuw clonen en naar de /mnt moven. Je kunt nu runnen
+
+```shell
+sudo nixos-install --flake /mnt/eelco-nixos#tongfang-vm
+```

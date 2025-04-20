@@ -4,6 +4,7 @@
   imports = [
     ../modules/common.nix
     ../hardware/tongfang-vm.nix
+    ../disk-configs/qemu-vm.nix
     ../users/eelco.nix
   ];
 
