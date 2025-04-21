@@ -3,3 +3,4 @@
 /.pre-commit-config.yaml
 .vscode
 tongfang.qcow2
+/result*
