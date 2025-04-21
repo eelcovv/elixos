@@ -23,5 +23,6 @@
     vim
     git
     curl
+    just
   ];
 }

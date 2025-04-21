@@ -157,10 +157,16 @@ Nu clone je de repo nu naar je home. Doe dit als nixos user want daarmee heb je 
 git clone git@github.com:eelcovv/eelco-nixos.git 
 ```
 
+en ga je repo in
+
+```shell
+cd eelco-nixos
+```
+
 Nu heb je de virtuele vm harde schijf nog niet gepartitioneerd en gemount, maar dat wordt met dit commando gedaan
 
 ```shell
-sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./eelco-nixos/nixos/disks/qemu-vm.nix
+sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
 ```
 
 Als het goed is, is /mnt nu weer leeg met alleen /mnt/boot. Je moet je eelco-nixos weer opnieuw clonen en naar de /mnt moven. Je kunt nu runnen
@@ -173,5 +179,46 @@ een rebuild van de boot sectie doe je met
 
 ```shell
 sudo nixos-rebuild boot --flake /mnt/eelco-nixos#tongfang-vm
+```
 
+Als je klaar bent moet je de qemu vm (die de live iso draait) sluiten. Je kan hem opnieuw opstarten met
+
+```shell
+qemu-system-x86_64   -enable-kvm   -m 16384   -drive file=/tmp//nixos-vm.qcow2,format=qcow2   -boot order=c   -nic user,model=virtio-net-pci
+```
+
+probleem is dat je ook ovmf nodig hebt. Deze wordt nu standaarrd met de tongfang installatie meegeleverd (als je een maal je eerste installatie gedaan hebt van je echt hosts). Maar voor nu moet je hem tijdelijk installeren met 
+
+```shell
+nix-shell -p OVMF
+```
+
+Omdat deze nu niet in de standaar installatie staat (omdat hij alleen in de shell tijdelijk geinstalleerd is), moet je hem opzoeken met
+
+```shell
+nix-build '<nixpkgs>' -A OVMF.fd
+```
+
+Je krijgt dan iets van
+```shell
+/nix/store/xxxxxxxxxxxxxxxxxxxxxxxx-OVMF-2024-xx-xx.fd
+```
+
+met daarin 
+```text
+OVMF_CODE.fd
+OVMF_VARS.fd
+```
+
+Start de vm dan op met
+
+```shell
+qemu-system-x86_64 \
+  -enable-kvm \
+  -m 16384 \
+  -drive if=pflash,format=raw,readonly=on,file=/nix/store/kw52jax4fh89aj4gnk6pclwixagcsdjr-OVMF-202411-fd/FV/OVMF.fd \
+  -drive if=pflash,format=raw,file=~/vms/nixos/uefi_vars.fd \
+  -drive file=~/vms/nixos/nixos-vm.qcow2,format=qcow2 \
+  -boot order=c \
+  -nic user,model=virtio-net-pci
 ```
