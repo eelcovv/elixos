@@ -13,7 +13,7 @@ vm_prepare_install:
     curl -o $HOME/vms/nixos-minimal.iso -L https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
     cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd $HOME/vms/
     cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/uefi_vars.fd
-    chmod +w $HOME/vms/*.fd
+    chmod 644 $HOME/vms/*.fd
     qemu-img create -f qcow2 $HOME/vms/nixos-vm.qcow2 30G
 
 
@@ -26,6 +26,8 @@ qemu-system-x86_64 \
   -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
   -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
   -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
+  -cdrom $HOME/vms/nixos-minimal.iso \
+  -boot d \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
 # start vm vanaf disk
