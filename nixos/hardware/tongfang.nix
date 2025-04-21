@@ -3,6 +3,7 @@
 {
   imports = [
     # Dit kan een door nixos-generate-config gemaakte hardware config zijn
+    ../modules/profiles/vm-host.nix
     ./tongfang-hardware-configuration.nix
     ./tongfang-graphics-configuration.nix
   ];

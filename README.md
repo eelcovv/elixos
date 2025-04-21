@@ -66,8 +66,7 @@ Voor een meer gedetailleerde test kun je een volledige QEMU-VM opzetten. Volg de
 Installeer de benodigde QEMU-tools in je NixOS-shell:
 
 ```shell
-nix-shell -p qemu-utils
-nix-shell -p qemu
+nix-shell -p qemu qemu-utils OVMF just
 ```
 
 2. Maak een Virtuele Schijf
@@ -109,27 +108,85 @@ Dit clonen kan ook later wanneer je de VM opstart in live-USB-modus.
 
 Let op: dit wist de inhoud van je virtuele harde schijf en begint met een nieuwe installatie.
 
+Download eerst de iso
+
+```shell
+curl -o $HOME/vms/nixos-minimal.iso -L https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
+```
+
+Ook gaan we de  Open Virtual Machine Firmware gebruiken. Hiervoor hadden we al OVFM geinstalleerd. Zoek de benodigde bestanden op:
+
+```shell
+nix-build '<nixpkgs>' -A OVMF.fd
+```
+
+Dit geeft een locatie als `/nix/store/kw52jax4fh89aj4gnk6pclwixagcsdjr-OVMF-202411-fd`
+
+JE moet nu de bestanden kopieren. Dit kan gelijk met
+
+```shell
+sudo cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd $HOME/vms/
+```
+
+Nu staat de OVMF_CODE.fd in je eigen vms directory
+
+Nu moet onze uefi_vars.fd verwijzen naar de OVMF_vars.fd, dus copieer ook
+
+```shell
+sudo cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/uefi_vars.fd
+```
+
+
+
 Start de VM met de NixOS ISO en koppel de virtuele schijf:
 
 ```shell
-qemu-system-x86_64 -m 4096 -smp 2 -boot d \
-  -cdrom $HOME/vms/nixos-vm.iso/nixos-minimal-24.11.716947.26d499fc9f1d-x86_64-linux.iso \
+qemu-system-x86_64 \
+  -enable-kvm \
+  -m 16384 \
+  -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
+  -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
   -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
-  -display gtk -net user,hostfwd=tcp::2222-:22 -net nic
-  ```
+  -cdrom $HOME/vms/nixos-minimal.iso \
+  -boot d \
+  -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
+```
+
+Dit is gelijk aan het opstarten van een nixos live-usb.
+
+Na het opstarten verander je het password in de qemu terminal met:
+
+```shell
+passwd
+```
 
 6. Installeren van NixOS
 
 Zodra de QEMU-VM is opgestart, kun je inloggen en de installatie uitvoeren. Stel een wachtwoord in:
 
 ```shell
-passwd
+ssh -p 2222 nixos@localhost
 ```
+
+Mocht je je qemu vm meerdere keren opstarten dan krijg je de fingerprint warning als je weer met ssh naar de local machine in wilt loggen. Om deze schoon te maken kan je runnen
+
+```shell
+ssh-keygen -R "[localhost]:2222"
+```
+
+Als je ingelogd ben maak je een ssh key aan met
 
 Clone vervolgens je repository en configureer de schijf:
-
+```shell
+ssh-keygen
 ```
+
+```shell
 git clone git@github.com:eelcovv/eelco-nixos.git
+```
+
+En ga in je repo met
+```shell
 cd eelco-nixos
 ```
 

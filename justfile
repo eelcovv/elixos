@@ -6,14 +6,29 @@ default:
 local:
     nix run
 
+
+# prepare vm installer
+vm_prepare_install:
+    mkdir -vp $HOME/vms
+    curl -o $HOME/vms/nixos-minimal.iso -L https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
+    cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd $HOME/vms/
+    cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/uefi_vars.fd
+    chmod +w $HOME/vms/*.fd
+    qemu-img create -f qcow2 $HOME/vms/nixos-vm.qcow2 30G
+
+
+
 # start vm installer
 vm_run_iso:
-    qemu-system-x86_64 -enable-kvm -m 8192 -cpu host \
-    -bios /home/eelco/vms/nixos/OVMF_CODE.fd \
-    -drive if=pflash,format=raw,file=/home/eelco/vms/nixos/uefi_vars.fd \
-    -drive file=/home/eelco/vms/nixos/nixos-vm.qcow2,format=qcow2 \
-    -cdrom /home/eelco/vms/nixos/nixos-vm.iso/nixos-minimal-24.11.716947.26d499fc9f1d-x86_64-linux.iso \
-    -boot order=d -nic user,model=virtio-net-pci -display gtk
+    qemu-system-x86_64 \
+    -enable-kvm \
+    -m 16384 \
+    -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
+    -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
+    -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
+    -cdrom $HOME/vms/nixos-minimal.iso \
+    -boot d \
+    -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
 # start vm vanaf disk
 vm_run:
