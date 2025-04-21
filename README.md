@@ -219,5 +219,13 @@ sudo nixos-rebuild boot --flake /mnt/eelco-nixos#new-laptop
 Sluit de QEMU-VM die de live ISO draait. Je kunt de VM opnieuw opstarten met:
 
 ```shell
-qemu-system-x86_64   -enable-kvm   -m 16384   -drive file=$HOME/vms/nixos-vm.qcow2,format=qcow2   -boot order=c   -nic user,model=virtio-net-pci
+qemu-system-x86_64 \
+  -enable-kvm \
+  -m 16384 \
+  -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
+  -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
+  -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
+  -boot order=c \
+  -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
+
 ```
