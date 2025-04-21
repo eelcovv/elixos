@@ -26,4 +26,9 @@
       };
     };
   };
-}; }
+}; 
+
+# Zorg ervoor dat de EFI-partitie wordt gemount
+fileSystems."/boot/efi".device = "/dev/vda1";  
+
+}
