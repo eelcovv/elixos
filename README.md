@@ -146,11 +146,8 @@ qemu-system-x86_64 \
   -m 16384 \
   -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
   -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
-  -drive file=$HOME/vms/nixos-vm.qcow2,format=qcow2,if=virtio \
-  -cdrom $HOME/vms/nixos-minimal.iso \
-  -boot order=d \
+  -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
-
 ```
 
 Dit is gelijk aan het opstarten van een nixos live-usb.
@@ -207,15 +204,7 @@ Voer de installatie uit met:
 sudo nixos-install --flake .#tongfang-vm
 ```
 
-9. Herbouw de Boot Systeem
-
-Voer een rebuild van het boot-systeem uit:
-
-```shell
-sudo nixos-rebuild boot --flake .#tongfang-vm
-```
-
-10. Sluit de VM en Herstart
+9. Sluit de VM en Herstart
 
 Sluit de QEMU-VM die de live ISO draait. Je kunt de VM opnieuw opstarten met:
 
@@ -227,5 +216,12 @@ qemu-system-x86_64 \
   -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
   -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
+```
 
+10. Herbouw de Boot Systeem (eventueel als je wat veranderd hebt)
+
+Voer een rebuild van het boot-systeem uit:
+
+```shell
+sudo nixos-rebuild boot --flake .#tongfang-vm
 ```
