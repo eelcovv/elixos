@@ -1,3 +1,5 @@
+{ disko, lib, ... }:
+
 { disko.devices = {
   disk.main = {
     type = "disk";
@@ -29,6 +31,6 @@
 }; 
 
 # Zorg ervoor dat de EFI-partitie wordt gemount
-fileSystems."/boot/efi".device = "/dev/vda1";  
+fileSystems."/boot/efi".device = lib.mkForce "/dev/vda1";
 
 }
