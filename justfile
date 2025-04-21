@@ -25,9 +25,9 @@ vm_run_iso:
     -m 16384 \
     -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
-    -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
+    -drive file=$HOME/vms/nixos-vm.qcow2,format=qcow2,if=virtio \
     -cdrom $HOME/vms/nixos-minimal.iso \
-    -boot d \
+    -boot order=d \
     -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
 # start vm vanaf disk

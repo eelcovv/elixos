@@ -146,10 +146,11 @@ qemu-system-x86_64 \
   -m 16384 \
   -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
   -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
-  -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
+  -drive file=$HOME/vms/nixos-vm.qcow2,format=qcow2,if=virtio \
   -cdrom $HOME/vms/nixos-minimal.iso \
-  -boot d \
+  -boot order=d \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
+
 ```
 
 Dit is gelijk aan het opstarten van een nixos live-usb.
@@ -203,7 +204,7 @@ sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-commu
 Voer de installatie uit met:
 
 ```shell
-sudo nixos-install --flake /mnt/eelco-nixos#new-laptop
+sudo nixos-install --flake .#tongfang-vm
 ```
 
 9. Herbouw de Boot Systeem
@@ -211,7 +212,7 @@ sudo nixos-install --flake /mnt/eelco-nixos#new-laptop
 Voer een rebuild van het boot-systeem uit:
 
 ```shell
-sudo nixos-rebuild boot --flake /mnt/eelco-nixos#new-laptop
+sudo nixos-rebuild boot --flake .#tongfang-vm
 ```
 
 10. Sluit de VM en Herstart
@@ -225,7 +226,6 @@ qemu-system-x86_64 \
   -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
   -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
   -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
-  -boot order=c \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
 ```
