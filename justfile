@@ -30,6 +30,14 @@ vm_run_iso:
         -boot d \
         -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
+# partition the vm dist
+vm_parition:
+    sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
+
+# install the vm dist
+vm_install:
+    sudo nixos-install --flake .#tongfang-vm
+
 # start vm vanaf disk
 vm_run:
     qemu-system-x86_64 -enable-kvm -m 8192 -cpu host \
