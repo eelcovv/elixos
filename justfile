@@ -40,11 +40,13 @@ vm_install:
 
 # start vm vanaf disk
 vm_run:
-    qemu-system-x86_64 -enable-kvm -m 8192 -cpu host \
-    -bios /home/eelco/vms/nixos/OVMF_CODE.fd \
-    -drive if=pflash,format=raw,file=/home/eelco/vms/nixos/uefi_vars.fd \
-    -drive file=/home/eelco/vms/nixos/nixos-vm.qcow2,format=qcow2 \
-    -boot order=c -nic user,model=virtio-net-pci -display gtk
+    qemu-system-x86_64 \
+    -enable-kvm \
+    -m 16384 \
+    -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
+    -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
+    -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
+    -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
 
 # Start de tongfang VM
