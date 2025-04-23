@@ -19,13 +19,13 @@
         };
         root = {
           size = "100%";
+          name = "disk-main-root"; 
           content = {
             type = "filesystem";
             format = "ext4";
             mountpoint = "/";
             extraArgs = [ "-L" "disk-main-root" ];
           };
-          label = "disk-main-root"; 
 
         };
       };
