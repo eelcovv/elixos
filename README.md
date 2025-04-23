@@ -273,3 +273,31 @@ Voer een rebuild van het boot-systeem uit:
 ```shell
 sudo nixos-rebuild boot --flake .#tongfang-vm
 ```
+
+
+## Troubleshooting Commando's voor het Vinden van Labels
+
+1. `lsblk`: Dit geeft een overzicht van de schijven, partities, bestandssystemen en labels, inclusief de mount points.
+
+2. `blkid`: Dit commando werd gebruikt om gedetailleerdere informatie over de partities en hun labels op te vragen.
+   `sudo blkid /dev/vda2`
+   Dit geeft de UUID, het bestandssysteemtype, de label en andere metadata voor een specifieke partitie.
+
+3. `wipefs`: Dit werd gebruikt om de bestaande partitietabel en bestandssysteemgegevens van een schijf of partitie te wissen, wat handig is om een schone staat te herstellen.
+   `sudo wipefs -a /dev/vda`
+   Hiermee wordt alle opschriftinformatie (zoals GPT, MBR) van de schijf gewist.
+
+4. `partprobe` en `udevadm trigger`: Deze commando's werden gebruikt om het systeem op de hoogte te stellen van veranderingen in de schijfindeling, zodat de kernel en device manager de nieuwe partities kunnen herkennen.
+   `sudo partprobe /dev/vda`
+   `sudo udevadm trigger --subsystem-match=block`
+   `sudo udevadm settle --timeout 120`
+
+5. `sgdisk`: Dit is gebruikt voor het partitioneren van de schijf, het creëren van de GPT-partitietabel en het instellen van de partitie-instellingen zoals grootte, naam, type, enzovoorts.
+   `sgdisk --clear /dev/vda`
+   `sgdisk --align-end --new=1:0:+512M --partition-guid=1:R --change-name=1:disk-main-boot --typecode=1:EF00 /dev/vda`
+   `sgdisk --align-end --new=2:0:-0 --partition-guid=2:R --change-name=2:disk-main-disk-main-root --typecode=2:8300 /dev/vda`
+
+6. `findmnt`: Dit werd gebruikt om te controleren of de partities goed zijn gemount en of de labels correct herkend worden.
+   `findmnt /dev/disk/by-partlabel/disk-main-disk-main-root /mnt/`
+
+Door deze stappen zorgvuldig uit te voeren, kon je zowel de partitionering als de labels goed configureren.
