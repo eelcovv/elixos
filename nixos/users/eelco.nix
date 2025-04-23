@@ -1,14 +1,24 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
+let
+  hostSpecificKeys = {
+    "tongfang" = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
+    ];
+    "tongfang-vm" = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@vm"
+    ];
+    # eventueel meer hosts...
+  };
+  keys = hostSpecificKeys.${config.networking.hostName} or [];
+in
 {
   users.users.eelco = {
-      isNormalUser = true;
-      description = "Eelco van Vliet";
-      extraGroups = [ "wheel" "networkmanager" "audio" ];
-      hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
-      shell = pkgs.zsh;
-      openssh.authorizedKeys.keys = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@nixos"
-      ];
+    isNormalUser = true;
+    description = "Eelco van Vliet";
+    extraGroups = [ "wheel" "networkmanager" "audio" ];
+    hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
+    shell = pkgs.zsh;
+    openssh.authorizedKeys.keys = keys;
   };
 }
