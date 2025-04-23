@@ -2,5 +2,5 @@
 /.direnv
 /.pre-commit-config.yaml
 .vscode
-tongfang.qcow2
+*.qcow2
 /result*
