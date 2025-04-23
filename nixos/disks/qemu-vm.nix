@@ -25,6 +25,8 @@
             mountpoint = "/";
             extraArgs = [ "-L" "disk-main-root" ];
           };
+          label = "disk-main-root"; 
+
         };
       };
     };
