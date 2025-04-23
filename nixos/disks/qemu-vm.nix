@@ -22,6 +22,7 @@
           content = {
             type = "filesystem";
             format = "ext4";
+            label = "disk-main-root";
             mountpoint = "/";
           };
         };

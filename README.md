@@ -59,7 +59,55 @@ Hiermee wordt een VM opgestart met de configuratie van de nieuwe host, die je sn
 
 ## QEMU-VM Opzetten
 
-Voor een meer gedetailleerde test kun je een volledige QEMU-VM opzetten. Volg deze stappen om een QEMU VM te maken:
+Voor een meer gedetailleerde test kun je een volledige QEMU-VM opzetten. 
+
+Als eerst een globaal overzicht. We gaan het volgende doen:
+
+:
+
+🧩 1. Setup in de live-omgeving (via SSH)
+1. Je logt in op de VM met SSH.
+
+2. Je maakt een SSH-key aan en voegt deze toe aan je GitHub-account.
+
+3. Je clone’t je eelco-nixos repository naar ~/eelco-nixos.
+
+💾 2. Diskopzet met disko
+```shell
+sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
+```
+
+* --mode zap_create_mount wist de schijf, creëert de partities, en mount alles op de juiste plekken voor nixos-install.
+
+* Disko gebruikt jouw config (qemu-vm.nix) om de schijf te partitioneren (waarschijnlijk met LUKS en/of LVM?).
+
+🧱 3. Installatie van NixOS
+```shell
+sudo nixos-install --flake .#tongfang-vm
+```
+* Installatie vanuit jouw flake, met tongfang-vm als hostname/system.
+
+* Ervan uitgaande dat je nixosConfigurations.tongfang-vm correct hebt gedefinieerd in flake.nix.
+
+🔁 4. Herstart in QEMU met UEFI + forwarding
+```shell
+qemu-system-x86_64 \
+  -enable-kvm \
+  -m 16384 \
+  -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/OVMF_CODE.fd \
+  -drive if=pflash,format=raw,file=$HOME/vms/uefi_vars.fd \
+  -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
+  -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
+```
+Mooie setup: met UEFI (OVMF), KVM-acceleration, virtio, en poort-forwarding voor SSH (poort 2222 lokaal → 22 in de VM).
+
+Hierna zou je kunnen inloggen met:
+```shell
+ssh -p 2222 eelco@localhost
+```
+
+
+Volg deze stappen om een QEMU VM te maken:
 
 1. Installeer de Vereiste Pakketten
 
