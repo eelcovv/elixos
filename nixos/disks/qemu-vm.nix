@@ -22,8 +22,8 @@
           content = {
             type = "filesystem";
             format = "ext4";
-            extraArgs = { label = "disk-main-root"; };
             mountpoint = "/";
+            extraArgs = [ "-L" "disk-main-root" ];
           };
         };
       };
