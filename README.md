@@ -283,7 +283,20 @@ and finally, clone your tmp repository to your home with
 ```shell
 cd
 git clone /tmp/eelco-nixos.git
+cd eelco-nixos
+git checkout main
 ```
+
+To run the just file, just do
+```shell
+nix-shell -p just
+```
+
+And now you can run 
+```shell
+just vm_install
+```
+
 
 
 7. Partition and mount the disk

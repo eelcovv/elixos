@@ -6,7 +6,7 @@
 
   # all shared home manager packages
   imports = [
-    ../modules/home/common-packages.nix
+    ./home/common-packages.nix
   ];
 
 }

@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, home, ... }: {
   home.packages = with pkgs; [
     neovim
     git
