@@ -5,8 +5,8 @@
   home-manager.useUserPackages = true;
 
   # all shared home manager packages
-  imports = [
-    ./home/common-packages.nix
-  ];
+#  imports = [
+#    ./home/common-packages.nix
+#  ];
 
 }
