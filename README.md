@@ -259,7 +259,6 @@ Also, you want to get a clone of your eelco-nixos repo on the localhost.
 
 If you are logged in on the VM, make a directory in the tmp
 ```shell
-cd /tmp
 mkdir /tmp/eelco-nixos.git
 cd eelco-nixos.igt
 ```
