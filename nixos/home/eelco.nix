@@ -13,9 +13,6 @@ let
   keys = hostSpecificKeys.${config.home.hostname} or [];
 in
 {
-  imports = [
-    ../modules/home/common-packages.nix
-  ];
 
   home-manager.users.eelco = {
     home.username = "eelco";

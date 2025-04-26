@@ -13,6 +13,58 @@ The configuration is divided into the following directories:
 - ** `Users/` **: Contains configurations for different users, so that you can easily reuse users on different hosts.
 -** `Hardware/` **: Contains hardware-specific configurations such as partitions and Luks encryption.
 
+A visualisation of the structure is:
+
+```text
+eelco-nixos/
+├── flake.nix
+├── flake.lock
+├── justfile
+├── nixos/
+│   ├── configuration.nix        # Entry point
+│
+│   ├── disks/                    # Host-specific disk configs
+│   │   ├── tongfang.nix
+│   │   ├── singer.nix
+│   │   └── generic-vm.nix
+│
+│   ├── hardware/                 # Host-specific hardware configs
+│   │   ├── tongfang.nix
+│   │   ├── singer.nix
+│   │   └── contabo.nix
+│   │
+│   ├── hosts/                    # Full host configs
+│   │   ├── tongfang.nix
+│   │   ├── singer.nix
+│   │   └── contabo.nix
+│   │
+│   ├── home/                     # Per-user Home Manager configs
+│   │   ├── eelco.nix
+│   │   ├── por.nix
+│   │   └── testuser.nix
+│   │
+│   ├── users/                    # System user configs (non-home-manager stuff)
+│   │   ├── eelco.nix
+│   │   ├── por.nix
+│   │   └── testuser.nix
+│   │
+│   ├── modules/                  # Reusable modules
+│   │   ├── common.nix             # Shared system config (timezone, locale, etc.)
+│   │   ├── hardware/              # Hardware helpers (efi-boot, virtio)
+│   │   │   ├── efi-boot.nix
+│   │   │   └── virtio.nix
+│   │   ├── home/                  # Home Manager helpers
+│   │   │   ├── common-packages.nix
+│   │   │   └── common-config.nix (optional later)
+│   │   ├── profiles/              # System profiles (server, vm-host, desktop etc.)
+│   │   │   └── vm-host.nix
+│   │   ├── services/              # Generic services (like VM guest tools)
+│   │   │   └── generic-vm.nix
+│   │   └── disk-layouts/          # (optional) shared disk layouts
+│   │       └── vm-standard.nix
+
+```
+
 ## Add a new host
 
 To add a new host, you can follow the following steps:
