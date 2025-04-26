@@ -11,17 +11,23 @@
  * - **networking.hostName**: Sets the hostname of the machine to "generic-vm".
  * - **system.stateVersion**: Specifies the NixOS state version, set to "24.11".
  */
-{ inputs, ... }:
+ { inputs, ... }:
 
 {
   imports = [
     ../modules/common.nix
+    ../modules/home-manager.nix
     ../modules/services/generic-vm.nix
     ../hardware/generic-vm.nix
     ../disks/generic-vm.nix
     ../users/eelco.nix
+    ../home/eelco.nix
+
+    # Add home-manager as a NixOS module
+    inputs.home-manager.nixosModules.home-manager
   ];
 
   networking.hostName = "generic-vm";
   system.stateVersion = "24.11";
+
 }
