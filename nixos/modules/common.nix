@@ -1,8 +1,17 @@
+/*
+  This NixOS configuration module defines common system settings:
+
+  - Enables a systemd service (`someService`).
+  - Configures the Zsh shell.
+  - Sets up the X server with GNOME as the desktop environment and GDM as the display manager.
+  - Enables essential services such as OpenSSH, PipeWire, and NetworkManager.
+  - Configures localization with `en_US.UTF-8` as the default locale and sets the timezone to `Europe/Amsterdam`.
+  - Specifies a list of system packages to be installed, including `vim`, `git`, `curl`, and `just`.
+*/
 { config, lib, pkgs, ... }:
 
 {
-  # Algemene systeeminstellingen
-  systemd.services.someService.enable = true;
+ # General system settings
 
   # Shell
   programs.zsh.enable = true;
