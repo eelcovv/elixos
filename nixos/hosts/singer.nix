@@ -1,34 +1,21 @@
-{ inputs, lib, config, pkgs, ... }:
+
+{ inputs, ... }:
 
 {
   imports = [
-    ../hardware/singer.nix
-    ../disks/singer.nix
     ../modules/common.nix
     ../modules/home-manager.nix
-    ../modules/services/generic-vm.nix
+    ../modules/services/laptop.nix
+    ../hardware/singer.nix
+    ../disks/singer.nix
+    ../users/eelco.nix
+    ../home/eelco.nix
+
+    # Add modules
+    inputs.disko.nixosModules.disko
+    inputs.home-manager.nixosModules.home-manager
   ];
 
   networking.hostName = "singer";
-  networking.networkmanager.enable = true;
 
-  time.timeZone = "Europe/Amsterdam";
-
-  environment.systemPackages = with pkgs; [
-    git
-    htop
-    vim
-    # other basic tools
-  ];
-
-  services.openssh.enable = true;
-  services.qemuGuest.enable = true;
-
-  users.users.eelco = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" ];
-    hashedPassword = "..."; # Fill with hashed password or use mkpasswd
-  };
-
-  system.stateVersion = "24.05"; # Adjust based on your NixOS version
 }
