@@ -99,7 +99,7 @@ qemu-system-x86_64 \
   -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 ```
-Mooie setup: met UEFI (OVMF), KVM-acceleration, virtio, en poort-forwarding voor SSH (poort 2222 lokaal → 22 in de VM).
+Uiteindelijke setup: met UEFI (OVMF), KVM-acceleration, virtio, en poort-forwarding voor SSH (poort 2222 lokaal → 22 in de VM).
 
 Hierna zou je kunnen inloggen met:
 ```shell
@@ -301,3 +301,48 @@ sudo nixos-rebuild boot --flake .#tongfang-vm
    `findmnt /dev/disk/by-partlabel/disk-main-disk-main-root /mnt/`
 
 Door deze stappen zorgvuldig uit te voeren, kon je zowel de partitionering als de labels goed configureren.
+
+# Workflow NixOS ontwikkelen en testen via tongfang-vm
+
+## 1. Aanpassen op Tongfang (hoofd-laptop)
+
+- Pas je configuratie aan (bijv. `nixos/hosts/tongfang-vm.nix`)
+- Commit en push naar GitHub:
+
+```shell
+git add .
+git commit -m "korte omschrijving"
+git push
+```
+
+## 2. Updaten en rebuilden op tongfang-vm
+
+* SSH naar je VM (of open terminal in de VM)
+* Haal laatste wijzigingen op en rebuild:
+
+
+```shell
+cd ~/eelco-nixos
+git pull
+sudo nixos-rebuild switch --flake .#tongfang
+```
+
+## 3. Testen
+ * Controleer of je wijziging werkt zoals bedoeld.
+ * Indien nodig rollback:
+
+```shell
+sudo nixos-rebuild switch --rollback
+```
+
+## 4. Als alles werkt
+
+Pas daarna dezelfde push-pull-rebuild stap toe op je echte Tongfang laptop.
+
+## Extra tips
+
+* Gebruik sudo nixos-rebuild test --flake .#tongfang als je tijdelijk iets wil proberen zonder direct te activeren.
+
+* Maak snapshots van je VM voor grote wijzigingen.
+
+* Houd SSH open op tongfang-vm zodat je makkelijker kunt deployen.
