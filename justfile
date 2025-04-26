@@ -1,6 +1,6 @@
 # Show the commands
 default:
-  just --list
+  just --list --unsorted
 
 # ========== VM INSTALLATION WORKFLOW ==========
 
