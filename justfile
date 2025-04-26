@@ -37,7 +37,7 @@ vm_run_installer:
 
 # 3. Partition the disk in the VM
 vm_partition:
-  sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
+  sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
 
 # 4. Install NixOS on the disk in the VM
 vm_install:
