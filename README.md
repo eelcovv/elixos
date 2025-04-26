@@ -255,23 +255,35 @@ ssh-keygen -R "[localhost]:2222"
 ```
 If you are logged in you create an SSH key with
 
-Clone then your repository and configure the disk:
+Also, you want to get a clone of your eelco-nixos repo on the localhost.
+
+If you are logged in on the VM, make a directory in the tmp
 ```shell
-ssh-keygen
+cd /tmp
+mkdir /tmp/eelco-nixos.git
+cd eelco-nixos.igt
 ```
 
+and initialise a bare repor
 ```shell
-git clone git@github.com:eelcovv/eelco-nixos.git
+git init --bare
 ```
-And go into your repo with
-```shell
-cd eelco-nixos
-```
-
-Alternatively, if you don't want to use git, just copy the folder with:
+Now, in the repo of you host machine, add the remote:
 
 ```shell
-scp -P 2222 -r eelco-nixos  nixos@localhost:~
+git remote add localhost ssh://nixos@localhost:2222/tmp/eelco-nixos
+```
+
+and push to the remote
+
+```shell
+git push localhost main
+```
+
+and finally, clone your tmp repository to your home with
+```shell
+cd
+git clone /tmp/eelco-nixos.git
 ```
 
 

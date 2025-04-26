@@ -75,7 +75,7 @@ vm_run_gpu:
 
 # Remove the VM files
 vm_reset:
-    rm -rv $HOMEi/vms
+    rm -rv $HOME/vms
     echo "VM files have been removed. You can now start over with 'just vm_prepare'."
 
 # ========== SYSTEM BUILD & TESTING ==========
