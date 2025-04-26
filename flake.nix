@@ -21,11 +21,11 @@
         ];
       };
 
-      tongfang-vm = nixpkgs.lib.nixosSystem {
+      generic-vm = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
-          ./nixos/hosts/tongfang-vm.nix
+          ./nixos/hosts/generic-vm.nix
           disko.nixosModules.disko
         ];
       };
@@ -50,7 +50,7 @@
     # Packages (optioneel, als je ze nodig hebt voor specifieke systemen)
     packages.x86_64-linux = rec {
       tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
-      tongfang-vm = self.nixosConfigurations.tongfang-vm.config.system.build.toplevel;
+      generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
       singer = self.nixosConfigurations.singer.config.system.build.toplevel;
       contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
     };
