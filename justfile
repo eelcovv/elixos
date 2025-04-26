@@ -6,7 +6,11 @@ default:
 
 # --- On your own laptop ---
 
-# 1. Download the ISO, OVMF files, and create an empty disk
+#  nix-shell -p qemu qemu-utils OVMF first
+vm_prerequist_install:
+  nix-shell -p qemu qemu-utils OVMF just
+
+# 1. Download the ISO, OVMF files, and create an empty disk. 
 vm_prepare:
   mkdir -p $HOME/vms/nixos
   curl -L -o $HOME/vms/nixos/nixos-minimal.iso https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
@@ -14,6 +18,7 @@ vm_prepare:
   cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/nixos/uefi_vars.fd
   chmod 644 $HOME/vms/nixos/*.fd
   qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 30G
+  echo "VM drive has been created. You can now run the installer with 'just vm_run_installer'."
 
 # 2. Start VM from the ISO (run installer)
 vm_run_installer:
@@ -26,6 +31,7 @@ vm_run_installer:
     -cdrom $HOME/vms/nixos/nixos-minimal.iso \
     -boot d \
     -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
+  echo "Installer has started. You can now login with `ssh -p 2222 nixos@localhost` (run `ssh-keygen -R "[localhost]:2222"` to clear the keys first )"
 
 # --- Inside the live VM (via SSH or console) ---
 
@@ -69,7 +75,7 @@ vm_run_gpu:
 
 # Remove the VM files
 vm_reset:
-    rm -rv $HOME/vms/nixos
+    rm -rv $HOMEi/vms
     echo "VM files have been removed. You can now start over with 'just vm_prepare'."
 
 # ========== SYSTEM BUILD & TESTING ==========

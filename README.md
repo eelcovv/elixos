@@ -267,6 +267,14 @@ And go into your repo with
 ```shell
 cd eelco-nixos
 ```
+
+Alternatively, if you don't want to use git, just copy the folder with:
+
+```shell
+scp -P 2222 -r eelco-nixos  nixos@localhost:~
+```
+
+
 7. Partition and mount the disk
 
 Use Disko to partition and toot the disk:
