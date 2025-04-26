@@ -17,7 +17,7 @@ vm_prepare:
   cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd $HOME/vms/nixos/
   cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/nixos/uefi_vars.fd
   chmod 644 $HOME/vms/nixos/*.fd
-  qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 30G
+  qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 50G
   echo "VM drive has been created. You can now run the installer with 'just vm_run_installer'."
 
 # 2. Start VM from the ISO (run installer)
@@ -37,7 +37,7 @@ vm_run_installer:
 
 # 3. Partition the disk in the VM
 vm_partition:
-  sudo nix run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
+  sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
 
 # 4. Install NixOS on the disk in the VM
 vm_install:
