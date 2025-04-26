@@ -16,5 +16,5 @@
     ../modules/hardware/efi-boot.nix
     ../modules/hardware/virtio.nix
   ];
-  boot.loader.efi.canTouchEfiVariables = false;
+  boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
 }

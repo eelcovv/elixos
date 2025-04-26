@@ -21,7 +21,8 @@
     ../hardware/generic-vm.nix
     ../modules/disk-layouts/generic-vm.nix
     ../users/eelco.nix
-    ../home/eelco.nix
+
+    #../home/eelco.nix
 
     # Add home-manager as a NixOS module
     inputs.home-manager.nixosModules.home-manager
