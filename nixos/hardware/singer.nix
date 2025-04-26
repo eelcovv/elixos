@@ -1,15 +1,15 @@
-{ pkgs, ... }:
+{ lib, config, ... }:
 
 {
   imports = [
-    # Dit kan een door nixos-generate-config gemaakte hardware config zijn
-    ./singer-hardware-configuration.nix
+    ../modules/hardware/efi-boot.nix
   ];
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  boot.initrd.luks.devices = {
-    "luks-ef0fc5e3-81cc-4d6d-bd1a-f4746a961c2a".device = "/dev/disk/by-uuid/ef0fc5e3-81cc-4d6d-bd1a-f4746a961c2a";
-  };
+  hardware.cpu.amd.enable = true;
+  hardware.enableRedistributableFirmware = true;
+
+  nixpkgs.hostPlatform = "x86_64-linux";
 }

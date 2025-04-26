@@ -19,7 +19,7 @@
     ../modules/home-manager.nix
     ../modules/services/generic-vm.nix
     ../hardware/generic-vm.nix
-    ../disks/generic-vm.nix
+    ../modules/disk-layouts/generic-vm.nix
     ../users/eelco.nix
     ../home/eelco.nix
 
