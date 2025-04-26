@@ -1,37 +1,33 @@
+# Eelco's Nixos configuration
 
-# Eelco's NixOS Configuratie
+## Introduction
 
-## Introductie
+This project contains the configuration for my Nixos setup.It is designed to support a ** Multi-user **, ** Multi-host ** system, which means that you can easily configure different users and systems.The configuration is modular and uses a ** flake ** for the management of Nixos installations, which ensures reusability and clarity when managing different hosts and users. 
 
-Dit project bevat de configuratie voor mijn NixOS-setup. Het is ontworpen om een **multi-user**, **multi-host** systeem te ondersteunen, wat betekent dat je eenvoudig verschillende gebruikers en systemen kunt configureren. De configuratie is modulair en maakt gebruik van een **flake** voor het beheer van NixOS-installaties, wat zorgt voor herbruikbaarheid en overzichtelijkheid bij het beheren van verschillende hosts en gebruikers.
+## project structure
 
-## Projectstructuur
+The configuration is divided into the following directories:
+- ** `Modules/` **: contains all configuration modules that are reusable for different systems.
+- ** `Common.nix` **: Contains settings that apply to all systems, such as user management, network configuration, and more.
+- ** `Hosts/` **: Contains configurations for specific systems, such as laptops, servers, etc.
+- ** `Users/` **: Contains configurations for different users, so that you can easily reuse users on different hosts.
+-** `Hardware/` **: Contains hardware-specific configurations such as partitions and Luks encryption.
 
-De configuratie is opgedeeld in de volgende directories:
-- **`modules/`**: Bevat alle configuratie-modules die herbruikbaar zijn voor verschillende systemen.
-  - **`common.nix`**: Bevat instellingen die op alle systemen van toepassing zijn, zoals gebruikersbeheer, netwerkconfiguratie, en meer.
-- **`hosts/`**: Bevat configuraties voor specifieke systemen, zoals laptops, servers, etc.
-- **`users/`**: Bevat configuraties voor verschillende gebruikers, zodat je eenvoudig gebruikers kunt hergebruiken op verschillende hosts.
-- **`hardware/`**: Bevat hardware-specifieke configuraties zoals partities en LUKS-encryptie.
+## Add a new host
 
-## Toevoegen van een Nieuwe Host
+To add a new host, you can follow the following steps:
 
-Om een nieuwe host toe te voegen, kun je de volgende stappen volgen:
+### 1. Generate the hardware configuration for the new host
 
-### 1. Genereer de Hardwareconfiguratie voor de Nieuwe Host
-
-Gebruik het `nixos-generate`-commando om een hardwareconfiguratie te maken voor de nieuwe machine:
-
+Use the "Nixos-Alense" command to make a hardware configuration for the new machine:
 ```shell
 nixos-generate -c config
 ```
+This generates a file `hardware configuration.nix` that you can use for your new host.
 
-Dit genereert een bestand `hardware-configuration.nix` dat je kunt gebruiken voor je nieuwe host.
+### 2. Make a new host configuration in the `hosts/` directory
 
-### 2. Maak een Nieuwe Hostconfiguratie in de `hosts/` Directory
-
-Maak een nieuwe `.nix`-file aan in de `hosts/` directory en configureer de benodigde instellingen voor de nieuwe machine. Bijvoorbeeld, voor een nieuwe laptop:
-
+Create a new `.nix 'file in the` hosts/`directory and configure the required settings for the new machine.For example, for a new laptop:
 ```nix
 # hosts/new-laptop.nix
 { inputs, ... }:
@@ -48,48 +44,48 @@ Maak een nieuwe `.nix`-file aan in de `hosts/` directory en configureer de benod
 }
 ```
 
-### 3. Test de Configuratie met `nixos-rebuild` in een VM
+### 3. Test the configuration with `Nixos rebuild` in a VM
 
-Om snel te testen of je configuratie werkt, kun je `nixos-rebuild build-vm` gebruiken. Dit maakt een virtuele machine met je huidige configuratie:
+To quickly test whether your configuration works, you can use `Nixos-Rebuild Build-VM`.This makes a virtual machine with your current configuration:
 
 ```shell
 nixos-rebuild build-vm --flake .#new-laptop
 ```
-Hiermee wordt een VM opgestart met de configuratie van de nieuwe host, die je snel kunt testen.
+This will start a VM with the configuration of the new host, which you can test quickly.
 
-## QEMU-VM Opzetten
+## Qemu-VM set up
 
-Voor een meer gedetailleerde test kun je een volledige QEMU-VM opzetten. 
+For a more detailed test you can set up a full QEMU-VM.
 
-Als eerst een globaal overzicht. We gaan het volgende doen:
+First a global overview.We are going to do the following:
 
 :
 
-🧩 1. Setup in de live-omgeving (via SSH)
-1. Je logt in op de VM met SSH.
+🧩 1. Setup in the live environment (via SSH)
+1. You log in to the VM with SSH.
 
-2. Je maakt een SSH-key aan en voegt deze toe aan je GitHub-account.
+2. You create an SSH key and add it to your Github account.
 
-3. Je clone’t je eelco-nixos repository naar ~/eelco-nixos.
+3. You clone are your Eelco-Nixos repository to ~/Eelco-Nixos.
 
-💾 2. Diskopzet met disko
-```shell
-sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
-```
+💾 2. Disko with disko
+`` shell
+SUDO NIX-Extra-Experimental Features 'Nix-Command Flakes' Run Github: Nix-Community/Disko----mod Zap_create_mount ./nixos/disks/qemu.nix
+`` `
 
-* --mode zap_create_mount wist de schijf, creëert de partities, en mount alles op de juiste plekken voor nixos-install.
+*-Mode Zap_Create_Mount knew the disk, creates the partitions, and Mount everything in the right places for Nixos-Install.
 
-* Disko gebruikt jouw config (qemu-vm.nix) om de schijf te partitioneren (waarschijnlijk met LUKS en/of LVM?).
+* Disko uses your config (qemu-vm.nix) to partition the disk (probably with Luks and/or LVM?).
 
-🧱 3. Installatie van NixOS
+🧱 3. Installation of Nixos
 ```shell
 sudo nixos-install --flake .#tongfang-vm
-```
-* Installatie vanuit jouw flake, met tongfang-vm als hostname/system.
+`` `
+* Installation from your flake, with Tongfang-VM as a hostname/system.
 
-* Ervan uitgaande dat je nixosConfigurations.tongfang-vm correct hebt gedefinieerd in flake.nix.
+* Assuming that you have correctly defined Nixos Configuration.tongfang-VM in Flake.nix.
 
-🔁 4. Herstart in QEMU met UEFI + forwarding
+🔁 4. Restart in Qemu with UEFI + Forwarding
 ```shell
 qemu-system-x86_64 \
   -enable-kvm \
@@ -99,49 +95,43 @@ qemu-system-x86_64 \
   -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 ```
-Uiteindelijke setup: met UEFI (OVMF), KVM-acceleration, virtio, en poort-forwarding voor SSH (poort 2222 lokaal → 22 in de VM).
+Final setup: with UEFI (OVMF), KVM acceleration, Virtio, and port-forwarding for SSH (Poort 2222 Local → 22 in the VM).
 
-Hierna zou je kunnen inloggen met:
+After this you could log in with:
 ```shell
 ssh -p 2222 eelco@localhost
 ```
 
 
-Volg deze stappen om een QEMU VM te maken:
+Follow these steps to make a Qemu VM:
 
-1. Installeer de Vereiste Pakketten
+1. Install the required packages
 
-Installeer de benodigde QEMU-tools in je NixOS-shell:
-
+Install the required Qemu tools in your Nixos shell:
 ```shell
 nix-shell -p qemu qemu-utils OVMF just
 ```
+2. Make a virtual disk
 
-2. Maak een Virtuele Schijf
-
-Maak een virtuele schijf voor de VM:
-
+Make a virtual disk for the VM:
 ```shell
 qemu-img create -f qcow2 $HOME/vms/nixos-vm.qcow2 30G
 ```
-
-Om later de schijf te vergroten, gebruik je:
+To increase the disk later, use:
 
 ``` shell
 qemu-img resize $HOME/vms/nixos-vm.qcow2 +20G
 ```
 
-3. Mount de Schijf
+3. Mount the disk
 
-Mount de schijf zodat je toegang hebt tot het bestandssysteem:
-
+Mount the disk so that you have access to the file system:
 ```shell
 sudo mount $HOME/vms/nixos-vm.qcow2 $HOME/vms/nixos-vm
 ```
+4. Make the required directories and clone the repository
 
-4. Maak de Benodigde Directories en Clone de Repository
-
-Maak de etc/ directory aan en clone je repository:
+Create the etc/ directory and clone your repository:
 
 ```shell
 mkdir $HOME/vms/nixos-vm/etc
@@ -149,44 +139,41 @@ cd $HOME/vms/nixos-vm/etc
 git clone git@github.com:eelcovv/eelco-nixos.git nixos
 cd $HOME/vms/nixos-vm/etc
 ```
+This cloning is also possible later when you start the VM in live-USB mode.
 
-Dit clonen kan ook later wanneer je de VM opstart in live-USB-modus.
+5. Install the ISO QEMU-VM
 
-5. Installeer de iso QEMU-VM
+Note: this knew the contents of your virtual hard drive and starts with a new installation.
 
-Let op: dit wist de inhoud van je virtuele harde schijf en begint met een nieuwe installatie.
-
-Download eerst de iso
+First download the ISO
 
 ```shell
 curl -o $HOME/vms/nixos-minimal.iso -L https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
 ```
 
-Ook gaan we de  Open Virtual Machine Firmware gebruiken. Hiervoor hadden we al OVFM geinstalleerd. Zoek de benodigde bestanden op:
+We will also use the open virtual machine firmware.We had already installed OVFM for this.Find the required files:
 
 ```shell
 nix-build '<nixpkgs>' -A OVMF.fd
 ```
+This gives a location such as `/nix/store/KW52jax4fH89AJ4GNK6PCLWIXAGCSDJR-OVMF-202411-FD '
 
-Dit geeft een locatie als `/nix/store/kw52jax4fh89aj4gnk6pclwixagcsdjr-OVMF-202411-fd`
-
-JE moet nu de bestanden kopieren. Dit kan gelijk met
+You now have to copy the files.This is possible with
 
 ```shell
 sudo cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd $HOME/vms/
 ```
 
-Nu staat de OVMF_CODE.fd in je eigen vms directory
+You are the OVMF_Code.fd in your own VMS Directory
 
-Nu moet onze uefi_vars.fd verwijzen naar de OVMF_vars.fd, dus copieer ook
-
+Now our Uefi_vars.fd must refer to the ovmf_vars.fd, so also copy
 ```shell
 sudo cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/uefi_vars.fd
 ```
 
 
 
-Start de VM met de NixOS ISO en koppel de virtuele schijf:
+Start the VM with the Nixos ISO and couple the virtual disk:
 
 ```shell
 qemu-system-x86_64 \
@@ -198,31 +185,25 @@ qemu-system-x86_64 \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 ```
 
-Dit is gelijk aan het opstarten van een nixos live-usb.
+This is the same as starting a Nixos Live-USB.
 
-Na het opstarten verander je het password in de qemu terminal met:
-
+After starting, you change the password in the Qemu Terminal with:
 ```shell
 passwd
 ```
+6. Installing Nixos
 
-6. Installeren van NixOS
-
-Zodra de QEMU-VM is opgestart, kun je inloggen en de installatie uitvoeren. Stel een wachtwoord in:
-
+Once the QEMU-VM has started, you can log in and perform the installation.Set a password:
 ```shell
 ssh -p 2222 nixos@localhost
 ```
-
-Mocht je je qemu vm meerdere keren opstarten dan krijg je de fingerprint warning als je weer met ssh naar de local machine in wilt loggen. Om deze schoon te maken kan je runnen
-
+If you start your Qemu VM several times, you will get the Fingerprint Warning if you want to log in to the Local Machine with SSH.To clean it you can run
 ```shell
 ssh-keygen -R "[localhost]:2222"
 ```
+If you are logged in you create an SSH key with
 
-Als je ingelogd ben maak je een ssh key aan met
-
-Clone vervolgens je repository en configureer de schijf:
+Clone then your repository and configure the disk:
 ```shell
 ssh-keygen
 ```
@@ -230,31 +211,25 @@ ssh-keygen
 ```shell
 git clone git@github.com:eelcovv/eelco-nixos.git
 ```
-
-En ga in je repo met
+And go into your repo with
 ```shell
 cd eelco-nixos
 ```
+7. Partition and mount the disk
 
-7. Partitioneer en Mount de Schijf
-
-Gebruik disko om de schijf te partitioneren en te mounten:
-
+Use Disko to partition and toot the disk:
 ```shell
 sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
 ```
+8. Perform the Nixos installation
 
-8. Voer de NixOS Installatie Uit
-
-Voer de installatie uit met:
-
+Perform the installation with:
 ```shell
 sudo nixos-install --flake .#tongfang-vm
 ```
+9. Close the VM and restart
 
-9. Sluit de VM en Herstart
-
-Sluit de QEMU-VM die de live ISO draait. Je kunt de VM opnieuw opstarten met:
+Close the Qemu-VM that runs the live ISO.You can restart the VM with:
 
 ```shell
 qemu-system-x86_64 \
@@ -265,49 +240,46 @@ qemu-system-x86_64 \
   -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 ```
+10. Rebuild the boat system (possibly if you have changed)
 
-10. Herbouw de Boot Systeem (eventueel als je wat veranderd hebt)
-
-Voer een rebuild van het boot-systeem uit:
-
+Implement a rebuild from the boat system:
 ```shell
 sudo nixos-rebuild boot --flake .#tongfang-vm
 ```
 
+## Troubleshooting commands for finding labels
 
-## Troubleshooting Commando's voor het Vinden van Labels
+1. `LSBLK`: This gives an overview of the discs, partitions, file systems and labels, including the Mount Points.
 
-1. `lsblk`: Dit geeft een overzicht van de schijven, partities, bestandssystemen en labels, inclusief de mount points.
+2. `BLKID`: This command was used to request more detailed information about the partitions and their labels.
+`Sudo BLKID /DEV /VDA2`
+This gives the UUID, the file system type, the label and other metadata for a specific partition.
 
-2. `blkid`: Dit commando werd gebruikt om gedetailleerdere informatie over de partities en hun labels op te vragen.
-   `sudo blkid /dev/vda2`
-   Dit geeft de UUID, het bestandssysteemtype, de label en andere metadata voor een specifieke partitie.
+3. `Wipefs`: This was used to erase the existing partition table and file system data of a disk or partition, which is useful to restore a clean state.
+`Sudo Wipefs -a /DEV /VDA`
+This deletes all inscription information (such as GPT, MBR) from the disk.
 
-3. `wipefs`: Dit werd gebruikt om de bestaande partitietabel en bestandssysteemgegevens van een schijf of partitie te wissen, wat handig is om een schone staat te herstellen.
-   `sudo wipefs -a /dev/vda`
-   Hiermee wordt alle opschriftinformatie (zoals GPT, MBR) van de schijf gewist.
+4. `Partprobe 'and` udevadm trigger': these commands were used to inform the system of changes in the disk layout, so that the kernel and device manager can recognize the new partitions.
+`Sudo Partprobe /DEV /VDA`
+`Sudo Udevadm Trigger-subsystem-Match = Block`
+`Sudo Udevadm Settle -Timeout 120`
 
-4. `partprobe` en `udevadm trigger`: Deze commando's werden gebruikt om het systeem op de hoogte te stellen van veranderingen in de schijfindeling, zodat de kernel en device manager de nieuwe partities kunnen herkennen.
-   `sudo partprobe /dev/vda`
-   `sudo udevadm trigger --subsystem-match=block`
-   `sudo udevadm settle --timeout 120`
+5. `Sgdisk`: This is used for partitioning the disk, creating the GPT partition table and setting the partition settings such as size, name, type, and so on.
+`Sgdisk -Clear /DEV /VDA`
+`Sgdisk-align-end--new = 1:+512M-Partition -Guid = 1: R-Chahange-Not-admitted = 1: Disk-Main-boat-TypeCode = 1: EF00 /DEV /VDA`
+`Sgdisk-align-end--annew = 2: 0: -0-Partition -Guid = 2: R -Change-admission = 2: Disk-Main-Disk-Main-Boot-TypeCode = 2: 8300 /DEV /VDA`
 
-5. `sgdisk`: Dit is gebruikt voor het partitioneren van de schijf, het creëren van de GPT-partitietabel en het instellen van de partitie-instellingen zoals grootte, naam, type, enzovoorts.
-   `sgdisk --clear /dev/vda`
-   `sgdisk --align-end --new=1:0:+512M --partition-guid=1:R --change-name=1:disk-main-boot --typecode=1:EF00 /dev/vda`
-   `sgdisk --align-end --new=2:0:-0 --partition-guid=2:R --change-name=2:disk-main-disk-main-root --typecode=2:8300 /dev/vda`
+6. `Findmnt`: This was used to check whether the partitions have been properly mounted and whether the labels are recognized correctly.
+`FindMNT/DEV/Disk/by-Partlabel/Disk-Main-Disk-Main-Groot/MNT/`
 
-6. `findmnt`: Dit werd gebruikt om te controleren of de partities goed zijn gemount en of de labels correct herkend worden.
-   `findmnt /dev/disk/by-partlabel/disk-main-disk-main-root /mnt/`
+By carefully performing these steps, you could properly configure both the partitioning and the labels.
 
-Door deze stappen zorgvuldig uit te voeren, kon je zowel de partitionering als de labels goed configureren.
+# Workflow Nixos Develop and test via Tongfang-VM
 
-# Workflow NixOS ontwikkelen en testen via tongfang-vm
+## 1. Adjust on Tongfang (Head-laptop)
 
-## 1. Aanpassen op Tongfang (hoofd-laptop)
-
-- Pas je configuratie aan (bijv. `nixos/hosts/tongfang-vm.nix`)
-- Commit en push naar GitHub:
+- Adjust your configuration (e.g. `Nixos/Hosts/Tongfang-vm.nix`)
+- Commit and Push to Github:
 
 ```shell
 git add .
@@ -315,34 +287,31 @@ git commit -m "korte omschrijving"
 git push
 ```
 
-## 2. Updaten en rebuilden op tongfang-vm
+## 2. Updating and rebuilding on Tongfang-VM
 
-* SSH naar je VM (of open terminal in de VM)
-* Haal laatste wijzigingen op en rebuild:
-
+* SSH to your VM (or open terminal in the VM)
+* Make the latest changes and rebuild:
 
 ```shell
 cd ~/eelco-nixos
 git pull
 sudo nixos-rebuild switch --flake .#tongfang
 ```
-
-## 3. Testen
- * Controleer of je wijziging werkt zoals bedoeld.
- * Indien nodig rollback:
+## 3. Testing
+* Check if your change works as intended.
+* If necessary Rollback:
 
 ```shell
 sudo nixos-rebuild switch --rollback
 ```
+## 4. If everything works
 
-## 4. Als alles werkt
-
-Pas daarna dezelfde push-pull-rebuild stap toe op je echte Tongfang laptop.
+Only then the same push-pull-rebuild step on your real tongue laptop.
 
 ## Extra tips
 
-* Gebruik sudo nixos-rebuild test --flake .#tongfang als je tijdelijk iets wil proberen zonder direct te activeren.
+* Use Sudo Nixos-Rebuild test-flake.#Tongfang if you want to temporarily try something without immediately activating.
 
-* Maak snapshots van je VM voor grote wijzigingen.
+* Make snapshots of your VM for major changes.
 
-* Houd SSH open op tongfang-vm zodat je makkelijker kunt deployen.
+* Keep SSH open on Tongfang-VM so that it is easier to deploy.
