@@ -1,5 +1,6 @@
+# Show the commands
 default:
-  @just --summary
+  just --list
 
 # ========== VM INSTALLATION WORKFLOW ==========
 
@@ -86,18 +87,6 @@ vm_build_tongfang:
 # Quick test-build VM for Singer
 vm_build_singer:
   nixos-rebuild build-vm --flake .#singer
-
-# ========== DEPLOYMENT ==========
-
-# --- On your own laptop ---
-
-# Deploy to server 'pureintent'
-deploy_pureintent:
-  nix run . pureintent
-
-# Deploy to server 'gate'
-deploy_gate:
-  nix run . gate
 
 # ========== SYSTEM MAINTENANCE ==========
 
