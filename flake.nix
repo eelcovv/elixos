@@ -84,9 +84,9 @@
       };
     };
 
-# Packages (optional, if you need them for specific systems)
-# You could possibly replace this with:
-#Packages.x86_64-Linux = buildtins.Mapattrs (_: CFG: CFG.Config.System.build.toplevel) Self.nixos configuration;
+    # Packages (optional, if you need them for specific systems)
+    # You could possibly replace this with:
+    #Packages.x86_64-Linux = buildtins.Mapattrs (_: CFG: CFG.Config.System.build.toplevel) Self.nixos configuration;
     packages.x86_64-linux = rec {
       tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
       generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;

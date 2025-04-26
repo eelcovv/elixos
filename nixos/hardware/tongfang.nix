@@ -4,27 +4,27 @@
   filesystem definitions.
 
   - `imports`: Includes additional configuration files:
-    - `../modules/profiles/vm-host.nix`: Likely a profile for virtual machine hosting.
-    - `./tongfang-hardware-configuration.nix`: Hardware-specific settings for the Tongfang laptop.
-    - `./tongfang-graphics-configuration.nix`: Graphics-specific settings for the Tongfang laptop.
+  - `../modules/profiles/vm-host.nix`: Likely a profile for virtual machine hosting.
+  - `./tongfang-hardware-configuration.nix`: Hardware-specific settings for the Tongfang laptop.
+  - `./tongfang-graphics-configuration.nix`: Graphics-specific settings for the Tongfang laptop.
 
   - `boot.loader.systemd-boot.enable`: Enables the systemd-boot bootloader.
   - `boot.loader.efi.canTouchEfiVariables`: Allows the bootloader to modify EFI variables.
 
   - `boot.initrd.luks.devices`: Configures LUKS encryption for the root filesystem.
-    - `luks-f0af0243-70cb-493e-be3c-33a7b3b413ac`: Specifies the encrypted device by UUID.
+  - `luks-f0af0243-70cb-493e-be3c-33a7b3b413ac`: Specifies the encrypted device by UUID.
 
   - `fileSystems."/boot"`: Configures the `/boot` partition.
-    - `device`: Specifies the device by UUID.
-    - `fsType`: Filesystem type (ext4).
-    - `options`: Mount options for security (restrictive file and directory permissions).
+  - `device`: Specifies the device by UUID.
+  - `fsType`: Filesystem type (ext4).
+  - `options`: Mount options for security (restrictive file and directory permissions).
 
   - `fileSystems."/"`: Configures the root filesystem.
-    - `device`: Specifies the LUKS-mapped device.
-    - `fsType`: Filesystem type (ext4).
+  - `device`: Specifies the LUKS-mapped device.
+  - `fsType`: Filesystem type (ext4).
 
   - `swapDevices`: Configures swap space.
-    - `device`: Specifies the swap device by UUID.
+  - `device`: Specifies the swap device by UUID.
 
   Note: Additional options or configurations from a previous setup can be added
   to this file as needed.

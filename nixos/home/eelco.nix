@@ -10,7 +10,7 @@ let
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@vm"
     ];
   };
-  keys = hostSpecificKeys.${config.home.hostname} or [];
+  keys = hostSpecificKeys.${config.home.hostname} or [ ];
 in
 {
 

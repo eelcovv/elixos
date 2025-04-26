@@ -4,7 +4,7 @@
   disko.devices = {
     disk.main = {
       type = "disk";
-      device = "/dev/sda";  # You might need to adjust this after checking `lsblk`
+      device = "/dev/sda"; # You might need to adjust this after checking `lsblk`
       content = {
         type = "gpt";
         partitions = [

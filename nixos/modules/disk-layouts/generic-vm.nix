@@ -25,40 +25,41 @@
  */
 { lib, ... }:
 
-{ disko.devices = {
-  disk.main = {
-    type = "disk";
-    device = "/dev/vda";
+{
+  disko.devices = {
+    disk.main = {
+      type = "disk";
+      device = "/dev/vda";
 
-    content = {
-      type = "gpt";
-      partitions = {
-        boot = {
-          size = "512M";
-          type = "EF00";
-          content = {
-            type = "filesystem";
-            format = "vfat";
-            mountpoint = "/boot/efi";
+      content = {
+        type = "gpt";
+        partitions = {
+          boot = {
+            size = "512M";
+            type = "EF00";
+            content = {
+              type = "filesystem";
+              format = "vfat";
+              mountpoint = "/boot/efi";
+            };
           };
-        };
-        root = {
-          size = "100%";
-          name = "disk-main-root"; 
-          content = {
-            type = "filesystem";
-            format = "ext4";
-            mountpoint = "/";
-            extraArgs = [ "-L" "disk-main-root" ];
-          };
+          root = {
+            size = "100%";
+            name = "disk-main-root";
+            content = {
+              type = "filesystem";
+              format = "ext4";
+              mountpoint = "/";
+              extraArgs = [ "-L" "disk-main-root" ];
+            };
 
+          };
         };
       };
     };
   };
-}; 
 
-# Make sure the EFI partition is mounted
-fileSystems."/boot/efi".device = lib.mkForce "/dev/vda1";
+  # Make sure the EFI partition is mounted
+  fileSystems."/boot/efi".device = lib.mkForce "/dev/vda1";
 
 }

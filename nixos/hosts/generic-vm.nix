@@ -11,7 +11,7 @@
  * - **networking.hostName**: Sets the hostname of the machine to "generic-vm".
  * - **system.stateVersion**: Specifies the NixOS state version, set to "24.11".
  */
- { inputs, ... }:
+{ inputs, ... }:
 
 {
   imports = [

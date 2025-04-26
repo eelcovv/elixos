@@ -3,20 +3,20 @@
   NVIDIA and AMD GPUs. It provides two specializations for GPU usage:
 
   1. `on-the-go.configuration`:
-     - Designed for scenarios where GPU offloading is required.
-     - Disables NVIDIA PRIME synchronization (`sync.enable`).
-     - Configures GPU offloading with specific PCI Bus IDs for NVIDIA and AMD GPUs.
-     - Enables offloading commands explicitly.
+   - Designed for scenarios where GPU offloading is required.
+   - Disables NVIDIA PRIME synchronization (`sync.enable`).
+   - Configures GPU offloading with specific PCI Bus IDs for NVIDIA and AMD GPUs.
+   - Enables offloading commands explicitly.
 
   2. `nvidea.configuration`:
-     - Configures NVIDIA PRIME synchronization for automatic GPU switching.
-     - Uses specific PCI Bus IDs for NVIDIA and AMD GPUs.
-     - Includes commented-out options for manual GPU offloading if needed.
-     - References the NixOS Wiki for further details on NVIDIA configuration.
+   - Configures NVIDIA PRIME synchronization for automatic GPU switching.
+   - Uses specific PCI Bus IDs for NVIDIA and AMD GPUs.
+   - Includes commented-out options for manual GPU offloading if needed.
+   - References the NixOS Wiki for further details on NVIDIA configuration.
 
   Notes:
   - Ensure the correct PCI Bus IDs (`nvidiaBusId` and `amdgpuBusId`) are set for your system.
-    These can be obtained using the `lshw -c display` command.
+  These can be obtained using the `lshw -c display` command.
   - The `system.nixos.tags` attribute is used to tag configurations for easier identification.
 */
 { config, lib, pkgs, modulesPath, ... }:

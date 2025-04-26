@@ -1,7 +1,7 @@
 {
   services.xserver = {
     enable = true;
-    videoDrivers = [ "virtio" ]; 
+    videoDrivers = [ "virtio" ];
   };
 
   services.openssh = {

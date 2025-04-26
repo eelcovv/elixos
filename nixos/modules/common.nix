@@ -11,7 +11,7 @@
 { config, lib, pkgs, ... }:
 
 {
- # General system settings
+  # General system settings
 
   # Shell
   programs.zsh.enable = true;
