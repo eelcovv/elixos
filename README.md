@@ -297,6 +297,15 @@ And now you can run
 just vm_install
 ```
 
+If you want to keep developping on the host and have to push a lot, add the local host to your ssh ageint. First check if the agent is running with 
+
+```shell
+eval "$(ssh-agent -s)"
+```
+then copy your id:
+```shell
+ssh-copy-id  -p 2222 nixos@localhost
+```
 
 
 7. Partition and mount the disk

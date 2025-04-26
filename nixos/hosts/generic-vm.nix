@@ -22,12 +22,8 @@
     ../modules/disk-layouts/generic-vm.nix
     ../users/eelco.nix
     ../home/eelco.nix
-
-    # Add home-manager as a NixOS module
-    inputs.home-manager.nixosModules.home-manager
   ];
 
   networking.hostName = "generic-vm";
-  system.stateVersion = "24.11";
 
 }
