@@ -1,11 +1,11 @@
 default:
   @just --summary
 
-# ========== VM INSTALLATIE WORKFLOW ==========
+# ========== VM INSTALLATION WORKFLOW ==========
 
-# --- Op je eigen laptop ---
+# --- On your own laptop ---
 
-# 1. Download ISO, OVMF bestanden, maak lege disk
+# 1. Download the ISO, OVMF files, and create an empty disk
 vm_prepare:
   mkdir -p $HOME/vms/nixos
   curl -L -o $HOME/vms/nixos/nixos-minimal.iso https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
@@ -14,7 +14,7 @@ vm_prepare:
   chmod 644 $HOME/vms/nixos/*.fd
   qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 30G
 
-# 2. Start VM vanaf ISO (installer draaien)
+# 2. Start VM from the ISO (run installer)
 vm_run_installer:
   qemu-system-x86_64 \
     -enable-kvm \
@@ -26,19 +26,19 @@ vm_run_installer:
     -boot d \
     -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
-# --- Binnen de live-VM (via SSH of console) ---
+# --- Inside the live VM (via SSH or console) ---
 
-# 3. Partitioneer de schijf in de VM
+# 3. Partition the disk in the VM
 vm_partition:
   sudo nix run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/qemu-vm.nix
 
-# 4. Installeer NixOS op de disk in de VM
+# 4. Install NixOS on the disk in the VM
 vm_install:
   sudo nixos-install --flake .#generic-vm
 
-# --- Terug op je eigen laptop ---
+# --- Back on your own laptop ---
 
-# 5. Start VM vanaf de geinstalleerde disk
+# 5. Start VM from the installed disk
 vm_run:
   qemu-system-x86_64 \
     -enable-kvm \
@@ -49,7 +49,7 @@ vm_run:
     -boot c \
     -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
-# 6. (optioneel) Start VM met GPU ondersteuning (voor snellere desktop)
+# 6. (Optional) Start VM with GPU support (for faster desktop)
 vm_run_gpu:
   qemu-system-x86_64 \
     -enable-kvm \
@@ -66,46 +66,51 @@ vm_run_gpu:
     -boot c \
     -nic user,model=virtio-net-pci
 
+# Remove the VM files
+vm_reset:
+    rm -rv $HOME/vms/nixos
+    echo "VM files have been removed. You can now start over with 'just vm_prepare'."
+
 # ========== SYSTEM BUILD & TESTING ==========
 
-# --- Op je eigen laptop ---
+# --- On your own laptop ---
 
-# Rebuild Tongfang laptop lokaal
+# Rebuild the Tongfang laptop locally
 local_tongfang:
   sudo nixos-rebuild switch --show-trace --flake .#tongfang
 
-# Snelle test-build VM voor Tongfang
+# Quick test-build VM for Tongfang
 vm_build_tongfang:
   nixos-rebuild build-vm --flake .#tongfang
 
-# Snelle test-build VM voor Singer
+# Quick test-build VM for Singer
 vm_build_singer:
   nixos-rebuild build-vm --flake .#singer
 
 # ========== DEPLOYMENT ==========
 
-# --- Op je eigen laptop ---
+# --- On your own laptop ---
 
-# Deploy naar server 'pureintent'
+# Deploy to server 'pureintent'
 deploy_pureintent:
   nix run . pureintent
 
-# Deploy naar server 'gate'
+# Deploy to server 'gate'
 deploy_gate:
   nix run . gate
 
 # ========== SYSTEM MAINTENANCE ==========
 
-# --- Op je eigen laptop ---
+# --- On your own laptop ---
 
-# Update alle flake inputs
+# Update all flake inputs
 update:
   nix flake update
 
-# Garbage collect oude versies
+# Garbage collect old versions
 clean:
   nix-collect-garbage
 
-# Format alle Nix bestanden
+# Format all Nix files
 fmt:
   pre-commit run --all-files
