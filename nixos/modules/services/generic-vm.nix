@@ -2,6 +2,7 @@
 
   services = {
 
+    # turn of services we dont use in the vm
     dbus.enable = false;
     bluetooth.enable = false;
 
@@ -9,7 +10,10 @@
       enable = true;
       videoDrivers = [ "virtio" ];
     };
+    services.geoclue.enable = false;
 
+
+    # turn on openssh!
     openssh = {
       enable = true;
 

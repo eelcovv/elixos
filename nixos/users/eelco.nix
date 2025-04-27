@@ -19,7 +19,7 @@
  *   - `shell`: Specifies the user's shell, set to Zsh from the package set.
  *   - `openssh.authorizedKeys.keys`: Configures the SSH authorized keys for the user, based on the current hostname.
  */
- { pkgs, config, ... }:
+{ pkgs, config, ... }:
 
 let
   # Always familiar keys for all hosts
@@ -29,12 +29,12 @@ let
 
   # Extra keys per specific host
   hostSpecificKeys = {
-    tongfang = [];
-    generic-vm = [];
+    tongfang = [ ];
+    generic-vm = [ ];
   };
 
   # The full list: TrustedKeys + Possible host-specific
-  keys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or []);
+  keys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or [ ]);
 in
 {
   users.users.eelco = {
@@ -49,5 +49,5 @@ in
     openssh.authorizedKeys.keys = keys;
   };
 
-  users.groups.eelco = {}; # <<< define group "eelco"
+  users.groups.eelco = { }; # <<< define group "eelco"
 }

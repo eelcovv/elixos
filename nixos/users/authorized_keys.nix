@@ -16,7 +16,7 @@ let
     ];
   };
 
-  allKeys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or []);
+  allKeys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or [ ]);
 in
 {
   options.eelco-authorized-keys = lib.mkOption {

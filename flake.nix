@@ -40,7 +40,7 @@
     agenix.url = "github:ryantm/agenix";
   };
 
-#  outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, agenix, ... }@inputs: {
+  #  outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, agenix, ... }@inputs: {
   outputs = { self, nixpkgs, nixos-hardware, disko, agenix, ... }@inputs: {
 
     # NixOS configuraties
