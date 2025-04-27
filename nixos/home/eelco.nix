@@ -1,6 +1,5 @@
 { config, pkgs, lib, ... }:
 
-
 let
   # Always familiar keys for all hosts
   trustedKeys = [
@@ -14,34 +13,32 @@ let
   };
 
   # The full list: TrustedKeys + Possible host-specific
-  keys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
- ]);
+  keys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or []);
 in
 {
-
   home-manager.users.eelco = {
     home.username = "eelco";
     home.homeDirectory = "/home/eelco";
     home.stateVersion = "24.11";
 
-    # SSH authorized keys
+    # Correct way to define authorized keys in Home Manager
     programs.ssh = {
       enable = true;
-      authorizedKeys.keys = keys;
+      authorizedKeys = keys;  # Correct place for defining authorized keys
     };
 
     # Shell (zsh) config
     programs.zsh = {
       enable = true;
       ohMyZsh.enable = true;
-      ohMyZsh.theme = "agnoster"; # or any other theme you like
+      ohMyZsh.theme = "agnoster";  # You can choose another theme if you want
     };
 
     # Git config
     programs.git = {
       enable = true;
       userName = "Eelco van Vliet";
-      userEmail = "eelco@example.com"; # change to your real email
+      userEmail = "eelco@example.com";  # Update with your real email address
       extraConfig = {
         core.editor = "vim";
       };
