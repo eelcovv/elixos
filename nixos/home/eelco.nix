@@ -23,7 +23,7 @@ in
     home.stateVersion = "24.11";
 
     # Create the .ssh directory with correct permissions
-    home.file.".ssh/" = {
+    home.file.".ssh" = {
       mode = "700";
       owner = "eelco";
       group = "eelco";
