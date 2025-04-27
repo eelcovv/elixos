@@ -2,9 +2,6 @@
 
   services = {
 
-    # turn of services we dont use in the vm
-    dbus.enable = false;
-
     xserver = {
       enable = true;
       videoDrivers = [ "virtio" ];
