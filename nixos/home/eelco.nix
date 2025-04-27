@@ -27,18 +27,14 @@ in
     '';
 
     # Ensure .ssh directory has correct permissions
-    home.directory.".ssh" = {
-      mode = "700";
-      owner = "eelco";
-      group = "eelco";
-    };
+    home.file.".ssh".mode = "700";
+    home.file.".ssh".owner = "eelco";
+    home.file.".ssh".group = "eelco";
 
     # Ensure authorized_keys file has correct permissions
-    home.file.".ssh/authorized_keys" = {
-      mode = "600";
-      owner = "eelco";
-      group = "eelco";
-    };
+    home.file.".ssh/authorized_keys".mode = "600";
+    home.file.".ssh/authorized_keys".owner = "eelco";
+    home.file.".ssh/authorized_keys".group = "eelco";
 
     # Enable SSH program to allow ssh client usage
     programs.ssh = {
