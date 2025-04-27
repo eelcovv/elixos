@@ -375,9 +375,8 @@ Then on your host machine, add this folder with
 
 Now, back on your live installer terminal, do 
 
-13. `git clone /tmp/eelco-nixos.git`  to store your password so you dont have to type it each time
+13. `git clone -b main /tmp/eelco-nixos.git`   to clone your repo to your home folder
 14. `cd eelco-nixos.git` to go to you cloned repository
-15. `git checkout main` to checkout the main branch
 
 At this point you should have a clone of your repository on the live usb. 
 
@@ -406,7 +405,7 @@ This gives the UUID, the file system type, the label and other metadata for a sp
 `Sudo Wipefs -a /DEV /VDA`
 This deletes all inscription information (such as GPT, MBR) from the disk.
 
-4. `Partprobe 'and` udevadm trigger': these commands were used to inform the system of changes in the disk layout, so that the kernel and device manager can recognize the new partitions.
+4. `Partprobe` and `udevadm trigger`: these commands were used to inform the system of changes in the disk layout, so that the kernel and device manager can recognize the new partitions.
 `Sudo Partprobe /DEV /VDA`
 `Sudo Udevadm Trigger-subsystem-Match = Block`
 `Sudo Udevadm Settle -Timeout 120`

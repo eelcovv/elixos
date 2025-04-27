@@ -49,7 +49,17 @@ in
     extraGroups = [ "wheel" "networkmanager" "audio" ];
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = keys; 
+    # openssh.authorizedKeys.keys = keys; 
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
+    ];
+  };
+
+  # Zorg dat de juiste permissions en ownership bestaan voor .ssh
+  systemd.tmpfiles.rules = [
+    "d /home/eelco/.ssh 0700 eelco eelco - -"
+    "f /home/eelco/.ssh/authorized_keys 0600 eelco eelco - -"
+  ];
   };
 
 }
