@@ -24,9 +24,6 @@ in
     # Correct way to define authorized keys in Home Manager
     programs.ssh = {
       enable = true;
-      authorizedKeys = {
-        keys = keys;  # Correct option for adding authorized keys
-      };
     };
 
     # Shell (zsh) config

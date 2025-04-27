@@ -49,7 +49,7 @@
         specialArgs = { inherit inputs self; };
         modules = [
           ./nixos/hosts/tongfang.nix
-          # home-manager.nixosModules.home-manager
+          home-manager.nixosModules.home-manager
         ];
       };
 
