@@ -50,3 +50,6 @@ in
       htop
       wget
       tree
+    ];
+  };
+}
