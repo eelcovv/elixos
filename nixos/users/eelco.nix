@@ -46,7 +46,12 @@ in
     group = "eelco"; # <<< force private group
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = keys;
+    # openssh.authorizedKeys.keys = keys;
+    # openssh does not seem to work. try is with a hack
+    # Directly set the authorized_keys file
+    home.file.".ssh/authorized_keys".text = ''
+      ${builtins.toString keys}
+    '';
   };
 
   users.groups.eelco = { }; # <<< define group "eelco"
