@@ -22,11 +22,24 @@
 { pkgs, config, ... }:
 
 let
+   # Always familiar keys for all hosts
   trustedKeys = [
-    # add here the keys of the local machines you want to grant access to all the other machines, like you vm
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
+    # possibly more global keys here
   ];
-  keys = hostSpecificKeys.${config.networking.hostName} or [];
+
+  #Extra keys per specific host
+  hostSpecificKeys = {
+    tongfang = [
+      # For example, extra keys that are only allowed on tongue
+    ];
+    generic-vm = [
+      # For example, test keys that are only allowed on the VM
+    ];
+  };
+
+  # The full list: TrustedKeys + Possible host -specific
+  keys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or []);
 in
 {
   users.users.eelco = {
@@ -36,7 +49,7 @@ in
     extraGroups = [ "wheel" "networkmanager" "audio" ];
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = trustedKeys; 
+    openssh.authorizedKeys.keys = keys; 
   };
 
 }
