@@ -60,6 +60,5 @@ in
     "d /home/eelco/.ssh 0700 eelco eelco - -"
     "f /home/eelco/.ssh/authorized_keys 0600 eelco eelco - -"
   ];
-  };
 
 }
