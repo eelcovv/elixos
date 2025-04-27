@@ -1,3 +1,4 @@
+
 { config, pkgs, lib, ... }:
 
 let
@@ -27,9 +28,11 @@ in
     '';
 
     # Ensure .ssh directory has correct permissions
-    home.file.".ssh".mode = "700";
-    home.file.".ssh".owner = "eelco";
-    home.file.".ssh".group = "eelco";
+    home.directory.".ssh" = {
+      mode = "700";
+      owner = "eelco";
+      group = "eelco";
+    };
 
     # Ensure authorized_keys file has correct permissions
     home.file.".ssh/authorized_keys".mode = "600";
