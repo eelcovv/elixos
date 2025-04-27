@@ -29,15 +29,13 @@ in
     # Shell (zsh) config
     programs.zsh = {
       enable = true;
-      ohMyZsh.enable = true;
-      ohMyZsh.theme = "agnoster";  # You can choose another theme if you want
     };
 
     # Git config
     programs.git = {
       enable = true;
       userName = "Eelco van Vliet";
-      userEmail = "eelco@example.com";  # Update with your real email address
+      userEmail = "eelcovv@gmail.com";  # Update with your real email address
       extraConfig = {
         core.editor = "vim";
       };
