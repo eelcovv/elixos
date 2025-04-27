@@ -22,15 +22,10 @@
 { pkgs, config, ... }:
 
 let
-  hostSpecificKeys = {
-    "tongfang" = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
-    ];
-    "tongfang-vm" = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@vm"
-    ];
-    # eventueel meer hosts...
-  };
+  trustedKeys = [
+    # add here the keys of the local machines you want to grant access to all the other machines, like you vm
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
+  ];
   keys = hostSpecificKeys.${config.networking.hostName} or [];
 in
 {
@@ -41,7 +36,7 @@ in
     extraGroups = [ "wheel" "networkmanager" "audio" ];
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = hostPublicKeys."tongfang"; # let op: ALTIJD tongfang-key gebruiken
+    openssh.authorizedKeys.keys = trustedKeys; 
   };
 
 }

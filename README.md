@@ -340,6 +340,57 @@ Implement a rebuild from the boat system:
 sudo nixos-rebuild boot --flake .#tongfang-vm
 ```
 
+### Workflow using the just file
+
+All steps above have been added to the just file. I you want to set up a brand new vm, do the following steps
+
+On the host machine you start with
+
+1. `just vm_prerequist_install` to install the required packages
+2. `just vm_reset` to remove the old vm
+3. `just vm_prepare` to create the virtual hard drive and format it
+4. `just vm_run_installer` to start the nixos live installer
+
+At this point, you need to login to the live installer and make sure you transfer this repository to the live installer so you can continue there. Do the following 
+
+In the QEMU window that has just started you do:
+
+5. Set a passwd by typing `passwd` and set it to nixos or something simple
+
+In a new terminal on your host, login to the vm live cd  by doing
+
+6. `ssh-keygen -R "[localhost]:2222"` to clean the old ssh keys to the vm because they need to be renewed
+7. `ssh -p 2222 nixos@localhost` to login in on your live nixos installer.
+
+To transfer the repository to you live vm, do on you live-usb (in the terminal)
+
+8. `mkdir /tmp/eelco-nixos.git` and `` to create an empty directory
+9. `git init --bare /tmp/eelco-nixos.git` to create an empty bare repository we use a a remote server
+
+Then on your host machine, add this folder with
+
+10.  `git remote add localhost ssh://nixos@localhost:2222/tmp/eelco-nixos` to add the local
+11. `git push localhost main` to push your repository 
+12. `ssh-copy-id  -p 2222 nixos@localhost`  to store your password so you dont have to type it each time
+
+Now, back on your live installer terminal, do 
+
+13. `git clone /tmp/eelco-nixos.git`  to store your password so you dont have to type it each time
+14. `cd eelco-nixos.git` to go to you cloned repository
+15. `git checkout main` to checkout the main branch
+
+At this point you should have a clone of your repository on the live usb. 
+
+On your live usb do:
+
+16. `nix-shell -p just` to install just so we can continue with our justfile
+17 `just vm_partition` to partition the drive we have created in start 3 from your live nixos installer
+17 `just vm_install` to install our generic-vm definition to the virtual hard drive
+
+
+
+
+
 ## Troubleshooting commands for finding labels
 
 1. `LSBLK`: This gives an overview of the discs, partitions, file systems and labels, including the Mount Points.
