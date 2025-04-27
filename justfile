@@ -17,7 +17,7 @@ vm_prepare:
   cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd $HOME/vms/nixos/
   cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/nixos/uefi_vars.fd
   chmod 644 $HOME/vms/nixos/*.fd
-  qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 50G
+  qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 30G
   @echo "VM drive has been created. You can now run the installer with 'just vm_run_installer'."
 
 # 2. Start VM from the ISO (run installer)
