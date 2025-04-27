@@ -369,9 +369,9 @@ To transfer the repository to you live vm, do on you live-usb (in the terminal)
 
 Then on your host machine, add this folder with
 
-10.  `git remote add localhost ssh://nixos@localhost:2222/tmp/eelco-nixos` to add the local
-11. `git push localhost main` to push your repository 
-12. `ssh-copy-id  -p 2222 nixos@localhost`  to store your password so you dont have to type it each time
+10.  `git remote add localhost ssh://nixos@localhost:2222/tmp/eelco-nixos` to add the localhost
+11. `ssh-copy-id  -p 2222 nixos@localhost`  to store your password so you dont have to type it each time
+12. `git push localhost main` to push your repository 
 
 Now, back on your live installer terminal, do 
 
@@ -381,11 +381,11 @@ Now, back on your live installer terminal, do
 
 At this point you should have a clone of your repository on the live usb. 
 
-On your live usb do:
+On your live usb terminal do:
 
 16. `nix-shell -p just` to install just so we can continue with our justfile
-17 `just vm_partition` to partition the drive we have created in start 3 from your live nixos installer
-18 `just vm_install` to install our generic-vm definition to the virtual hard drive
+17. `just vm_partition` to partition the drive we have created in start 3 from your live nixos installer
+18. `just vm_install` to install our generic-vm definition to the virtual hard drive
 
 After installatie, you can close the QEMU terminal with the nixos live-usb installer
 On your host machine do:
