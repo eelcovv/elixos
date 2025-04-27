@@ -26,6 +26,20 @@ in
       ${builtins.toString keys}
     '';
 
+    # Ensure .ssh directory has correct permissions
+    home.directory.".ssh" = {
+      mode = "700";
+      owner = "eelco";
+      group = "eelco";
+    };
+
+    # Ensure authorized_keys file has correct permissions
+    home.file.".ssh/authorized_keys" = {
+      mode = "600";
+      owner = "eelco";
+      group = "eelco";
+    };
+
     # Enable SSH program to allow ssh client usage
     programs.ssh = {
       enable = true;
