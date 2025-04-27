@@ -8,8 +8,8 @@ let
 
   # Extra keys per specific host
   hostSpecificKeys = {
-    tongfang = [ ];
-    generic-vm = [ ];
+    tongfang = [];
+    generic-vm = [];
   };
 
   # The full list: TrustedKeys + Possible host-specific
@@ -24,7 +24,7 @@ in
     # Correct way to define authorized keys in Home Manager
     programs.ssh = {
       enable = true;
-      authorizedKeys = keys;  # Correct place for defining authorized keys
+      authorizedKeys = keys;  # Correct option for adding authorized keys
     };
 
     # Shell (zsh) config
@@ -50,6 +50,3 @@ in
       htop
       wget
       tree
-    ];
-  };
-}
