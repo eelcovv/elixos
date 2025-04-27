@@ -9,7 +9,8 @@
       enable = true;
       videoDrivers = [ "virtio" ];
     };
-    services.geoclue.enable = false;
+
+    geoclue.enable = false;
 
 
     # turn on openssh!
