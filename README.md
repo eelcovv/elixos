@@ -385,9 +385,12 @@ On your live usb do:
 
 16. `nix-shell -p just` to install just so we can continue with our justfile
 17 `just vm_partition` to partition the drive we have created in start 3 from your live nixos installer
-17 `just vm_install` to install our generic-vm definition to the virtual hard drive
+18 `just vm_install` to install our generic-vm definition to the virtual hard drive
 
+After installatie, you can close the QEMU terminal with the nixos live-usb installer
+On your host machine do:
 
+19 `just vm_run` to start up your freshly installed VM from the
 
 
 

@@ -18,7 +18,7 @@ vm_prepare:
   cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/nixos/uefi_vars.fd
   chmod 644 $HOME/vms/nixos/*.fd
   qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 50G
-  echo "VM drive has been created. You can now run the installer with 'just vm_run_installer'."
+  @echo "VM drive has been created. You can now run the installer with 'just vm_run_installer'."
 
 # 2. Start VM from the ISO (run installer)
 vm_run_installer:
@@ -31,19 +31,20 @@ vm_run_installer:
     -cdrom $HOME/vms/nixos/nixos-minimal.iso \
     -boot d \
     -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
-  echo "Installer has started. You can now login with `ssh -p 2222 nixos@localhost` (run `ssh-keygen -R "[localhost]:2222"` to clear the keys first )"
+  @echo "Installer has started. You can now login with `ssh -p 2222 nixos@localhost` (run `ssh-keygen -R "[localhost]:2222"` to clear the keys first )"
 
 # --- Inside the live VM (via SSH or console) ---
 
 # 3. Partition the disk in the VM
 vm_partition:
   sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
-  echo "Partioning is done. You can now run `vm_install`"
+  @echo "Partioning is done. You can now run `vm_install`"
 
 # 4. Install NixOS on the disk in the VM
 vm_install:
   sudo nixos-install --flake .#generic-vm
-  echo "Installation is done. You can now logout and close the VM-installer and start the vm with `vm_run`"
+
+  @echo "Installation is done. You can now run the installed vm form your host with vm_run"
 
 # --- Back on your own laptop ---
 
@@ -78,7 +79,7 @@ vm_run_gpu:
 # Remove the VM files
 vm_reset:
     rm -rv $HOME/vms
-    echo "VM files have been removed. You can now start over with 'just vm_prepare'."
+    @echo "VM files have been removed. You can now start over with 'just vm_prepare'."
 
 # ========== SYSTEM BUILD & TESTING ==========
 
