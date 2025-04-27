@@ -4,7 +4,7 @@
 
     # turn of services we dont use in the vm
     dbus.enable = false;
-    bluetooth.enable = false;
+    bluez.enable = false;
 
     xserver = {
       enable = true;
