@@ -23,11 +23,10 @@ in
     home.stateVersion = "24.11";
 
     # Create the .ssh directory with correct permissions
-    #home.file.".ssh" = {
-    #  mode = "700";
-    #  owner = "eelco";
-    #  group = "eelco";
-    #};
+    home.file.".ssh" = {
+      mode = "700";
+      owner = "eelco";
+    };
 
     # Create the authorized_keys file with correct permissions
     home.file.".ssh/authorized_keys" = {
@@ -36,7 +35,6 @@ in
       '';
       mode = "600";
       owner = "eelco";
-      group = "eelco";
     };
 
     # Enable SSH program to allow ssh client usage
