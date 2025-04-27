@@ -365,7 +365,9 @@ This deletes all inscription information (such as GPT, MBR) from the disk.
 6. `Findmnt`: This was used to check whether the partitions have been properly mounted and whether the labels are recognized correctly.
 `FindMNT/DEV/Disk/by-Partlabel/Disk-Main-Disk-Main-Groot/MNT/`
 
-By carefully performing these steps, you could properly configure both the partitioning and the labels.
+7. Als je niet kan inloggen met ssh, check of de server draait `systemctl status sshd` en check of de port 22 open staat `ss -tlpn | grep :22`
+
+8. Check firewall regels met `sudo iptables -L | grep ssh`
 
 # Workflow Nixos Develop and test via Tongfang-VM
 
