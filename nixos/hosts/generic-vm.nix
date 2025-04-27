@@ -16,16 +16,13 @@
 {
   imports = [
     ../modules/common.nix
-    # ../modules/home-manager.nix
+    ../modules/home-manager.nix
     ../modules/services/generic-vm.nix
     ../hardware/generic-vm.nix
     ../modules/disk-layouts/generic-vm.nix
     ../users/eelco.nix
-
-    #../home/eelco.nix
-
-    # Add home-manager as a NixOS module
-    # inputs.home-manager.nixosModules.home-manager
+    ../home/eelco.nix
+    inputs.home-manager.nixosModules.home-manager
   ];
 
   networking.hostName = "generic-vm";

@@ -2,15 +2,20 @@
 
 
 let
+  # Always familiar keys for all hosts
+  trustedKeys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
+  ];
+
+  # Extra keys per specific host
   hostSpecificKeys = {
-    "tongfang" = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
-    ];
-    "tongfang-vm" = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@vm"
-    ];
+    tongfang = [ ];
+    generic-vm = [ ];
   };
-  keys = hostSpecificKeys.${config.home.hostname} or [ ];
+
+  # The full list: TrustedKeys + Possible host-specific
+  keys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
+ ]);
 in
 {
 
@@ -45,10 +50,8 @@ in
     # Install some basic packages
     home.packages = with pkgs; [
       neovim
-      git
       htop
       wget
-      curl
       tree
     ];
   };

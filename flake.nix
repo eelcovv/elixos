@@ -35,13 +35,12 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
-    # home-manager.url = "github:nix-community/home-manager";
+    home-manager.url = "github:nix-community/home-manager";
     disko.url = "github:nix-community/disko";
     agenix.url = "github:ryantm/agenix";
   };
 
-  #  outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, agenix, ... }@inputs: {
-  outputs = { self, nixpkgs, nixos-hardware, disko, agenix, ... }@inputs: {
+  outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, agenix, ... }@inputs: {
 
     # NixOS configuraties
     nixosConfigurations = {
@@ -60,7 +59,7 @@
         modules = [
           ./nixos/hosts/generic-vm.nix
           disko.nixosModules.disko
-          # home-manager.nixosModules.home-manager
+          home-manager.nixosModules.home-manager
         ];
       };
 
@@ -70,7 +69,7 @@
         modules = [
           ./nixos/hosts/singer.nix
           disko.nixosModules.disko
-          # home-manager.nixosModules.home-manager
+          home-manager.nixosModules.home-manager
         ];
       };
 
@@ -80,7 +79,7 @@
         modules = [
           ./nixos/hosts/contabo.nix
           disko.nixosModules.disko
-          # home-manager.nixosModules.home-manager
+          home-manager.nixosModules.home-manager
         ];
       };
     };
