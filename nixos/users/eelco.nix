@@ -1,6 +1,5 @@
 { pkgs, config, ... }:
 
-in
 {
   users.users.eelco = {
     isNormalUser = true;
