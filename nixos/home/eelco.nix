@@ -22,22 +22,22 @@ in
     home.homeDirectory = "/home/eelco";
     home.stateVersion = "24.11";
 
-    # Use home.file to directly write the authorized_keys file
-    home.file.".ssh/authorized_keys".text = ''
-      ${builtins.toString keys}
-    '';
-
-    # Ensure .ssh directory has correct permissions
-    home.directory.".ssh" = {
+    # Create the .ssh directory with correct permissions
+    home.file.".ssh/" = {
       mode = "700";
       owner = "eelco";
       group = "eelco";
     };
 
-    # Ensure authorized_keys file has correct permissions
-    home.file.".ssh/authorized_keys".mode = "600";
-    home.file.".ssh/authorized_keys".owner = "eelco";
-    home.file.".ssh/authorized_keys".group = "eelco";
+    # Create the authorized_keys file with correct permissions
+    home.file.".ssh/authorized_keys" = {
+      text = ''
+        ${builtins.toString keys}
+      '';
+      mode = "600";
+      owner = "eelco";
+      group = "eelco";
+    };
 
     # Enable SSH program to allow ssh client usage
     programs.ssh = {
