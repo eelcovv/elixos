@@ -21,22 +21,6 @@
  */
 { pkgs, config, ... }:
 
-let
-  # Always familiar keys for all hosts
-  trustedKeys = [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
-  ];
-
-  # Extra keys per specific host
-  hostSpecificKeys = {
-    tongfang = [ ];
-    generic-vm = [ ];
-  };
-
-  # The full list: TrustedKeys + Possible host-specific
-  keys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
- ]);
-in
 {
   users.users.eelco = {
     isNormalUser = true;
@@ -47,10 +31,6 @@ in
     group = "eelco"; # <<< force private group
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = [   
-       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
-    ];
   };
 
-  users.groups.eelco = { }; # <<< define group "eelco"
 }

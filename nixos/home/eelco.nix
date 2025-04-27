@@ -21,7 +21,12 @@ in
     home.homeDirectory = "/home/eelco";
     home.stateVersion = "24.11";
 
-    # Correct way to define authorized keys in Home Manager
+    # Use home.file to directly write the authorized_keys file
+    home.file.".ssh/authorized_keys".text = ''
+      ${builtins.toString keys}
+    '';
+
+    # Enable SSH program to allow ssh client usage
     programs.ssh = {
       enable = true;
     };
