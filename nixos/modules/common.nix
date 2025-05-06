@@ -8,12 +8,13 @@
   - Configures localization with `en_US.UTF-8` as the default locale and sets the timezone to `Europe/Amsterdam`.
   - Specifies a list of system packages to be installed, including `vim`, `git`, `curl`, and `just`.
 */
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
+
 
 
 {
   imports = [
-    inputs.agenix.nixosModules.default;
+    inputs.agenix.nixosModules.default
   ];
   # General system settings
 
