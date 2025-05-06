@@ -19,9 +19,11 @@ let
   allKeys = trustedKeys ++ (hostSpecificKeys.${config.networking.hostName} or [ ]);
 in
 {
-  options.eelco-authorized-keys = lib.mkOption {
-    type = lib.types.listOf lib.types.str;
-    default = allKeys;
-    description = "Authorized SSH keys for user Eelco based on trusted and host-specific keys.";
+   options.eelco-authorized-keys= lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = allKeys;
+      description = "Authorized SSH keys for user Eelco based on trusted and host-specific keys.";
   };
+    config.eelco-authorized-keys = allKeys;
+
 }

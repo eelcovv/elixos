@@ -19,9 +19,13 @@
  *   - `shell`: Specifies the user's shell, set to Zsh from the package set.
  *   - `openssh.authorizedKeys.keys`: Configures the SSH authorized keys for the user, based on the current hostname.
  */
-{ pkgs, config, ... }:
+{ pkgs, config, lib, ... }:
 
 {
+  imports = [
+    ./authorized_keys.nix
+  ];
+
   users.users.eelco = {
     isNormalUser = true;
     createHome = true;
@@ -30,5 +34,7 @@
     extraGroups = [ "wheel" "networkmanager" "audio" ];
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
+    openssh.authorizedKeys.keys = config.eelco-authorized-keys;
+
   };
 }
