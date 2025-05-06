@@ -53,11 +53,14 @@ vm_run:
   qemu-system-x86_64 \
     -enable-kvm \
     -m 8G \
+    -smp 2 \
+    -cpu host \
     -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
     -drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
     -boot c \
     -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
+
 
 # 6. (Optional) Start VM with GPU support (for faster desktop)
 vm_run_gpu:
