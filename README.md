@@ -389,7 +389,9 @@ On your live usb terminal do:
 After installatie, you can close the QEMU terminal with the nixos live-usb installer
 On your host machine do:
 
-19 `just vm_run` to start up your freshly installed VM from the
+19. `just vm_run` to start up your freshly installed VM
+
+20. You should now be able to login using `ssh eelco@localhost -p 2222`
 
 
 
