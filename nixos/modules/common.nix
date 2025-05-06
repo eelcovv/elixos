@@ -13,7 +13,7 @@
 
 {
   imports = [
-    inputs.agenix.nixosModules.default;
+    inputs.agenix.nixosModules.default
   ];
   # General system settings
 
