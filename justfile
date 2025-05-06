@@ -81,6 +81,10 @@ vm_reset:
     rm -rv $HOME/vms
     @echo "VM files have been removed. You can now start over with 'just vm_prepare'."
 
+# Quick test-build VM for Generic-vm
+vm_build_generic-vm:
+  nixos-rebuild build-vm --flake .#generic-vm
+
 # ========== SYSTEM BUILD & TESTING ==========
 
 # --- On your own laptop ---
