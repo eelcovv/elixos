@@ -10,11 +10,11 @@
 */
 { config, lib, pkgs, ... }:
 
-  imports = [
-    inputs.agenix.nixosModules.default
-  ];
 
 {
+  imports = [
+    inputs.agenix.nixosModules.default;
+  ];
   # General system settings
 
   # Shell
