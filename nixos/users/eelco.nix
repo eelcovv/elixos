@@ -34,14 +34,10 @@
     extraGroups = [ "wheel" "networkmanager" "audio" ];
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = config.eelco-authorized-keys;
+    openssh.authorizedKeys.keys = config.authorizedKeys.perUser.eelco;
+
   };
 
-  # Ensure the home directory is created with the correct permissions
-  systemd.tmpfiles.rules = [
-    "d /home/eelco/.ssh 0700 eelco users"
-  ] ++ (
-    map (key: "f /home/eelco/.ssh/authorized_keys 0600 eelco users - ${key}")
-    config.eelco-authorized-keys
-  );
+  systemd.tmpfiles.rules = config.authorizedKeys.tmpfilesRules;
+
 }
