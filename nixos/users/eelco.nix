@@ -40,8 +40,8 @@
   # Ensure the home directory is created with the correct permissions
   systemd.tmpfiles.rules = [
     "d /home/eelco/.ssh 0700 eelco users"
-    "f /home/eelco/.ssh/authorized_keys 0600 eelco users - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
-  ];
-
-
+  ] ++ (
+    map (key: "f /home/eelco/.ssh/authorized_keys 0600 eelco users - ${key}")
+    config.eelco-authorized-keys
+  );
 }
