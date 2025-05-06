@@ -391,7 +391,8 @@ On your host machine do:
 
 19. `just vm_run` to start up your freshly installed VM
 
-20. You should now be able to login using `ssh eelco@localhost -p 2222`
+20. You should now be able to login using `ssh eelco@localhost -p 2222`. If you have a   'backspace'-problem: a quick fix is `export TERM=xterm`
+
 
 
 
