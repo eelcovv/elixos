@@ -63,6 +63,14 @@
         ];
       };
 
+      test-vm = nixpkgs.lib.nixosSystem {
+       system = "x86_64-linux";
+        modules = [
+          ./nixos/hosts/test-vm.nix
+        ];
+      };
+
+
       singer = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs self; };
@@ -90,6 +98,7 @@
     packages.x86_64-linux = rec {
       tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
       generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
+      test-vm = self.nixosConfigurations.test-vm.config.system.build.toplevel;
       singer = self.nixosConfigurations.singer.config.system.build.toplevel;
       contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
     };

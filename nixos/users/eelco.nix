@@ -22,6 +22,8 @@
 { pkgs, config, lib, ... }:
 
 {
+  services.openssh.enable = true;
+
   users.users.eelco = {
     isNormalUser = true;
     createHome = true;
