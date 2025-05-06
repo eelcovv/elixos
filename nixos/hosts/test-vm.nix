@@ -9,7 +9,7 @@
     isNormalUser = true;
     createHome = true;
     home = "/home/eelco";
-    password = "test123";
+    hashedPassword = "$6$36ijYDKqCbRF6iF2$sf/ctJk8wnjTf93fe3QXf/0Wxa4JZXdigCiIh1p7vMvTDm41Vx/RYUAgWBZRSiPzgna6aSbep017QUMq2mAAb1";
     shell = pkgs.zsh;
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
