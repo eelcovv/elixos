@@ -20,20 +20,27 @@
   };
 
   config = lib.mkMerge [
+    # GNOME
     (lib.mkIf config.desktop.enableGnome {
       services.xserver.enable = true;
-      services.xserver.displayManager.gdm.enable = true;
       services.xserver.desktopManager.gnome.enable = true;
     })
 
+    # KDE
     (lib.mkIf config.desktop.enableKde {
       services.xserver.enable = true;
-      services.xserver.displayManager.sddm.enable = true;
       services.xserver.desktopManager.plasma5.enable = true;
     })
 
+    # Hyperland
     (lib.mkIf config.desktop.enableHyperland {
       programs.hyprland.enable = true;
     })
+
+    # Set GDM as the only display manager if a desktop is active
+    (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde) {
+      services.xserver.displayManager.gdm.enable = true;
+    })
   ];
 }
+
