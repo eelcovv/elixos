@@ -51,6 +51,7 @@
     curl
     just
     agenix-cli
+    age
   ];
 
   system.stateVersion = "24.11";
