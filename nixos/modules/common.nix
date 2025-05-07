@@ -16,6 +16,18 @@
   imports = [
     inputs.agenix.nixosModules.default
   ];
+
+  # Flakes support
+  nix = {
+    package = pkgs.nix;
+    extraOptions = ''
+      experimental-features = nix-command flakes
+    '';
+  };
+
+
+
+
   # General system settings
 
   # Shell
@@ -38,6 +50,7 @@
     git
     curl
     just
+    agenix
   ];
 
   system.stateVersion = "24.11";
