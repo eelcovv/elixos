@@ -394,6 +394,115 @@ On your host machine do:
 20. You should now be able to login using `ssh eelco@localhost -p 2222`. If you have a   'backspace'-problem: a quick fix is `export TERM=xterm`
 
 
+# Managing a GitHub SSH key with agenix for the VM
+
+This guide explains how to create an SSH key on your VM, use it to connect to GitHub, and manage the private key securely with agenix.
+
+## Steps
+
+### 1. Generate an SSH key on the VM
+
+Log into your VM and generate a new SSH key:
+
+ ```bash
+ ssh-keygen -t ed25519 -C "vm@eelco" -f ~/.ssh/id_ed25519_github
+ ```
+
+- `-f` sets the filename (`~/.ssh/id_ed25519_github`).
+- Do **not** set a passphrase if you want the key to work automatically without user interaction.
+
+Afterwards you will have:
+- Private key: `~/.ssh/id_ed25519_github`
+- Public key: `~/.ssh/id_ed25519_github.pub`
+
+### 2. Add the public key to GitHub
+
+Run:
+
+ ```bash
+ cat ~/.ssh/id_ed25519_github.pub
+ ```
+
+Copy the contents and add it to your GitHub account under:
+
+**GitHub > Settings > SSH and GPG keys > New SSH key**
+
+### 3. Add the private key to agenix
+
+1. View the private key:
+
+     ```bash
+     cat ~/.ssh/id_ed25519_github
+     ```
+
+2. Create a new agenix secret on your laptop (not on the VM), for example:
+
+     ```bash
+     agenix -e -r vm-hostname -o secrets/github_vm_key.age
+     ```
+
+    Paste the private key into the editor that opens and save.
+
+### 4. Declare the secret in NixOS
+
+In your `configuration.nix` or your host-specific configuration, add:
+
+ ```nix
+ {
+   age.secrets.github_vm_key = {
+     file = /etc/nixos/secrets/github_vm_key.age;
+     owner = "eelco";  # Replace with your user
+     group = "users";
+     mode = "0600";
+   };
+ }
+ ```
+
+### 5. Deploy the private key to `.ssh`
+
+Add something like this to your configuration:
+
+ ```nix
+ {
+   systemd.tmpfiles.rules = [
+     "f /home/eelco/.ssh/id_ed25519_github 0600 eelco users - /run/agenix/github_vm_key"
+   ];
+ }
+ ```
+
+Or if you use Home Manager:
+
+ ```nix
+ {
+   home.file.".ssh/id_ed25519_github".source = config.age.secrets.github_vm_key.path;
+ }
+ ```
+
+### 6. Add SSH config (optional)
+
+So that GitHub automatically uses the right key. Add this to `~/.ssh/config`:
+
+ ```
+ Host github.com
+     User git
+     HostName github.com
+     IdentityFile ~/.ssh/id_ed25519_github
+     IdentitiesOnly yes
+ ```
+
+You can also declare this via Home Manager if desired.
+
+### 7. Test the setup
+
+Run:
+
+ ```bash
+ ssh -T git@github.com
+ ```
+
+If everything is set up correctly, you should see a message like:
+
+
 
 
 ## Troubleshooting commands for finding labels
@@ -424,6 +533,8 @@ This deletes all inscription information (such as GPT, MBR) from the disk.
 7. Als je niet kan inloggen met ssh, check of de server draait `systemctl status sshd` en check of de port 22 open staat `ss -tlpn | grep :22`
 
 8. Check firewall regels met `sudo iptables -L | grep ssh`
+
+9. Fix backspace in VM: type `stty erase <ctrl-V> <backspace>`
 
 # Workflow Nixos Develop and test via Tongfang-VM
 
