@@ -8,7 +8,7 @@ default:
 
 #  nix-shell -p qemu qemu-utils OVMF first
 vm_prerequist_install:
-  nix-shell -p qemu qemu-utils OVMF just agenix
+  nix-shell -p qemu qemu-utils OVMF just  agenix-cli.out
 
 # 1. Download the ISO, OVMF files, and create an empty disk. 
 vm_prepare:
