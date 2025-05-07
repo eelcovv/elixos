@@ -6,6 +6,11 @@
     home.homeDirectory = "/home/eelco";
     home.stateVersion = "24.11";
 
+    home.file.".ssh/id_ed25519" = {
+      source = config.age.secrets.ssh_key_generic_vm_eelco.path;
+      mode = "0600";
+    };
+
     # Shell (zsh) config
     programs.zsh = {
       enable = true;
