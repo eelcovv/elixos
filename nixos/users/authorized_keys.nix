@@ -5,10 +5,9 @@
 # This approach is required because the approach with
 # users.users.eelco.openssh.authorizedKeys.keys = [ "...key..." ]; 
 # fails to create the authorized_keys file. This is a known issue 
-{
-  config,
-  lib,
-  ...
+{ config
+, lib
+, ...
 }:
 
 let
@@ -18,8 +17,8 @@ let
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
       ];
       hostSpecific = {
-        tongfang = [];
-        generic-vm = [];
+        tongfang = [ ];
+        generic-vm = [ ];
       };
     };
 
@@ -28,7 +27,7 @@ let
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDeployKey deploy@somewhere"
       ];
       hostSpecific = {
-        contabo = [];
+        contabo = [ ];
       };
     };
   };
@@ -38,9 +37,11 @@ let
   usersWithKeys = lib.attrNames perUserKeys;
 
   buildKeyList = user:
-    let base = perUserKeys.${user}.trusted or [];
-        hostKeys = perUserKeys.${user}.hostSpecific.${host} or [];
-    in base ++ hostKeys;
+    let
+      base = perUserKeys.${user}.trusted or [ ];
+      hostKeys = perUserKeys.${user}.hostSpecific.${host} or [ ];
+    in
+    base ++ hostKeys;
 
   allKeysPerUser = lib.genAttrs usersWithKeys buildKeyList;
 
@@ -52,7 +53,8 @@ let
 
   tmpfilesAll = lib.flatten (map tmpfilesForUser usersWithKeys);
 
-in {
+in
+{
   options = {
     authorizedKeys.perUser = lib.mkOption {
       type = lib.types.attrsOf (lib.types.listOf lib.types.str);

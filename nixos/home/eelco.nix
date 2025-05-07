@@ -1,4 +1,3 @@
-
 { config, pkgs, lib, ... }:
 
 {
@@ -16,7 +15,7 @@
     programs.git = {
       enable = true;
       userName = "Eelco van Vliet";
-      userEmail = "eelcovv@gmail.com";  # Update with your real email address
+      userEmail = "eelcovv@gmail.com"; # Update with your real email address
       extraConfig = {
         core.editor = "vim";
       };
