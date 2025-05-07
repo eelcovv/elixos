@@ -394,114 +394,128 @@ On your host machine do:
 20. You should now be able to login using `ssh eelco@localhost -p 2222`. If you have a   'backspace'-problem: a quick fix is `export TERM=xterm`
 
 
-# Managing a GitHub SSH key with agenix for the VM
+# SSH Key Management with Agenix: Workflow
 
-This guide explains how to create an SSH key on your VM, use it to connect to GitHub, and manage the private key securely with agenix.
+## 1️⃣ Generating and encrypting an SSH key on the VM
 
-## Steps
+This creates a **per-host, per-user SSH key** that is stored encrypted in your Nix repository.
 
-### 1. Generate an SSH key on the VM
+### ➔ Step 1: Generate an SSH keypair on the VM
 
-Log into your VM and generate a new SSH key:
+Run on your VM as the target user (e.g., `eelco`):
 
- ```bash
- ssh-keygen -t ed25519 -C "vm@eelco" -f ~/.ssh/id_ed25519_github
- ```
+```shell
+ssh-keygen -t ed25519 -C "vm@eelco" -f ~/.ssh/id_ed25519
+```
 
-- `-f` sets the filename (`~/.ssh/id_ed25519_github`).
-- Do **not** set a passphrase if you want the key to work automatically without user interaction.
+This creates:
 
-Afterwards you will have:
-- Private key: `~/.ssh/id_ed25519_github`
-- Public key: `~/.ssh/id_ed25519_github.pub`
+```text
+- `~/.ssh/id_ed25519` (private key)
+- `~/.ssh/id_ed25519.pub` (public key)
+```
 
-### 2. Add the public key to GitHub
+### ➔ Step 2: Add the public key to GitHub (or other services)
 
-Run:
+Show the public key:
 
- ```bash
- cat ~/.ssh/id_ed25519_github.pub
- ```
+```shell
+cat ~/.ssh/id_ed25519.pub
+```
 
-Copy the contents and add it to your GitHub account under:
+Add this key to your GitHub account under **Settings > SSH and GPG keys**.
 
-**GitHub > Settings > SSH and GPG keys > New SSH key**
+### ➔ Step 3: Encrypt the private key with `age`
 
-### 3. Add the private key to agenix
+On your VM, encrypt the private key **using the VM’s host SSH key**.
 
-1. View the private key:
+First, get the VM’s host public key:
 
-     ```bash
-     cat ~/.ssh/id_ed25519_github
-     ```
+```shell
+cat /etc/ssh/ssh_host_ed25519_key.pub
+```
 
-2. Create a new agenix secret on your laptop (not on the VM), for example:
+Then encrypt the private key:
 
-     ```bash
-     agenix -e -r vm-hostname -o secrets/github_vm_key.age
-     ```
+```shell
+age -r "$(cat /etc/ssh/ssh_host_ed25519_key.pub)" -o nixos/secrets/ssh_key_<host>_<user>.age  ~/.ssh/id_ed25519
+```
 
-    Paste the private key into the editor that opens and save.
+Example:
 
-### 4. Declare the secret in NixOS
+```shell
+age -r "$(cat /etc/ssh/ssh_host_ed25519_key.pub)" \
+  -o nixos/secrets/ssh_key_generic-vm_eelco.age \
+  ~/.ssh/id_ed25519
+```
 
-In your `configuration.nix` or your host-specific configuration, add:
+### ➔ Step 4: Commit and push the encrypted secret
 
- ```nix
- {
-   age.secrets.github_vm_key = {
-     file = /etc/nixos/secrets/github_vm_key.age;
-     owner = "eelco";  # Replace with your user
-     group = "users";
-     mode = "0600";
-   };
- }
- ```
+```shell
+git add nixos/secrets/ssh_key_generic-vm_eelco.age
+git commit -m "Add encrypted SSH key for generic-vm (eelco)"
+git push
+```
 
-### 5. Deploy the private key to `.ssh`
+---
 
-Add something like this to your configuration:
+## 2️⃣ Restoring the SSH key on a (new) VM install
 
- ```nix
- {
-   systemd.tmpfiles.rules = [
-     "f /home/eelco/.ssh/id_ed25519_github 0600 eelco users - /run/agenix/github_vm_key"
-   ];
- }
- ```
+When you create a new VM (or re-install an existing one), follow these steps to restore the SSH key automatically.
 
-Or if you use Home Manager:
+### ➔ Step 1: Declare the secret in `modules/secrets.nix`
 
- ```nix
- {
-   home.file.".ssh/id_ed25519_github".source = config.age.secrets.github_vm_key.path;
- }
- ```
+Add:
 
-### 6. Add SSH config (optional)
+```nix
+age.secrets.ssh_key_generic_vm_eelco = {
+  file = ../secrets/ssh_key_generic-vm_eelco.age;
+  owner = "eelco";
+  group = "users";
+  mode = "0600";
+};
+```
 
-So that GitHub automatically uses the right key. Add this to `~/.ssh/config`:
+## 2️⃣ Restoring the SSH key on a (new) VM install
 
- ```
- Host github.com
-     User git
-     HostName github.com
-     IdentityFile ~/.ssh/id_ed25519_github
-     IdentitiesOnly yes
- ```
+When you create a new VM (or re-install an existing one), follow these steps to restore the SSH key automatically.
 
-You can also declare this via Home Manager if desired.
+### ➔ Step 1: Declare the secret in `modules/secrets.nix`
 
-### 7. Test the setup
+Add:
 
-Run:
+# ```nix
+age.secrets.ssh_key_generic_vm_eelco = {
+  file = ../secrets/ssh_key_generic-vm_eelco.age;
+  owner = "eelco";
+  group = "users";
+  mode = "0600";
+};
+# ```
 
- ```bash
- ssh -T git@github.com
- ```
+### ➔ Step 2: Bind the key in Home Manager
 
-If everything is set up correctly, you should see a message like:
+In your per-host user config, e.g., `nixos/home/generic-vm/eelco.nix`, add:
 
+# ```nix
+{
+  home.file.".ssh/id_ed25519" = {
+    source = config.age.secrets.ssh_key_generic_vm_eelco.path;
+    mode = "0600";
+  };
+}
+# ```
+
+### ➔ Step 3: Rebuild the system and Home Manager
+
+Run on the VM:
+
+# sudo nixos-rebuild switch --flake .#generic-vm
+# home-manager switch --flake .#eelco@generic-vm
+
+---
+
+✅ After these steps, your SSH private key will be automatically placed in `~/.ssh/id_ed25519`, ready to use for GitHub (or other services).
 
 
 
