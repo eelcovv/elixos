@@ -29,12 +29,7 @@
     # KDE
     (lib.mkIf config.desktop.enableKde {
       services.xserver.enable = true;
-      services.xserver.desktopManager.plasma5.enable = true;
-      # Fix for the qt6 colord message:
-      environment.systemPackages = with pkgs; [
-        kdePackages.colord-kde
-      ];
-
+      services.desktopManager.plasma6.enable = true;
     })
 
     # Hyperland
