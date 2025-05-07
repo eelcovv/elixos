@@ -39,7 +39,11 @@
 
     # Set GDM as the only display manager if a desktop is active
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde) {
+      # force the display manager to be gdm
       services.xserver.displayManager.gdm.enable = true;
+
+      # force the password prompt to be gnome's askpass
+      programs.ssh.askPassword = lib.mkForce "${pkgs.openssh}/libexec/ssh-askpass";
     })
   ];
 }
