@@ -1,4 +1,10 @@
-# Eelco's Nixos configuration
+<p align="center">
+  <img src="logo.png" alt="elixos logo" width="200"/>
+</p>
+
+# elixos
+
+_The Declarative Cure for Your NixOS Headaches_
 
 ## Introduction
 
@@ -484,39 +490,40 @@ When you create a new VM (or re-install an existing one), follow these steps to 
 
 Add:
 
-# ```nix
+```nix
 age.secrets.ssh_key_generic_vm_eelco = {
   file = ../secrets/ssh_key_generic-vm_eelco.age;
   owner = "eelco";
   group = "users";
   mode = "0600";
 };
-# ```
+```
 
 ### ➔ Step 2: Bind the key in Home Manager
 
 In your per-host user config, e.g., `nixos/home/generic-vm/eelco.nix`, add:
 
-# ```nix
+```nix
 {
   home.file.".ssh/id_ed25519" = {
     source = config.age.secrets.ssh_key_generic_vm_eelco.path;
     mode = "0600";
   };
 }
-# ```
+```
 
 ### ➔ Step 3: Rebuild the system and Home Manager
 
 Run on the VM:
 
-# sudo nixos-rebuild switch --flake .#generic-vm
-# home-manager switch --flake .#eelco@generic-vm
+```shell
+sudo nixos-rebuild switch --flake .#generic-vm
+home-manager switch --flake .#eelco@generic-vm
+```
 
 ---
 
 ✅ After these steps, your SSH private key will be automatically placed in `~/.ssh/id_ed25519`, ready to use for GitHub (or other services).
-
 
 
 ## Troubleshooting commands for finding labels
