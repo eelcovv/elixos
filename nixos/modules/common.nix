@@ -50,7 +50,7 @@
     git
     curl
     just
-    agenix
+    agenix-cli
   ];
 
   system.stateVersion = "24.11";
