@@ -22,7 +22,7 @@ The configuration is divided into the following directories:
 A visualisation of the structure is:
 
 ```text
-eelco-nixos/
+elixos/
 ├── flake.nix
 ├── flake.lock
 ├── justfile
@@ -124,7 +124,7 @@ First a global overview.We are going to do the following:
 
 2. You create an SSH key and add it to your Github account.
 
-3. You clone are your Eelco-Nixos repository to ~/Eelco-Nixos.
+3. You clone are your elixos repository to ~/elixos.
 
 💾 2. Disko with disko
 `` shell
@@ -194,7 +194,7 @@ Create the etc/ directory and clone your repository:
 ```shell
 mkdir $HOME/vms/nixos-vm/etc
 cd $HOME/vms/nixos-vm/etc
-git clone git@github.com:eelcovv/eelco-nixos.git nixos
+git clone git@github.com:eelcovv/elixos.git nixos
 cd $HOME/vms/nixos-vm/etc
 ```
 This cloning is also possible later when you start the VM in live-USB mode.
@@ -261,12 +261,12 @@ ssh-keygen -R "[localhost]:2222"
 ```
 If you are logged in you create an SSH key with
 
-Also, you want to get a clone of your eelco-nixos repo on the localhost.
+Also, you want to get a clone of your elixos repo on the localhost.
 
 If you are logged in on the VM, make a directory in the tmp
 ```shell
-mkdir /tmp/eelco-nixos.git
-cd eelco-nixos.igt
+mkdir /tmp/elixos.git
+cd elixos.igt
 ```
 
 and initialise a bare repor
@@ -276,7 +276,7 @@ git init --bare
 Now, in the repo of you host machine, add the remote:
 
 ```shell
-git remote add localhost ssh://nixos@localhost:2222/tmp/eelco-nixos
+git remote add localhost ssh://nixos@localhost:2222/tmp/elixos
 ```
 
 and push to the remote
@@ -288,8 +288,8 @@ git push localhost main
 and finally, clone your tmp repository to your home with
 ```shell
 cd
-git clone /tmp/eelco-nixos.git
-cd eelco-nixos
+git clone /tmp/elixos.git
+cd elixos
 git checkout main
 ```
 
@@ -370,19 +370,19 @@ In a new terminal on your host, login to the vm live cd  by doing
 
 To transfer the repository to you live vm, do on you live-usb (in the terminal)
 
-8. `mkdir /tmp/eelco-nixos.git` and `` to create an empty directory
-9. `git init --bare /tmp/eelco-nixos.git` to create an empty bare repository we use a a remote server
+8. `mkdir /tmp/elixos.git` and `` to create an empty directory
+9. `git init --bare /tmp/elixos.git` to create an empty bare repository we use a a remote server
 
 Then on your host machine, add this folder with
 
-10.  `git remote add localhost ssh://nixos@localhost:2222/tmp/eelco-nixos` to add the localhost
+10.  `git remote add localhost ssh://nixos@localhost:2222/tmp/elixos` to add the localhost
 11. `ssh-copy-id  -p 2222 nixos@localhost`  to store your password so you dont have to type it each time
 12. `git push localhost main` to push your repository 
 
 Now, back on your live installer terminal, do 
 
-13. `git clone -b main /tmp/eelco-nixos.git`   to clone your repo to your home folder
-14. `cd eelco-nixos.git` to go to you cloned repository
+13. `git clone -b main /tmp/elixos.git`   to clone your repo to your home folder
+14. `cd elixos.git` to go to you cloned repository
 
 At this point you should have a clone of your repository on the live usb. 
 
@@ -576,7 +576,7 @@ git push
 * Make the latest changes and rebuild:
 
 ```shell
-cd ~/eelco-nixos
+cd ~/elixos
 git pull
 sudo nixos-rebuild switch --flake .#tongfang
 ```
