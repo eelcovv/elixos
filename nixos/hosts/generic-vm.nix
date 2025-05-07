@@ -16,6 +16,7 @@
 {
   imports = [
     ../modules/common.nix
+    ../modules/profiles/desktop.nix
     ../modules/home-manager.nix
     ../modules/services/generic-vm.nix
     ../hardware/generic-vm.nix
@@ -26,5 +27,9 @@
   ];
 
   networking.hostName = "generic-vm";
+
+  desktop.enableGnome = true;
+  desktop.enableKde = true;
+  desktop.enableHyperland = true;
 
 }

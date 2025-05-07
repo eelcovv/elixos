@@ -2,7 +2,8 @@
 
 {
   imports = [
-    ../modules/common.nix
+      ../modules/common.nix
+    ../modules/profiles/desktop.nix
     ../modules/home-manager.nix
     ../modules/services/laptop.nix
     ../hardware/singer.nix
@@ -16,5 +17,9 @@
   ];
 
   networking.hostName = "singer";
+
+  desktop.enableGnome = true;
+  desktop.enableKde = true;
+  desktop.enableHyperland = true;
 
 }

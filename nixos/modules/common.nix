@@ -33,11 +33,6 @@
   # Shell
   programs.zsh.enable = true;
 
-  # X server + GNOME
-  services.xserver.enable = true;
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
-
   services.openssh.enable = true;
   services.pipewire.enable = true;
   networking.networkmanager.enable = true;
