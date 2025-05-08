@@ -106,8 +106,8 @@ vm_build_singer:
 
 # Quick test-build VM for Generic-vm
 vm_switch_generic-vm-eelco:
-  nixos-rebuild switch --flake .#generic-vm
-  home-manager switch --flake .#eelco#generic-vm
+  sudo nixos-rebuild switch --flake .#generic-vm
+  sudo home-manager switch --flake .#eelco#generic-vm
 
 # ========== SYSTEM MAINTENANCE ==========
 
