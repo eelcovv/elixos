@@ -518,12 +518,107 @@ Run on the VM:
 
 ```shell
 sudo nixos-rebuild switch --flake .#generic-vm
-home-manager switch --flake .#eelco@generic-vm
 ```
 
 ---
 
 ✅ After these steps, your SSH private key will be automatically placed in `~/.ssh/id_ed25519`, ready to use for GitHub (or other services).
+
+
+My succeeded proceedure:
+
+# 🔐 Agenix SSH Key Encrypt Flow (Final Method)
+
+## 1️⃣ Check the SSH host key
+
+We first checked which **SSH-host public key** the VM uses:
+
+```bash
+cat /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+Example output:
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINK8YWRk7FTdhPq47xc6qeb0j5z27cP7hlzCMrNfS+7w root@generic-vm
+```
+
+---
+
+## 2️⃣ Save the key to a temporary file
+
+We saved the public key into a temporary file:
+
+```bash
+cat /etc/ssh/ssh_host_ed25519_key.pub > /tmp/vmkey.pub
+```
+
+Verify the content:
+
+```bash
+cat /tmp/vmkey.pub
+```
+
+✅ This must exactly match the original SSH public key.
+
+---
+
+## 3️⃣ Run the `age` command
+
+We re-encrypted the secret using age, referencing the temporary key file:
+
+```bash
+age -R /tmp/vmkey.pub \
+    -o nixos/secrets/ssh_key_generic_vm_eelco.age \
+    /home/eelco/.ssh/id_ed25519
+```
+
+- `/tmp/vmkey.pub`: contains the SSH-host public key
+- `/home/eelco/.ssh/id_ed25519`: the private key we want to encrypt
+- `nixos/secrets/ssh_key_generic_vm_eelco.age`: the output age file
+
+---
+
+## 4️⃣ Check the `.age` file
+
+We verified the `.age` file to confirm it was encrypted for an SSH key:
+
+```bash
+head -n 10 nixos/secrets/ssh_key_generic_vm_eelco.age
+```
+
+Example result:
+
+```
+age-encryption.org/v1
+-> ssh-ed25519 h7t3LQ ...
+```
+
+⚠️ **Note:**  
+The key shown in the `.age` file is a **compact/encoded version of the SSH key.**  
+It looks different but is still correct and linked to the same SSH-host key.
+
+---
+
+## 5️⃣ Rebuild
+
+We applied the configuration:
+
+```bash
+sudo nixos-rebuild switch --flake .#generic-vm
+```
+
+✅ This completed **without errors** → decryption worked!
+
+---
+
+## 🔍 Why does this work?
+
+- Agenix uses the **SSH-host private key** (`/etc/ssh/ssh_host_ed25519_key`) to decrypt secrets;
+- Age allows using **SSH public keys as recipients;**
+- By explicitly pointing to the key file with `-R`, we ensure the correct key is used;
+- The compact encoding in the `.age`
+
 
 
 ## Troubleshooting commands for finding labels
