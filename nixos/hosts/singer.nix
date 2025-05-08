@@ -6,6 +6,7 @@
     ../modules/profiles/desktop.nix
     ../modules/home-manager.nix
     ../modules/services/laptop.nix
+    ../modules/secrets/singer.nix
     ../hardware/singer.nix
     ../disks/singer.nix
     ../users/eelco.nix

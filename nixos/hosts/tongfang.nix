@@ -17,6 +17,7 @@
   imports = [
     ../modules/common.nix
     ../hardware/tongfang.nix
+    ../secrets/tongfang.nix
     ../users/eelco.nix
     ../users/testuser.nix
   ];
