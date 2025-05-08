@@ -47,6 +47,7 @@
     just
     agenix-cli
     age
+    home-manager
   ];
 
   system.stateVersion = "24.11";
