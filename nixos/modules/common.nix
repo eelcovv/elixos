@@ -25,8 +25,13 @@
     '';
   };
 
-
-
+{
+  options.globalSshClientUsers = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ "eelco" ];
+    description = "List of users who have SSH client keys.";
+  };
+}
 
   # General system settings
 

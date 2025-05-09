@@ -525,9 +525,71 @@ sudo nixos-rebuild switch --flake .#generic-vm
 ✅ After these steps, your SSH private key will be automatically placed in `~/.ssh/id_ed25519`, ready to use for GitHub (or other services).
 
 
-My succeeded proceedure:
+# 🔐 Agenix SSH Background information
 
-# 🔐 Agenix SSH Key Encrypt Flow (Final Method)
+## 🔐 How Agenix Machine Secrets Work
+
+Agenix allows you to encrypt secrets so that **only a specific machine** can decrypt them. Instead of using a user’s personal SSH key, we typically encrypt secrets with the machine’s **host SSH key**:
+
+- **Machine-specific:** `/etc/ssh/ssh_host_ed25519_key.pub`
+- **User-specific:** `~/.ssh/id_ed25519.pub` (optional if you want personal access too)
+
+### Why the Host Key?
+
+- Each machine running OpenSSH has its **own host key**, usually auto-generated when SSH is first installed.
+- By encrypting secrets with the *host's public key*, you ensure the secret is **only accessible on that machine**, even if someone else gains physical access to your repo.
+
+### Where is the Host Key Located?
+
+- Public key: `/etc/ssh/ssh_host_ed25519_key.pub`
+- Private key: `/etc/ssh/ssh_host_ed25519_key`
+
+The private key never leaves the machine.
+
+### Optional: Add Your Own Key
+
+To have **backup access**, you can add your own SSH public key as an extra recipient. This allows you to decrypt secrets manually if needed.
+
+---
+
+## 🖼️ Diagram
+
+```mermaid
+flowchart TD
+    A[You encrypt secret with agenix] --> B{Which key?}
+    B -->|Machine Host Key| C[Machine Public Key (ssh_host_ed25519_key.pub)]
+    B -->|Optional User Key| D[Your Personal Public Key (id_ed25519.pub)]
+    C --> E[Secret stored encrypted]
+    D --> E
+    E --> F{Decrypting secret}
+    F -->|On the machine| G[Uses Machine Private Key]
+    F -->|Manually| H[Uses Your Private Key]
+```
+
+---
+
+## 🔄 Quick Example
+
+Encrypt a secret for the machine:
+
+```bash
+agenix -e -r $(cat /etc/ssh/ssh_host_ed25519_key.pub) my_secret.age
+```
+
+Optionally add yourself:
+
+```bash
+agenix -e -r $(cat /etc/ssh/ssh_host_ed25519_key.pub) -r ~/.ssh/id_ed25519.pub my_secret.age
+```
+
+✅ Now the secret will automatically decrypt **on the machine** when you run:
+
+```bash
+sudo nixos-rebuild switch
+```
+
+
+# 🔐 Agenix SSH Key Encrypt Flow 
 
 ## 1️⃣ Check the SSH host key
 
@@ -618,6 +680,86 @@ sudo nixos-rebuild switch --flake .#generic-vm
 - Age allows using **SSH public keys as recipients;**
 - By explicitly pointing to the key file with `-R`, we ensure the correct key is used;
 - The compact encoding in the `.age`
+
+# Resetting the VM
+
+Now the VM can be starten and all ssh key are genered by agenix, we can reset the VM and set it up again to verify that we have indeed a reproducable machine. Before we reset the machine, here a check list to verify that you are indeed ready to go
+
+## ✅ Check List: Resetting and Testing SSH Access with Agenix
+
+Use this checklist to verify that your VM or server can fully reset and recover its SSH setup using Agenix-managed secrets.
+
+### 1️⃣ Prepare
+
+- [ ] **Check the secret:** Ensure the SSH private key (e.g., `ssh_key_my_vm`) is properly encrypted using:
+  - The machine’s **host SSH key** (`/etc/ssh/ssh_host_ed25519_key.pub`).
+  - (Optional) Your own SSH public key for backup access.
+
+- [ ] **Add secret to NixOS config:**
+  
+  Example in `modules/secrets/generic-vm.nix`:
+
+```nix
+  { config, pkgs, ... }:
+
+{
+  age.secrets.ssh_key_generic_vm_eelco = {
+    file = ../../secrets/ssh_key_generic_vm_eelco.age;
+    owner = "eelco";
+    group = "users";
+    mode = "0600";
+  };
+}
+```
+The this file point to your encrypted age key file that was stored in your root secrets folder. This age key file is essentially your own private key of you machine. 
+
+- [ ] **Set the SSH server to use your secret:**
+
+```nix
+services.openssh.hostKeys = [
+  {
+    path = "/etc/ssh/my_vm_id_ed25519";
+    type = "ed25519";
+    }
+];
+```
+
+### 2️⃣ Build and Deploy
+
+- [ ] Run `nixos-rebuild switch` and confirm **no decryption errors** from agenix.
+- [ ] Check that the secret appears at `/etc/ssh/my_vm_id_ed25519` with correct permissions.
+
+### 3️⃣ Test
+
+- [ ] **Reboot the VM** to ensure persistence.
+- [ ] Verify the SSH service is up:
+
+  ```bash
+  sudo systemctl status sshd
+  ```
+
+- [ ] SSH into the machine using its **new key**:
+
+  ```bash
+  ssh -i ./my_vm_id_ed25519 user@my-vm-ip
+  ```
+
+- [ ] (Optional) Test manual decryption (if you added your own key):
+
+  ```bash
+  agenix -d secrets/ssh_key_my_vm.age
+  ```
+
+### 4️⃣ Reset/Provision Test
+
+- [ ] Fully destroy & redeploy your VM (fresh install).
+- [ ] Confirm:
+    - [ ] Agenix decrypts the secret automatically.
+    - [ ] SSH access works out of the box after first boot.
+
+---
+
+✅ **Success:** If all steps work, your VM is fully self-contained and can recover its SSH setup automatically after a fresh deployment!
 
 
 
