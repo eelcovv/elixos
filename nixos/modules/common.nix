@@ -10,50 +10,52 @@
 */
 { config, lib, pkgs, inputs, ... }:
 
-
-
 {
   imports = [
     inputs.agenix.nixosModules.default
     inputs.home-manager.nixosModules.home-manager
   ];
 
-  # Flakes support
-  nix = {
-    package = pkgs.nix;
-    extraOptions = ''
-      experimental-features = nix-command flakes
-    '';
+  options = {
+    globalSshClientUsers = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "eelco" ];
+      description = "List of users who have SSH client keys.";
+    };
   };
 
-  options.globalSshClientUsers = lib.mkOption {
-    type = lib.types.listOf lib.types.str;
-    default = [ "eelco" ];
-    description = "List of users who have SSH client keys.";
+  config = {
+
+    # Flakes support
+    nix = {
+      package = pkgs.nix;
+      extraOptions = ''
+        experimental-features = nix-command flakes
+      '';
+    };
+
+    # General system settings
+
+    programs.zsh.enable = true;
+
+    services.openssh.enable = true;
+    services.pipewire.enable = true;
+    networking.networkmanager.enable = true;
+
+    i18n.defaultLocale = "en_US.UTF-8";
+    time.timeZone = "Europe/Amsterdam";
+
+    environment.systemPackages = with pkgs; [
+      vim
+      git
+      curl
+      just
+      agenix-cli
+      age
+      home-manager
+    ];
+
+    system.stateVersion = "24.11";
+
   };
-
-  # General system settings
-
-  # Shell
-  programs.zsh.enable = true;
-
-  services.openssh.enable = true;
-  services.pipewire.enable = true;
-  networking.networkmanager.enable = true;
-
-  i18n.defaultLocale = "en_US.UTF-8";
-  time.timeZone = "Europe/Amsterdam";
-
-  environment.systemPackages = with pkgs; [
-    vim
-    git
-    curl
-    just
-    agenix-cli
-    age
-    home-manager
-  ];
-
-  system.stateVersion = "24.11";
-
 }
