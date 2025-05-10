@@ -3,7 +3,7 @@
 {
   programs.zsh = {
     enable = true;
-    initExtra = ''
+    initContent = ''
       if [ "$TERM" = "xterm-ghostty" ]; then
         export TERM=xterm-256color
       fi
