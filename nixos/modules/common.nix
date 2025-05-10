@@ -15,6 +15,7 @@
 {
   imports = [
     inputs.agenix.nixosModules.default
+    inputs.home-manager.nixosModules.home-manager
   ];
 
   # Flakes support

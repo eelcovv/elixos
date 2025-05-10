@@ -25,7 +25,6 @@
     ../modules/disk-layouts/generic-vm.nix
     ../users/eelco.nix
     ../home/eelco.nix
-    inputs.home-manager.nixosModules.home-manager
   ];
 
   networking.hostName = "generic-vm";
