@@ -8,7 +8,8 @@ default:
 
 #  Install the required packages
 vm_prerequist_install:
-  NIX_CONFIG="experimental-features = nix-command flakes" nix shell github:NixOS/nixpkgs/nixos-unstable#qemu github:NixOS/nixpkgs/nixos-unstable#qemu-utils github:NixOS/nixpkgs/nixos-unstable#OVMF github:NixOS/nixpkgs/nixos-unstable#just github:yaxitech/ragenix
+  NIX_CONFIG="experimental-features = nix-command flakes" nix shell nixpkgs#qemu nixpkgs#qemu-utils nixpkgs#OVMF nixpkgs#just github:yaxitech/ragenix
+
 
 
 # 1. Download the ISO, OVMF files, and create an empty disk. 
