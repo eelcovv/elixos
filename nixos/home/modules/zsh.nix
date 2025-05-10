@@ -1,0 +1,14 @@
+{ lib, config, pkgs, ... }:
+
+{
+  programs.zsh = {
+    enable = true;
+    initExtra = ''
+      if [ "$TERM" = "xterm-ghostty" ]; then
+        export TERM=xterm-256color
+      fi
+
+      # Extra prompt / plugins / theming hier later
+    '';
+  };
+}

@@ -127,23 +127,27 @@ First a global overview.We are going to do the following:
 3. You clone are your elixos repository to ~/elixos.
 
 💾 2. Disko with disko
-`` shell
-SUDO NIX-Extra-Experimental Features 'Nix-Command Flakes' Run Github: Nix-Community/Disko----mod Zap_create_mount ./nixos/disks/qemu.nix
-`` `
 
-*-Mode Zap_Create_Mount knew the disk, creates the partitions, and Mount everything in the right places for Nixos-Install.
+``` shell
+SUDO NIX-Extra-Experimental Features 'Nix-Command Flakes' Run Github: Nix-Community/Disko----mod Zap_create_mount ./nixos/disks/qemu.nix
+```
+
+* Mode Zap_Create_Mount makes the disk, creates the partitions, and Mount everything in the right places for Nixos-Install.
 
 * Disko uses your config (qemu-vm.nix) to partition the disk (probably with Luks and/or LVM?).
 
 🧱 3. Installation of Nixos
+
 ```shell
 sudo nixos-install --flake .#tongfang-vm
-`` `
+```
+
 * Installation from your flake, with Tongfang-VM as a hostname/system.
 
 * Assuming that you have correctly defined Nixos Configuration.tongfang-VM in Flake.nix.
 
 🔁 4. Restart in Qemu with UEFI + Forwarding
+
 ```shell
 qemu-system-x86_64 \
   -enable-kvm \
@@ -153,19 +157,21 @@ qemu-system-x86_64 \
   -drive if=virtio,file=$HOME/vms/nixos-vm.qcow2,format=qcow2 \
   -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 ```
+
 Final setup: with UEFI (OVMF), KVM acceleration, Virtio, and port-forwarding for SSH (Poort 2222 Local → 22 in the VM).
 
 After this you could log in with:
+
 ```shell
 ssh -p 2222 eelco@localhost
 ```
 
-
-Follow these steps to make a Qemu VM:
+#### Follow these steps to make a Qemu VM:
 
 1. Install the required packages
 
 Install the required Qemu tools in your Nixos shell:
+
 ```shell
 nix-shell -p qemu qemu-utils OVMF just
 ```
@@ -201,7 +207,7 @@ This cloning is also possible later when you start the VM in live-USB mode.
 
 5. Install the ISO QEMU-VM
 
-Note: this knew the contents of your virtual hard drive and starts with a new installation.
+Note: this makes the contents of your virtual hard drive and starts with a new installation.
 
 First download the ISO
 
@@ -214,6 +220,7 @@ We will also use the open virtual machine firmware.We had already installed OVFM
 ```shell
 nix-build '<nixpkgs>' -A OVMF.fd
 ```
+
 This gives a location such as `/nix/store/KW52jax4fH89AJ4GNK6PCLWIXAGCSDJR-OVMF-202411-FD '
 
 You now have to copy the files.This is possible with
@@ -228,8 +235,6 @@ Now our Uefi_vars.fd must refer to the ovmf_vars.fd, so also copy
 ```shell
 sudo cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/uefi_vars.fd
 ```
-
-
 
 Start the VM with the Nixos ISO and couple the virtual disk:
 
@@ -246,33 +251,42 @@ qemu-system-x86_64 \
 This is the same as starting a Nixos Live-USB.
 
 After starting, you change the password in the Qemu Terminal with:
+
 ```shell
 passwd
 ```
+
 6. Installing Nixos
 
 Once the QEMU-VM has started, you can log in and perform the installation.Set a password:
+
 ```shell
 ssh -p 2222 nixos@localhost
 ```
+
 If you start your Qemu VM several times, you will get the Fingerprint Warning if you want to log in to the Local Machine with SSH.To clean it you can run
+
 ```shell
 ssh-keygen -R "[localhost]:2222"
 ```
+
 If you are logged in you create an SSH key with
 
 Also, you want to get a clone of your elixos repo on the localhost.
 
 If you are logged in on the VM, make a directory in the tmp
+
 ```shell
 mkdir /tmp/elixos.git
 cd elixos.igt
 ```
 
 and initialise a bare repor
+
 ```shell
 git init --bare
 ```
+
 Now, in the repo of you host machine, add the remote:
 
 ```shell
@@ -286,6 +300,7 @@ git push localhost main
 ```
 
 and finally, clone your tmp repository to your home with
+
 ```shell
 cd
 git clone /tmp/elixos.git
@@ -294,6 +309,7 @@ git checkout main
 ```
 
 To run the just file, just do
+
 ```shell
 nix-shell -p just
 ```
@@ -309,6 +325,7 @@ If you want to keep developping on the host and have to push a lot, add the loca
 eval "$(ssh-agent -s)"
 ```
 then copy your id:
+
 ```shell
 ssh-copy-id  -p 2222 nixos@localhost
 ```
@@ -366,11 +383,13 @@ In the QEMU window that has just started you do:
 In a new terminal on your host, login to the vm live cd  by doing
 
 6. `ssh-keygen -R "[localhost]:2222"` to clean the old ssh keys to the vm because they need to be renewed
+
 7. `ssh -p 2222 nixos@localhost` to login in on your live nixos installer.
 
 To transfer the repository to you live vm, do on you live-usb (in the terminal)
 
 8. `mkdir /tmp/elixos.git` and `` to create an empty directory
+
 9. `git init --bare /tmp/elixos.git` to create an empty bare repository we use a a remote server
 
 Then on your host machine, add this folder with
