@@ -8,9 +8,7 @@ default:
 
 #  Install the required packages
 vm_prerequist_install:
-  NIX_CONFIG="experimental-features = nix-command flakes" nix shell nixpkgs#qemu nixpkgs#qemu-utils nixpkgs#OVMF nixpkgs#just github:yaxitech/ragenix
-
-
+  nix-shell -p qemu qemu-utils OVMF 
 
 # 1. Download the ISO, OVMF files, and create an empty disk. 
 vm_prepare:
@@ -26,7 +24,7 @@ vm_prepare:
 vm_run_installer:
   qemu-system-x86_64 \
     -enable-kvm \
-    -m 32G \
+    -m 8G \
     -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
     -drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
