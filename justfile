@@ -40,7 +40,24 @@ vm_partition:
   sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
   @echo "Partioning is done. You can now run vm_install"
 
-# 4. Install NixOS on the disk in the VM
+# 4.(a) Enable SSH on a live NixOS system (VM or real machine)
+live_setup_ssh:
+  sudo passwd nixos
+  sudo systemctl start sshd
+  ip a | grep 'inet ' | grep -v 127.0.0.1 || true
+  @echo "SSH server is ready. You can now scp your age-secret-key.txt file to this machine."
+
+# 4. (b) Copy your private age secret key to a live installer (either VM or physical)
+# Usage:
+#   just live_copy_age_key localhost
+#   just live_copy_age_key 192.168.1.123
+live_copy_age_key host:
+  scp -P 2222 ~/.config/agenix/age-secret-key.txt nixos@{{host}}:/home/nixos/
+  @echo "✅ age-secret-key.txt copied to nixos@{{host}}"
+
+
+
+# 5. Install NixOS on the disk in the VM
 vm_install:
   sudo nixos-install --flake .#generic-vm
 
@@ -48,7 +65,7 @@ vm_install:
 
 # --- Back on your own laptop ---
 
-# 5. Start VM from the installed disk
+# 6. Start VM from the installed disk
 vm_run:
   qemu-system-x86_64 \
     -enable-kvm \
@@ -62,7 +79,7 @@ vm_run:
     -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
 
-# 6. (Optional) Start VM with GPU support (for faster desktop)
+# 7. (Optional) Start VM with GPU support (for faster desktop)
 vm_run_gpu:
   qemu-system-x86_64 \
     -enable-kvm \

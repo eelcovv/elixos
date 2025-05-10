@@ -618,14 +618,53 @@ typing a password first. If you want enhanced security, you can set your passwor
 However, as long as you keep your private keys hidden, this is not necessarly needed. 
 
 #### 3️⃣ Encrypt your private key to a new .age file
+First get your public age key
 
 ```shell
-agenix -e -i ~/.config/agenix/age-secret-key.txt \
-  -r '<your newly created public key here>' \
-  -o nixos/secrets/ssh_key_generic_vm_eelco.age \
-  ssh_key_generic_vm_eelco
+age-keygen -y ~/.config/agenix/age-secret-key.txt
+age19qv4p55rkzlc6cpycl5ga4wlx88k9lyj83zlygdy8q3r83t83eqsk6s9le
 ```
 
+This public key is added to your agenix encryption 
+
+
+```shell
+age -r age19qv4p55rkzlc6cpycl5ga4wlx88k9lyj83zlygdy8q3r83t83eqsk6s9le -o ssh_key_generic_vm_eelco.age ssh_key_generic_vm_eelco
+```
+
+or, by combining the two commands above:
+
+```shell
+age -r $(age-keygen -y ./.config/agenix/age-secret-key.txt) -o ssh_key_generic_vm_eelco.age ssh_key_generic_vm_eelco
+```
+
+After running this command, you have have a newly create file 'ssh_key_generic_vm_eelco.age' next to your private key. 
+
+Note that normally you should be able to find the public part of the age-secret key (i.e. in our example age19...) in the header of the age file. However, this is not always the case. In stead, sometime you see the raw. X25519-reciptient. This is normal and does not influence the decryption. 
+
+If you want to check if the age file indeed contains the encrypted private ssh key, just 
+decrypt it again with 
+
+```shell
+age -d -i /home/eelco/.config/agenix//age-secret-key.txt -o decrypted_key ssh_key_generic_vm_eelco.age
+```
+
+if you do 
+
+```shell
+diff ssh_key_generic_vm_eelco decrypted_key
+```
+
+the output should show nothing (i.e. the decrypted file equals the orinal ssh private key).
+
+
+Finally, moyptve the newly created ssh_key_generic_vm_eelco.age key to nixos/secrets. 
+
+On each machine were you want to decrypt this age key, you need to run the script in modules/services/ssh-client-keys.nix. This nix script assumes that you have the age-secrete-key.txt (which you should
+not include in your repo but store in your keepass database) in the directory ~/.config/agenix. 
+IF that is the case, your age keys are automatically recovered. 
+
+The only thing left is that you need to get the age-secret-key.txt file on your live installer. For the vm you can just use scp. For a seperate laptop we can start a ssh client, such that you can connect to the laptop from your host using scp.  
 
 
 
