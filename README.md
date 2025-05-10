@@ -405,6 +405,18 @@ Now, back on your live installer terminal, do
 
 At this point you should have a clone of your repository on the live usb. 
 
+Now, only if you use ageix, copy you master age-secret-key.txt to your live nixos vm. So on your host machine, run
+```shell
+scp -P 2222 ~/.config/agenix/age-secret-key.txt nixos@localhost:~
+```
+Back on your live installer, put this age-secret-key.txt file into the same folder
+```shell
+mkdir -p ~/.config/agenix
+mv ~/age-secret-key.txt ~/.config/agenix
+```
+
+With the master key in the default location, you should now be able to continue and install nixos. The agenix keys will be decrypted
+
 On your live usb terminal do:
 
 16. `nix-shell -p just` to install just so we can continue with our justfile
