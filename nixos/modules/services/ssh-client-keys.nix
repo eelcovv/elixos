@@ -12,7 +12,7 @@ in
   systemd.services = lib.genAttrs sshUsers (user: {
     description = "Generate SSH public key from private key for ${user}";
     wantedBy = [ "multi-user.target" ];
-    after = [ "agenix.service" ];
+    after = [ "agenix.service" "default.target" ];
     serviceConfig = {
       Type = "oneshot";
       User = user;
@@ -26,8 +26,13 @@ in
   });
 
   # Ensure permissions are correct for each existing user
-  systemd.tmpfiles.rules = lib.flatten (map (user: [
-    "d /home/${user}/.ssh 0700 ${user} users -"
-    "f /home/${user}/.ssh/id_ed25519.pub 0644 ${user} users -"
-  ]) sshUsers);
+  systemd.tmpfiles.rules = [
+    # Create a directory
+    "d /home/eelco/.ssh 0700 eelco users -"
+    # Symlink to the decrypted Age-secret
+    "L+ /home/eelco/.ssh/id_ed25519 - - - - /run/agenix/ssh_key_generic_vm_eelco"
+    # Create public key from private key
+    "f /home/eelco/.ssh/id_ed25519.pub 0644 eelco users -"
+  ];
+
 }
