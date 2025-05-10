@@ -36,12 +36,19 @@ vm_run_installer:
 
 # --- Inside the live VM (via SSH or console) ---
 
-# 3. Partition the disk in the VM
+# 3. Inside the live VM: upgrade nixpkgs to unstable and set up flakes
+vm_nixos_upgrade:
+  sudo mkdir -p /etc/nix
+  echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
+  nix flake show github:NixOS/nixpkgs/nixos-unstable
+  @echo "Nix is now configured for flakes. You can run \`just vm_prerequist_install\` 
+
+# 4. Partition the disk in the VM
 vm_partition:
   sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
   @echo "Partioning is done. You can now run `vm_install`"
 
-# 4. Install NixOS on the disk in the VM
+# 5. Install NixOS on the disk in the VM
 vm_install:
   sudo nixos-install --flake .#generic-vm
 
@@ -49,7 +56,7 @@ vm_install:
 
 # --- Back on your own laptop ---
 
-# 5. Start VM from the installed disk
+# 6. Start VM from the installed disk
 vm_run:
   qemu-system-x86_64 \
     -enable-kvm \
@@ -63,7 +70,7 @@ vm_run:
     -nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
 
-# 6. (Optional) Start VM with GPU support (for faster desktop)
+# 7. (Optional) Start VM with GPU support (for faster desktop)
 vm_run_gpu:
   qemu-system-x86_64 \
     -enable-kvm \
