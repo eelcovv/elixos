@@ -26,7 +26,7 @@ vm_prepare:
 vm_run_installer:
   qemu-system-x86_64 \
     -enable-kvm \
-    -m 16G \
+    -m 32G \
     -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
     -drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
