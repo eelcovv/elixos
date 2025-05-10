@@ -26,7 +26,7 @@ vm_prepare:
 vm_run_installer:
   qemu-system-x86_64 \
     -enable-kvm \
-    -m 32G \
+    -m 16G \
     -drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
     -drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
@@ -40,7 +40,7 @@ vm_run_installer:
 # 3. Partition the disk in the VM
 vm_partition:
   sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
-  @echo "Partioning is done. You can now run `vm_install`"
+  @echo "Partioning is done. You can now run vm_install"
 
 # 4. Install NixOS on the disk in the VM
 vm_install:
