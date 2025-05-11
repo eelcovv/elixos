@@ -2,10 +2,6 @@
 default:
 	just --list --unsorted
 
-# Install pre-requisite packages (optional, local)
-vm_prerequisite_install:
-	nix-shell -p qemu qemu-utils OVMF rage sops
-
 # Update & maintenance
 update:
 	nix flake update
