@@ -49,7 +49,9 @@
         specialArgs = { inherit inputs self; };
         modules = [
           ./nixos/hosts/tongfang.nix
+          disko.nixosModules.disko
           home-manager.nixosModules.home-manager
+          agenix.nixosModules.default
         ];
       };
 
@@ -60,6 +62,8 @@
           ./nixos/hosts/generic-vm.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
+          agenix.nixosModules.default
+
         ];
       };
 
@@ -78,6 +82,7 @@
           ./nixos/hosts/singer.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
+          agenix.nixosModules.default
         ];
       };
 
@@ -88,6 +93,7 @@
           ./nixos/hosts/contabo.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
+          agenix.nixosModules.default
         ];
       };
     };
