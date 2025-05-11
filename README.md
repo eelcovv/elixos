@@ -431,9 +431,9 @@ On your host machine do:
 20. You should now be able to login using `ssh eelco@localhost -p 2222`. If you have a   'backspace'-problem: a quick fix is `export TERM=xterm`
 
 
-# 🔐 Agenix SSH 
+# 🔐 SOPS SSH 
 
-## 🔐 How Agenix Machine Secrets Work
+## 🔐 How SOPS Machine Secrets Work
 
 If you install a new hosts, normally you create new ssh key-pair using ssh-keygen. This
 creates a ~/.ssh/id_ed25519 and ~/.ssh/id_ed25519.pub files as private and public key. 
@@ -454,108 +454,114 @@ You can use this master key to decrypt your private age file for each machine.
 In the following proceedure, we start with creating a master key which will be used to
 encrypt the age file. The master key is not added to your repository, but should 
 carefully be kept in a save place. In this procedure, we are going to add the
-master key as an attachment to a keepass database which is stored on a external cloud service. This allows us the retrieve the master key when we need to reproduce our machines, and thus to decrypt our encrypted age private keys.    
+master key as an attachment to a keepass database which is stored on a external cloud service. 
+This allows us the retrieve the master key when we need to reproduce our machines, and thus to 
+decrypt our encrypted age private keys.    
 
 Let's start with setting up a age master key and use that to add a encrypted age key to 
 our repository. 
 
-#### Install agenix 
-We first need to install agenix. This can be done in nixos with 
+# 🔐 SOPS-Nix setup steps
 
+### STEP 1: Generate an Age key using rage (no agenix needed)
 ```shell
-nix-shell -p agenix-cli.out rage
+rage-keygen > ~/.config/sops/age/keys.txt
 ```
 
-#### 1️⃣ Create a new age-keypair  (one time only)
+This commands also prints the public key which you need in step 2.
 
-
-We are going to create a master age key on our current host. Later, this master key is
-stored in our keepass database, but the can be done after we are all set.  First, 
-create the master key on our current host with
+If you need the public key again, you can run
 
 ```shell
-mkdir -p ~/.config/agenix
-rage-keygen -o ~/.config/agenix/age-secret-key.txt
+rage-keygen -y ~/.config/sops/age/keys.txt 
 ```
 
-This age-secret-key.txt is a ordinary text file containing both the public and private key. Store this text into your keepass database which is externally stored on a cloud host. 
+Note: this keys.txt file needs to be present  on each system where we want to decrypt the age files
 
-You can print the public key of this file with
+### STEP 2: Create the .sops.yaml config in your repo root
+
+This tells sops to encrypt matching keys using your Age public key
+```shell
+cat > .sops.yaml <<EOF
+creation_rules:
+  - encrypted_regex: ^id_ed25519
+    key_groups:
+      - age:
+          - age1qxyzabc... # <-- your real public key
+EOF
+```
+
+### STEP 3: Create the unencrypted secret YAML file (id_ed25519)
+```shell
+echo "id_ed25519: |" > nixos/secrets/generic-vm-secrets.yaml
+cat ~/.ssh/id_ed25519 | sed 's/^/  /' >> nixos/secrets/generic-vm-secrets.yaml
+```
+
+### STEP 4: Encrypt the YAML file in-place using sops
+```shell
+sops -e -i nixos/secrets/generic-vm-secrets.yaml
+```
+
+### STEP 5: Reference the secrets in your NixOS config (e.g. modules/secrets/generic-vm.nix)
+```shell
+{
+  sops.defaultSopsFile = ../../secrets/generic-vm-secrets.yaml;
+
+  sops.age.keyFile = "/root/.config/sops/age/keys.txt"; # <-- required for decryption as root
+
+  sops.secrets.id_ed25519 = {
+    path = "/home/eelco/.ssh/id_ed25519";
+    owner = "eelco";
+    group = "users";
+    mode = "0400";
+  };
+}
+```
+
+### STEP 6: Add a systemd service 
+
+To generate the .pub file from the decrypted private key in add  a file
+*modules/services/ssh-client-keys.nix*:
+
+```nix
+{ config, lib, pkgs, ... }:
+
+let
+  users = config.globalSshClientUsers or [];
+in {
+  systemd.services = lib.genAttrs users (user: {
+    description = "Generate SSH public key for ${user}";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "default.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = user;
+      ExecStart = pkgs.writeShellScript "gen-id-ed25519-pub-${user}" ''
+        if [ -f /home/${user}/.ssh/id_ed25519 ]; then
+          ${pkgs.openssh}/bin/ssh-keygen -y -f /home/${user}/.ssh/id_ed25519 > /home/${user}/.ssh/id_ed25519.pub
+        fi
+      '';
+    };
+  });
+
+  systemd.tmpfiles.rules = lib.flatten (map (user: [
+    "d /home/${user}/.ssh 0700 ${user} users -"
+    "f /home/${user}/.ssh/id_ed25519.pub 0644 ${user} users -"
+  ]) users);
+}
+```
+
+### STEP 7: Rebuild your system
 
 ```shell
-rage-keygen -y ~/.config/agenix/age-secret-key.txt
+sudo nixos-rebuild switch --flake .#generic-vm
 ```
 
-#### 2️⃣ Create a private/public ssh key for a certain host
-
-To create a public/private key for the generic-vm, we do
-
-```shell
-ssh-keygen -t ed25519 -f ssh_key_generic_vm_eelco -N ''
-```
-
-➡️ This will create:
-
- * ssh_key_generic_vm_eelco
- * ssh_key_generic_vm_eelco.pub
-
-The option `-N ''` sets an empty password. This means you can use your ssh keys with
-typing a password first. If you want enhanced security, you can set your password here. 
-However, as long as you keep your private keys hidden, this is not necessarly needed. 
-
-#### 3️⃣ Encrypt your private key to a new .age file
-First get your public age key
-
-```shell
-rage-keygen -y ~/.config/agenix/age-secret-key.txt
-age19qv4p55rkzlc6cpycl5ga4wlx88k9lyj83zlygdy8q3r83t83eqsk6s9le
-```
-
-This public key is added to your agenix encryption 
-
-
-```shell
-rage -r age19qv4p55rkzlc6cpycl5ga4wlx88k9lyj83zlygdy8q3r83t83eqsk6s9le -o ssh_key_generic_vm_eelco.age ssh_key_generic_vm_eelco
-```
-
-or, by combining the two commands above:
-
-```shell
-rage -r $(rage-keygen -y ./.config/agenix/age-secret-key.txt) -o ssh_key_generic_vm_eelco.age ssh_key_generic_vm_eelco
-```
-
-After running this command, you have have a newly create file 'ssh_key_generic_vm_eelco.age' next to your private key. 
-
-Note that normally you should be able to find the public part of the age-secret key (i.e. in our example age19...) in the header of the age file. However, this is not always the case. In stead, sometime you see the raw. X25519-reciptient. This is normal and does not influence the decryption. 
-
-If you want to check if the age file indeed contains the encrypted private ssh key, just 
-decrypt it again with 
-
-```shell
-rage -d -i /home/eelco/.config/agenix//age-secret-key.txt -o decrypted_key ssh_key_generic_vm_eelco.age
-```
-
-if you do 
-
-```shell
-diff ssh_key_generic_vm_eelco decrypted_key
-```
-
-the output should show nothing (i.e. the decrypted file equals the orinal ssh private key).
-
-
-Finally, moyptve the newly created ssh_key_generic_vm_eelco.age key to nixos/secrets. 
-
-On each machine were you want to decrypt this age key, you need to run the script in modules/services/ssh-client-keys.nix. This nix script assumes that you have the age-secrete-key.txt (which you should
-not include in your repo but store in your keepass database) in the directory ~/.config/agenix. 
-IF that is the case, your age keys are automatically recovered. 
-
-The only thing left is that you need to get the age-secret-key.txt file on your live installer. For the vm you can just use scp. For a seperate laptop we can start a ssh client, such that you can connect to the laptop from your host using scp.  
+id_ed25519 is now decrypted with sops-nix and id_ed25519.pub is auto-generated
 
 
 
-
-## Troubleshooting commands for finding labels
+# Troubleshooting commands for finding labels
 
 1. `LSBLK`: This gives an overview of the discs, partitions, file systems and labels, including the Mount Points.
 

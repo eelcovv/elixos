@@ -8,10 +8,7 @@ default:
 
 #  Install the required packages
 vm_prerequist_install:
-  nix-shell -p qemu qemu-utils OVMF
-
-vm_age_install:
-  nix-shell -p rage
+  nix-shell -p qemu qemu-utils OVMF rage sops
 
 # 1. Download the ISO, OVMF files, and create an empty disk. 
 vm_prepare:
@@ -43,41 +40,7 @@ vm_partition:
   sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
   @echo "Partioning is done. You can now run vm_install"
 
-# 4.(a) Enable SSH on a live NixOS system (VM or real machine)
-live_setup_ssh:
-  sudo passwd nixos
-  sudo systemctl start sshd
-  ip a | grep 'inet ' | grep -v 127.0.0.1 || true
-  @echo "SSH server is ready. You can now scp your age-secret-key.txt file to this machine."
 
-# 4. (b) Copy your private age secret key to a live installer (either VM or physical)
-# Usage:
-#   just live_copy_age_key localhost
-#   just live_copy_age_key 192.168.1.123
-live_copy_age_key host:
-  scp -P 2222 ~/.config/agenix/age-secret-key.txt nixos@{{host}}:/home/nixos/
-  @echo "✅ age-secret-key.txt copied to nixos@{{host}}"
-
-# Versleutel ~/.ssh/id_ed25519 naar SOPS-YAML
-encrypt-key:
-	@echo "🔐 Converting ~/.ssh/id_ed25519 to YAML format..."
-	@mkdir -p nixos/secrets
-	@echo "id_ed25519: |" > nixos/secrets/generic-vm-secrets.yaml
-	@cat ~/.ssh/id_ed25519 | sed 's/^/  /' >> nixos/secrets/generic-vm-secrets.yaml
-	@echo "🔒 Encrypting with sops..."
-	@nix shell nixpkgs#sops -c sops -e -i nixos/secrets/generic-vm-secrets.yaml
-	@echo "✅ Secret encrypted and saved to nixos/secrets/generic-vm-secrets.yaml"
-
-# Toon gedecrypte inhoud van secrets (alleen in terminal)
-show-key:
-	@nix shell nixpkgs#sops -c sops -d nixos/secrets/generic-vm-secrets.yaml
-
-# Decrypte het bestand naar ~/.ssh/id_ed25519
-decrypt-key:
-	@echo "🔓 Decrypting to ~/.ssh/id_ed25519..."
-	@nix shell nixpkgs#sops -c sops -d nixos/secrets/generic-vm-secrets.yaml > ~/.ssh/id_ed25519
-	@chmod 400 ~/.ssh/id_ed25519
-	@echo "✅ Written and secured: ~/.ssh/id_ed25519"
 
 # 5. Install NixOS on the disk in the VM
 vm_install:
@@ -162,3 +125,34 @@ clean:
 # Format all Nix files
 fmt:
   pre-commit run --all-files
+
+# ========== ENCRYTION ==========
+# Encrypt ~/.ssh/id_ed25519 to SOPS-YAML
+encrypt-key:
+	@echo "🔐 Converting ~/.ssh/id_ed25519 to YAML format..."
+	@mkdir -p nixos/secrets
+	@echo "id_ed25519: |" > nixos/secrets/generic-vm-secrets.yaml
+	@cat ~/.ssh/id_ed25519 | sed 's/^/  /' >> nixos/secrets/generic-vm-secrets.yaml
+	@echo "🔒 Encrypting with sops..."
+	@nix shell nixpkgs#sops -c sops -e -i nixos/secrets/generic-vm-secrets.yaml
+	@echo "✅ Secret encrypted and saved to nixos/secrets/generic-vm-secrets.yaml"
+
+# Show decrypted contents of secrets (terminal only)
+show-key:
+	@nix shell nixpkgs#sops -c sops -d nixos/secrets/generic-vm-secrets.yaml
+
+# Decrypte the file to ~/.ssh/id_ed25519
+decrypt-key:
+	@echo "🔓 Decrypting to ~/.ssh/id_ed25519..."
+	@nix shell nixpkgs#sops -c sops -d nixos/secrets/generic-vm-secrets.yaml > ~/.ssh/id_ed25519
+	@chmod 400 ~/.ssh/id_ed25519
+	@echo "✅ Written and secured: ~/.ssh/id_ed25519"
+
+
+# ========== SSH SETUP ==========
+#  Enable SSH on a live NixOS system (VM or real machine)
+live_setup_ssh:
+  sudo passwd nixos
+  sudo systemctl start sshd
+  ip a | grep 'inet ' | grep -v 127.0.0.1 || true
+  @echo "SSH server is ready. You can now scp your age-secret-key.txt file to this machine."
