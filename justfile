@@ -42,23 +42,38 @@ vm_partition:
 
 # Copy Age private key from local ~/.config/sops/age/keys.txt to remote live installer
 # Usage: just push-key
+# Push the Age private key to the live installer via localhost:2222
+# Step 1: scp key from host to live installer
 push-key:
 	scp -P 2222 ~/.config/sops/age/keys.txt nixos@localhost:/home/nixos/keys.txt
 
-# On the remote machine (e.g. via SSH into the live installer),
-# this command will install the Age key for root use by sops-nix
+# Step 2: prepare /root/.config/sops/age/keys.txt on the live installer
 install-root-key:
 	sudo mkdir -p /root/.config/sops/age
 	sudo cp /home/nixos/keys.txt /root/.config/sops/age/keys.txt
 	sudo chmod 600 /root/.config/sops/age/keys.txt
-	@echo "✅ Age private key installed for root" 
+	@echo "✅ Age private key ready for nixos-install"
 
-# 4 Copy the Age private key to /root for use by sops-nix
-vm_install-root-key:
-	sudo mkdir -p /root/.config/sops/age
-	sudo cp ~/.config/sops/age/keys.txt /root/.config/sops/age/keys.txt
-	sudo chmod 600 /root/.config/sops/age/keys.txt
-	@echo "✅ Age private key installed for root"
+# Clone elixos repo on the live installer
+clone-repo:
+	ssh -p 2222 nixos@localhost 'git clone git@github.com:eelco/elixos.git || true'
+
+# Run install-root-key inside cloned repo on live installer
+remote-install-root-key:
+	ssh -p 2222 nixos@localhost 'cd elixos && just install-root-key'
+
+# Full bootstrap sequence
+bootstrap-vm:
+	@echo "📡 Copying Age key to live installer (localhost:2222)..."
+	just push-key
+	@echo "📂 Cloning elixos repo on live installer..."
+	just clone-repo
+	@echo "🔑 Installing Age key inside live installer..."
+	just remote-install-root-key
+	@echo "🚀 Running NixOS installation..."
+	ssh -p 2222 nixos@localhost 'cd elixos && just vm_install'
+	@echo "✅ VM bootstrap complete!"
+
 
 # 5. Install NixOS on the disk in the VM
 vm_install:
