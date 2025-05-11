@@ -39,9 +39,10 @@
     disko.url = "github:nix-community/disko";
     sops-nix.url = "github:Mic92/sops-nix";
 
+
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, agenix, ... }@inputs: {
+  outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, sops-nix, ... }@inputs: {
 
     # NixOS configuraties
     nixosConfigurations = {
