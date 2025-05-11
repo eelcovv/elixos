@@ -16,6 +16,13 @@ clean:
 fmt:
 	pre-commit run --all-files
 
+# ========== HOST MACHINE SETUP ==========
+
+# Install temporary dev tools in a nix-shell
+vm_prerequisites:
+	nix-shell -p qemu qemu-utils OVMF rage sops
+
+
 # ========== VM INSTALLATION WORKFLOW ==========
 
 # Step 1: Prepare VM disk, ISO and UEFI vars
