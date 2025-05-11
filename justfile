@@ -8,7 +8,10 @@ default:
 
 #  Install the required packages
 vm_prerequist_install:
-  nix-shell -p qemu qemu-utils OVMF rage agenix-cli
+  nix-shell -p qemu qemu-utils OVMF
+
+vm_age_install:
+  nix-shell -p rage agenix-cli
 
 # 1. Download the ISO, OVMF files, and create an empty disk. 
 vm_prepare:
