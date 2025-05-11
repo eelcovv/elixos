@@ -51,7 +51,7 @@
       curl
       just
       agenix-cli
-      age
+      rage
       home-manager
     ];
 
