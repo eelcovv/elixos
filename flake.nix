@@ -10,7 +10,7 @@
 # - `nixos-hardware`: Provides hardware-specific configurations for NixOS.
 # - `home-manager`: A module for managing user environments and dotfiles.
 # - `disko`: A tool for declarative disk partitioning and formatting.
-# - `agenix`: A tool for managing age-encrypted secrets.
+# - `sops-nix`: A tool for managing age-encrypted secrets.
 # 
 # ## Outputs
 # - `nixosConfigurations`: Defines multiple NixOS configurations for different systems:
@@ -37,7 +37,8 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     home-manager.url = "github:nix-community/home-manager";
     disko.url = "github:nix-community/disko";
-    agenix.url = "github:ryantm/agenix";
+    sops-nix.url = "github:Mic92/sops-nix";
+
   };
 
   outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, agenix, ... }@inputs: {
@@ -51,7 +52,7 @@
           ./nixos/hosts/tongfang.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
-          agenix.nixosModules.default
+          sops-nix.nixosModules.sops
         ];
       };
 
@@ -62,7 +63,7 @@
           ./nixos/hosts/generic-vm.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
-          agenix.nixosModules.default
+          sops-nix.nixosModules.sops
         ];
       };
 
@@ -81,7 +82,7 @@
           ./nixos/hosts/singer.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
-          agenix.nixosModules.default
+          sops-nix.nixosModules.sops
         ];
       };
 
@@ -92,7 +93,7 @@
           ./nixos/hosts/contabo.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
-          agenix.nixosModules.default
+          sops-nix.nixosModules.sops
         ];
       };
     };

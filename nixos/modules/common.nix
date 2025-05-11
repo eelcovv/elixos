@@ -55,7 +55,6 @@
       git
       curl
       just
-      rage
       home-manager
       inputs.agenix.packages.${pkgs.system}.default
     ];
