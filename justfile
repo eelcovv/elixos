@@ -40,6 +40,19 @@ vm_partition:
   sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
   @echo "Partioning is done. You can now run vm_install"
 
+# Copy Age private key from local ~/.config/sops/age/keys.txt to remote live installer
+# Usage: just push-key
+push-key:
+	scp -P 2222 ~/.config/sops/age/keys.txt nixos@localhost:/home/nixos/keys.txt
+
+# On the remote machine (e.g. via SSH into the live installer),
+# this command will install the Age key for root use by sops-nix
+install-root-key:
+	sudo mkdir -p /root/.config/sops/age
+	sudo cp /home/nixos/keys.txt /root/.config/sops/age/keys.txt
+	sudo chmod 600 /root/.config/sops/age/keys.txt
+	@echo "✅ Age private key installed for root" 
+
 # 4 Copy the Age private key to /root for use by sops-nix
 vm_install-root-key:
 	sudo mkdir -p /root/.config/sops/age
