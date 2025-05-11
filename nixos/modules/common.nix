@@ -12,7 +12,6 @@
 
 {
   imports = [
-    inputs.agenix.nixosModules.default
     inputs.home-manager.nixosModules.home-manager
   ];
 
@@ -56,7 +55,8 @@
       curl
       just
       home-manager
-      inputs.agenix.packages.${pkgs.system}.default
+      sops
+      rage
     ];
 
     system.stateVersion = "24.11";
