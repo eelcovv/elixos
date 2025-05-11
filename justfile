@@ -53,6 +53,11 @@ vm_partition:
 push-key:
 	scp -P 2222 ~/.config/sops/age/keys.txt nixos@localhost:/home/nixos/keys.txt
 
+# Create bare repo on live installer & push to it
+push-repo:
+	ssh -p 2222 nixos@localhost 'mkdir -p /tmp/elixos.git && git init --bare /tmp/elixos.git'
+	git push ssh://nixos@localhost:2222/tmp/elixos.git main
+
 # Step 5: Prepare Age key location for nixos-install on live installer
 install-root-key:
 	sudo mkdir -p /root/.config/sops/age
@@ -61,8 +66,10 @@ install-root-key:
 	@echo "✅ Age private key ready for nixos-install"
 
 # Clone elixos repo on live installer (if missing)
+# Clone from local bare repo into nixos@localhost:~/elixos
 clone-repo:
-	ssh -p 2222 nixos@localhost 'git clone git@github.com:eelco/elixos.git || true'
+	ssh -p 2222 nixos@localhost 'git clone -b main /tmp/elixos.git ~/elixos || true'
+
 
 # Remote exec: install root key (inside cloned repo)
 remote-install-root-key:
@@ -72,15 +79,18 @@ remote-install-root-key:
 bootstrap-vm:
 	@echo "📡 Copying Age key to live installer (localhost:2222)..."
 	just push-key
+	@echo "📂 Pushing elixos repo to live installer..."
+	just push-repo
 	@echo "📂 Cloning elixos repo on live installer..."
 	just clone-repo
 	@echo "🔑 Installing Age key on live installer..."
 	just remote-install-root-key
 	@echo "💽 Partitioning VM disk..."
-	ssh -p 2222 nixos@localhost 'cd elixos && just vm_partition'
+	ssh -p 2222 nixos@localhost 'cd ~/elixos && just vm_partition'
 	@echo "🚀 Running NixOS installation..."
-	ssh -p 2222 nixos@localhost 'cd elixos && just vm_install'
+	ssh -p 2222 nixos@localhost 'cd ~/elixos && just vm_install'
 	@echo "✅ VM bootstrap complete!"
+
 
 # Step 6: Run nixos-install from live installer
 vm_install:
