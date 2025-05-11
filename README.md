@@ -633,3 +633,84 @@ Only then the same push-pull-rebuild step on your real tongue laptop.
 * Make snapshots of your VM for major changes.
 
 * Keep SSH open on Tongfang-VM so that it is easier to deploy.
+
+
+# Elixos NixOS VM Installation Workflow (SOPS)
+
+## Flow Overview
+
+```
++-------------------------+
+|  Host Machine (Laptop)  |
++-------------------------+
+          |
+          |  (QEMU: ISO + VM disk)
+          v
++-------------------------+
+|  Live Installer (VM)    |
++-------------------------+
+          |
+          |  (push SOPS key & repo via SSH port 2222)
+          v
++-------------------------+
+|  Live Installer /tmp & /root |
++-------------------------+
+          |
+          |  (nixos-install → Target Disk)
+          v
++-------------------------+
+|  Installed NixOS system |
++-------------------------+
+          |
+          |  (SOPS decrypt private key to ~/.ssh/id_ed25519)
+          v
++-------------------------+
+|  Working SSH login keys |
++-------------------------+
+```
+
+## Full Workflow Commands
+
+```bash
+just vm_prerequisites    # Install dev tools (QEMU, SOPS, Rage)
+just vm_prepare          # Prepare disk, ISO, UEFI vars
+just vm_run_installer    # Boot live installer VM (localhost:2222)
+just live_setup_ssh      # Start sshd on live installer
+just bootstrap-vm        # Full bootstrap (key push, repo, install)
+```
+
+### bootstrap-vm does:
+
+* push-key: scp Age key to live installer
+* push-repo: push repo to /tmp/elixos.git
+* clone-repo: clone repo to \~/elixos
+* install-root-key: place Age key in /root/.config/sops/age
+* vm\_partition: run disk layout partitioning
+* vm\_install: run nixos-install
+
+## SSH Key Encryption Workflow
+
+```bash
+just encrypt-key   # Encrypt ~/.ssh/id_ed25519 to SOPS-YAML
+just show-key      # View decrypted secret
+just decrypt-key   # Decrypt back to ~/.ssh/id_ed25519 (optional)
+```
+
+## Maintenance
+
+```bash
+just vm_reset         # Delete VM files & start over
+just vm_build_generic-vm  # Build test VM
+just vm_run           # Run installed VM
+just update           # Update flake inputs
+just clean            # Nix garbage collect
+just fmt              # Format nix files
+```
+
+## Key Concept Recap
+
+* Private key: `~/.config/sops/age/keys.txt`
+* SOPS secrets: `nixos/secrets/generic-vm-secrets.yaml`
+* On live installer: `/etc/sops/age/keys.txt` symlinked to root key
+* Final decrypted SSH key: `/home/eelco/.ssh/id_ed25519`
+* Repo pushed via local bare repo (no GitHub SSH needed)
