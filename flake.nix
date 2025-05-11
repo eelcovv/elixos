@@ -57,13 +57,12 @@
 
       generic-vm = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs self; };
+        specialArgs = { inherit inputs self agenix; };
         modules = [
           ./nixos/hosts/generic-vm.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
           agenix.nixosModules.default
-
         ];
       };
 
