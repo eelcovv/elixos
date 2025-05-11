@@ -431,131 +431,6 @@ On your host machine do:
 20. You should now be able to login using `ssh eelco@localhost -p 2222`. If you have a   'backspace'-problem: a quick fix is `export TERM=xterm`
 
 
-# SSH Key Management with Agenix: Workflow
-
-## 1️⃣ Generating and encrypting an SSH key on the VM
-
-This creates a **per-host, per-user SSH key** that is stored encrypted in your Nix repository.
-
-### ➔ Step 1: Generate an SSH keypair on the VM
-
-Run on your VM as the target user (e.g., `eelco`):
-
-```shell
-ssh-keygen -t ed25519 -C "vm@eelco" -f ~/.ssh/id_ed25519
-```
-
-This creates:
-
-```text
-- `~/.ssh/id_ed25519` (private key)
-- `~/.ssh/id_ed25519.pub` (public key)
-```
-
-### ➔ Step 2: Add the public key to GitHub (or other services)
-
-Show the public key:
-
-```shell
-cat ~/.ssh/id_ed25519.pub
-```
-
-Add this key to your GitHub account under **Settings > SSH and GPG keys**.
-
-### ➔ Step 3: Encrypt the private key with `age`
-
-On your VM, encrypt the private key **using the VM’s host SSH key**.
-
-First, get the VM’s host public key:
-
-```shell
-cat /etc/ssh/ssh_host_ed25519_key.pub
-```
-
-Then encrypt the private key:
-
-```shell
-age -r "$(cat /etc/ssh/ssh_host_ed25519_key.pub)" -o nixos/secrets/ssh_key_<host>_<user>.age  ~/.ssh/id_ed25519
-```
-
-Example:
-
-```shell
-age -r "$(cat /etc/ssh/ssh_host_ed25519_key.pub)" \
-  -o nixos/secrets/ssh_key_generic-vm_eelco.age \
-  ~/.ssh/id_ed25519
-```
-
-### ➔ Step 4: Commit and push the encrypted secret
-
-```shell
-git add nixos/secrets/ssh_key_generic-vm_eelco.age
-git commit -m "Add encrypted SSH key for generic-vm (eelco)"
-git push
-```
-
----
-
-## 2️⃣ Restoring the SSH key on a (new) VM install
-
-When you create a new VM (or re-install an existing one), follow these steps to restore the SSH key automatically.
-
-### ➔ Step 1: Declare the secret in `modules/secrets.nix`
-
-Add:
-
-```nix
-age.secrets.ssh_key_generic_vm_eelco = {
-  file = ../secrets/ssh_key_generic-vm_eelco.age;
-  owner = "eelco";
-  group = "users";
-  mode = "0600";
-};
-```
-
-## 2️⃣ Restoring the SSH key on a (new) VM install
-
-When you create a new VM (or re-install an existing one), follow these steps to restore the SSH key automatically.
-
-### ➔ Step 1: Declare the secret in `modules/secrets.nix`
-
-Add:
-
-```nix
-age.secrets.ssh_key_generic_vm_eelco = {
-  file = ../secrets/ssh_key_generic-vm_eelco.age;
-  owner = "eelco";
-  group = "users";
-  mode = "0600";
-};
-```
-
-### ➔ Step 2: Bind the key in Home Manager
-
-In your per-host user config, e.g., `nixos/home/generic-vm/eelco.nix`, add:
-
-```nix
-{
-  home.file.".ssh/id_ed25519" = {
-    source = config.age.secrets.ssh_key_generic_vm_eelco.path;
-    mode = "0600";
-  };
-}
-```
-
-### ➔ Step 3: Rebuild the system and Home Manager
-
-Run on the VM:
-
-```shell
-sudo nixos-rebuild switch --flake .#generic-vm
-```
-
----
-
-✅ After these steps, your SSH private key will be automatically placed in `~/.ssh/id_ed25519`, ready to use for GitHub (or other services).
-
-
 # 🔐 Agenix SSH 
 
 ## 🔐 How Agenix Machine Secrets Work
@@ -588,8 +463,7 @@ our repository.
 We first need to install agenix. This can be done in nixos with 
 
 ```shell
-nix-shell -p agenix-cli.out
-nix-shell -p age.out
+nix-shell -p agenix-cli.out rage
 ```
 
 #### 1️⃣ Create a new age-keypair  (one time only)
@@ -601,7 +475,7 @@ create the master key on our current host with
 
 ```shell
 mkdir -p ~/.config/agenix
-age-keygen -o ~/.config/agenix/age-secret-key.txt
+rage-keygen -o ~/.config/agenix/age-secret-key.txt
 ```
 
 This age-secret-key.txt is a ordinary text file containing both the public and private key. Store this text into your keepass database which is externally stored on a cloud host. 
@@ -609,7 +483,7 @@ This age-secret-key.txt is a ordinary text file containing both the public and p
 You can print the public key of this file with
 
 ```shell
-age-keygen -y ~/.config/agenix/age-secret-key.txt
+rage-keygen -y ~/.config/agenix/age-secret-key.txt
 ```
 
 #### 2️⃣ Create a private/public ssh key for a certain host
@@ -633,7 +507,7 @@ However, as long as you keep your private keys hidden, this is not necessarly ne
 First get your public age key
 
 ```shell
-age-keygen -y ~/.config/agenix/age-secret-key.txt
+rage-keygen -y ~/.config/agenix/age-secret-key.txt
 age19qv4p55rkzlc6cpycl5ga4wlx88k9lyj83zlygdy8q3r83t83eqsk6s9le
 ```
 
@@ -641,13 +515,13 @@ This public key is added to your agenix encryption
 
 
 ```shell
-age -r age19qv4p55rkzlc6cpycl5ga4wlx88k9lyj83zlygdy8q3r83t83eqsk6s9le -o ssh_key_generic_vm_eelco.age ssh_key_generic_vm_eelco
+rage -r age19qv4p55rkzlc6cpycl5ga4wlx88k9lyj83zlygdy8q3r83t83eqsk6s9le -o ssh_key_generic_vm_eelco.age ssh_key_generic_vm_eelco
 ```
 
 or, by combining the two commands above:
 
 ```shell
-age -r $(age-keygen -y ./.config/agenix/age-secret-key.txt) -o ssh_key_generic_vm_eelco.age ssh_key_generic_vm_eelco
+rage -r $(rage-keygen -y ./.config/agenix/age-secret-key.txt) -o ssh_key_generic_vm_eelco.age ssh_key_generic_vm_eelco
 ```
 
 After running this command, you have have a newly create file 'ssh_key_generic_vm_eelco.age' next to your private key. 
@@ -658,7 +532,7 @@ If you want to check if the age file indeed contains the encrypted private ssh k
 decrypt it again with 
 
 ```shell
-age -d -i /home/eelco/.config/agenix//age-secret-key.txt -o decrypted_key ssh_key_generic_vm_eelco.age
+rage -d -i /home/eelco/.config/agenix//age-secret-key.txt -o decrypted_key ssh_key_generic_vm_eelco.age
 ```
 
 if you do 

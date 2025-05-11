@@ -8,7 +8,7 @@ default:
 
 #  Install the required packages
 vm_prerequist_install:
-  nix-shell -p qemu qemu-utils OVMF 
+  nix-shell -p qemu qemu-utils OVMF rage
 
 # 1. Download the ISO, OVMF files, and create an empty disk. 
 vm_prepare:
