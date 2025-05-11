@@ -40,7 +40,12 @@ vm_partition:
   sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
   @echo "Partioning is done. You can now run vm_install"
 
-
+# 4 Copy the Age private key to /root for use by sops-nix
+vm_install-root-key:
+	sudo mkdir -p /root/.config/sops/age
+	sudo cp ~/.config/sops/age/keys.txt /root/.config/sops/age/keys.txt
+	sudo chmod 600 /root/.config/sops/age/keys.txt
+	@echo "✅ Age private key installed for root"
 
 # 5. Install NixOS on the disk in the VM
 vm_install:
