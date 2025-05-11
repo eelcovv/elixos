@@ -3,7 +3,7 @@
 # ## Description
 # The flake defines a set of inputs and outputs to manage NixOS systems, packages, 
 # and configurations. It uses various external repositories as inputs, such as 
-# nixpkgs, nixos-hardware, home-manager, disko, and agenix.
+# nixpkgs, nixos-hardware, home-manager, disko, and sops.
 # 
 # ## Inputs
 # - `nixpkgs`: Points to the NixOS unstable channel for the latest packages and modules.
@@ -59,7 +59,7 @@
 
       generic-vm = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs self agenix; };
+        specialArgs = { inherit inputs self; };
         modules = [
           ./nixos/hosts/generic-vm.nix
           disko.nixosModules.disko
