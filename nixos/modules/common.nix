@@ -44,15 +44,20 @@
 
     i18n.defaultLocale = "en_US.UTF-8";
     time.timeZone = "Europe/Amsterdam";
-
-    environment.systemPackages = with pkgs; [
+    
+    environment.systemPackages =
+    with pkgs;
+    let
+      inherit (config.system) build;
+    in
+    [
       vim
       git
       curl
       just
-      agenix-cli
       rage
       home-manager
+      inputs.agenix.packages.${pkgs.system}.default
     ];
 
     system.stateVersion = "24.11";
