@@ -191,6 +191,6 @@ ssh_clear_known_host:
 	ssh-keygen -R "[localhost]:2222"
 
 # Add current user’s SSH key to live VM
-ssh_authorize:
+ssh_authorize USER: 
 	just ssh_clear_known_host
-	ssh-copy-id -p 2222 nixos@localhost
+	ssh-copy-id -i ~/.ssh/id_ed25519.pub -p 2222 "{{USER}}@localhost"
