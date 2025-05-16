@@ -166,7 +166,7 @@ make-secret HOST USER:
 	mkdir -p nixos/secrets; \
 	echo "age_key: |" > "$SECRET_FILE"; \
 	cat "$AGE_KEY_FILE" | sed 's/^/  /' >> "$SECRET_FILE"; \
-	echo "\nid_ed25519: |" >> "$SECRET_FILE"; \
+	echo "id_ed25519: |" >> "$SECRET_FILE"; \
 	cat "$SSH_KEY_FILE" | sed 's/^/  /' >> "$SECRET_FILE"; \
 	sops -e --age "$AGE_PUB_KEY" -i "$SECRET_FILE"; \
 	echo "✅ Encrypted $SECRET_FILE"
