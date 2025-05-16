@@ -1,5 +1,5 @@
 {
-  sops.defaultSopsFile = ../../secrets/generic-vm-eelco-secrets.yaml;
+  sops.defaultSopsFile = ../../secrets/generic-vm-ecrets.yaml;
   sops.age.keyFile = "/etc/sops/age/keys.txt";  
 
   sops.secrets.age_key = {
