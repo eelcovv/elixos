@@ -1,3 +1,5 @@
+{ config, pkgs, lib, ... }:
+
 {
   sops.defaultSopsFile = ../../secrets/generic-vm-eelco-secrets.yaml;
 
