@@ -3,6 +3,9 @@
 {
   sops.defaultSopsFile = ../../secrets/generic-vm-eelco-secrets.yaml;
 
+  environment.etc."nixos/secrets/generic-vm-eelco-secrets.yaml".source =
+  ../../secrets/generic-vm-eelco-secrets.yaml;
+
   sops.age.keyFile = "/etc/sops/age/keys.txt";
 
   sops.secrets.age_key = {
