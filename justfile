@@ -2,11 +2,22 @@
 default:
 	just --list --unsorted
 
+REPO_DIR := "~/elixos"
+
+
 # ========== HOST MACHINE SETUP ==========
 
 # Dev environment with QEMU, Rage, SOPS, OVMF
 vm_prerequisites:
 	nix-shell -p qemu qemu-utils OVMF rage sops
+
+# Run any just target remotely on the live VM
+vm_just TARGET:
+	ssh -p 2222 nixos@localhost "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' run nixpkgs#just -- {{TARGET}}"
+
+# Open interactive shell on VM with flake features and repo loaded
+vm_just_shell:
+	ssh -t -p 2222 nixos@localhost "cd ~/elixos && nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#just -c bash"
 
 # Update & maintenance
 update:
@@ -17,6 +28,11 @@ clean:
 
 fmt:
 	pre-commit run --all-files
+
+check-key:
+	@nix shell nixpkgs#sops -c sops -d nixos/secrets/generic-vm-secrets.yaml > /tmp/id_check && chmod 400 /tmp/id_check
+	@ssh -i /tmp/id_check -p 2222 nixos@localhost hostname || echo "❌ Could not SSH with decrypted key"
+	@rm /tmp/id_check
 
 # ========== VM INSTALLATION WORKFLOW ==========
 
@@ -70,7 +86,7 @@ clone-repo:
 
 # Install Age key remotely on live installer
 remote-install-root-key:
-	ssh -p 2222 nixos@localhost 'cd ~/elixos && just install-root-key'
+	ssh -p 2222 nixos@localhost 'cd ~/elixos && nix --extra-experimental-features "nix-command flakes" run nixpkgs#just -- install-root-key'
 
 # Full bootstrap (key, repo, partition, install)
 bootstrap-vm:
@@ -81,12 +97,13 @@ bootstrap-vm:
 	@echo "📂 Cloning repo on live installer..."
 	just clone-repo
 	@echo "🔑 Installing Age key..."
-	just remote-install-root-key
+	just vm_just install-root-key
 	@echo "💽 Partitioning disk..."
-	ssh -p 2222 nixos@localhost 'cd ~/elixos && just vm_partition'
+	just vm_just vm_partition
 	@echo "🚀 Running NixOS installation..."
-	ssh -p 2222 nixos@localhost 'cd ~/elixos && just vm_install'
+	just vm_just vm_install
 	@echo "✅ VM bootstrap complete!"
+
 
 # Run nixos-install from live installer
 vm_install:
@@ -130,21 +147,64 @@ vm_reset:
 
 # ========== ENCRYPTION HELPERS ==========
 
+# Encrypt using Age + SSH public key
+encrypt SECRET:
+	if [ -z "{{SECRET}}" ]; then echo "❌ Specify a secret file"; exit 1; fi
+	sops -e \
+		--age "$(rage-keygen -y ~/.config/sops/age/keys.txt)" \
+		--age "$(cat ~/ssh_key_generic_vm_eelco.pub)" \
+		-i nixos/secrets/{{SECRET}}
+
+encrypt_generic_vm:
+	encrypt generic-vm-secrets.yaml:
+
 encrypt-key:
 	@echo "🔐 Converting ~/.ssh/id_ed25519 to YAML..."
 	@mkdir -p nixos/secrets
 	@echo "id_ed25519: |" > nixos/secrets/generic-vm-secrets.yaml
 	@cat ~/.ssh/id_ed25519 | sed 's/^/  /' >> nixos/secrets/generic-vm-secrets.yaml
-	@nix shell nixpkgs#sops -c sops -e -i nixos/secrets/generic-vm-secrets.yaml
+	just encrypt generic-vm-secrets.yaml
 	@echo "✅ Secret encrypted."
 
 show-key:
-	@nix shell nixpkgs#sops -c sops -d nixos/secrets/generic-vm-secrets.yaml
+	nix shell nixpkgs#sops --command sops -d nixos/secrets/generic-vm-secrets.yaml
 
 decrypt-key:
-	@nix shell nixpkgs#sops -c sops -d nixos/secrets/generic-vm-secrets.yaml > ~/.ssh/id_ed25519
-	@chmod 400 ~/.ssh/id_ed25519
+	nix shell nixpkgs#sops --command sops -d nixos/secrets/generic-vm-secrets.yaml > ~/.ssh/id_ed25519
+	chmod 400 ~/.ssh/id_ed25519
 	@echo "✅ Decrypted ~/.ssh/id_ed25519"
+
+make-secret HOST USER:
+	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}"; \
+	AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"; \
+	SSH_KEY_FILE="$HOME/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
+	SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
+	echo "🔐 Checking SSH key: $SSH_KEY_FILE"; \
+	if [ ! -f "$SSH_KEY_FILE" ]; then \
+		ssh-keygen -t ed25519 -N "" -f "$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
+	else \
+		echo "🔁 SSH key already exists"; \
+	fi; \
+	echo "🔐 Creating secret YAML → $SECRET_FILE"; \
+	mkdir -p nixos/secrets; \
+	echo "age_key: |" > "$SECRET_FILE"; \
+	cat "$AGE_KEY_FILE" | sed 's/^/  /' >> "$SECRET_FILE"; \
+	echo "\nid_ed25519: |" >> "$SECRET_FILE"; \
+	cat "$SSH_KEY_FILE" | sed 's/^/  /' >> "$SECRET_FILE"; \
+	sops -e \
+		--age "$(rage-keygen -y "$AGE_KEY_FILE")" \
+		--age "$(rage-keygen -y "$SSH_KEY_FILE")" \
+		-i "$SECRET_FILE"; \
+	echo "✅ Encrypted $SECRET_FILE"
+
+
+# Decrypt the secret YAML for a given host + user and show contents
+decrypt-secret HOST USER:
+	@SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
+	echo "🔓 Decrypting $SECRET_FILE..."; \
+	nix shell nixpkgs#sops --command sops -d "$SECRET_FILE"
+
+
 
 # ========== LIVE INSTALLER SSH SETUP ==========
 live_setup_ssh:
@@ -152,3 +212,12 @@ live_setup_ssh:
 	sudo systemctl start sshd
 	ip a | grep 'inet ' | grep -v 127.0.0.1
 
+
+# Remove old SSH key for QEMU port
+ssh_clear_known_host:
+	ssh-keygen -R "[localhost]:2222"
+
+# Add current user’s SSH key to live VM
+ssh_authorize:
+	just ssh_clear_known_host
+	ssh-copy-id -p 2222 nixos@localhost
