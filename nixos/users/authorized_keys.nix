@@ -14,7 +14,7 @@ let
   perUserKeys = {
     eelco = {
       trusted = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3+DBjLHGlQinS0+qeC5JgFakaPFc+b+btlZABO7ZX6 eelco@tongfang"
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHz8QYZSfdWv5R4trQbiJ8wGekQQVCozBoLqfiSITJ51 eelco@tongfang"
       ];
       hostSpecific = {
         tongfang = [ ];
