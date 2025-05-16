@@ -101,6 +101,8 @@ bootstrap-vm:
 	just vm_just vm_partition
 	@echo "🚀 Running NixOS installation..."
 	just vm_just vm_install
+	@echo "🧪 Verifiëren of secrets aanwezig zijn..."
+	just vm_just check-secrets
 	@echo "✅ VM bootstrap complete!"
 
 
@@ -194,3 +196,29 @@ ssh_clear_known_host:
 ssh_authorize USER: 
 	just ssh_clear_known_host
 	ssh-copy-id -i ~/.ssh/id_ed25519.pub -p 2222 "{{USER}}@localhost"
+
+
+# Check of secrets gedecrypteerd en beschikbaar zijn op de VM
+check-secrets:
+	ssh -p 2222 nixos@localhost 'bash -s' <<'EOF'
+echo "🔍 Checking /etc/sops/age/keys.txt"
+if [ -s /etc/sops/age/keys.txt ]; then
+  echo "✅ age key aanwezig"
+else
+  echo "❌ age key ontbreekt of leeg"
+fi
+
+echo "🔍 Checking /home/eelco/.ssh/id_ed25519"
+if [ -s /home/eelco/.ssh/id_ed25519 ]; then
+  echo "✅ id_ed25519 aanwezig"
+else
+  echo "❌ id_ed25519 ontbreekt of leeg"
+fi
+
+echo "🔍 Checking /home/eelco/.ssh/id_ed25519.pub"
+if [ -s /home/eelco/.ssh/id_ed25519.pub ]; then
+  echo "✅ id_ed25519.pub aanwezig"
+else
+  echo "❌ id_ed25519.pub ontbreekt of leeg"
+fi
+EOF
