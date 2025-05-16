@@ -197,28 +197,14 @@ ssh_authorize USER:
 	just ssh_clear_known_host
 	ssh-copy-id -i ~/.ssh/id_ed25519.pub -p 2222 "{{USER}}@localhost"
 
-
-# Check of secrets gedecrypteerd en beschikbaar zijn op de VM
 check-secrets:
-	ssh -p 2222 nixos@localhost 'bash -s' <<'EOF'
+	@ssh -p 2222 nixos@localhost 'bash -s' <<'EOF'
 echo "🔍 Checking /etc/sops/age/keys.txt"
-if [ -s /etc/sops/age/keys.txt ]; then
-  echo "✅ age key aanwezig"
-else
-  echo "❌ age key ontbreekt of leeg"
-fi
+[ -s /etc/sops/age/keys.txt ] && echo "✅ age key aanwezig" || echo "❌ age key ontbreekt of leeg"
 
 echo "🔍 Checking /home/eelco/.ssh/id_ed25519"
-if [ -s /home/eelco/.ssh/id_ed25519 ]; then
-  echo "✅ id_ed25519 aanwezig"
-else
-  echo "❌ id_ed25519 ontbreekt of leeg"
-fi
+[ -s /home/eelco/.ssh/id_ed25519 ] && echo "✅ id_ed25519 aanwezig" || echo "❌ id_ed25519 ontbreekt of leeg"
 
 echo "🔍 Checking /home/eelco/.ssh/id_ed25519.pub"
-if [ -s /home/eelco/.ssh/id_ed25519.pub ]; then
-  echo "✅ id_ed25519.pub aanwezig"
-else
-  echo "❌ id_ed25519.pub ontbreekt of leeg"
-fi
+[ -s /home/eelco/.ssh/id_ed25519.pub ] && echo "✅ id_ed25519.pub aanwezig" || echo "❌ id_ed25519.pub ontbreekt of leeg"
 EOF
