@@ -18,7 +18,7 @@
           };
           root = {
             start = "513MiB";
-            size = "100%"; # Gebruik de volledige rest van de schijf
+            size = "100%";
             content = {
               type = "luks";
               name = "crypted";
@@ -33,13 +33,6 @@
         };
       };
     };
-
-    # Swapfile declaratief (via systemd)
-    swapDevices = [
-      {
-        device = "/swapfile";
-        size = "8G";
-      }
-    ];
   };
 }
+
