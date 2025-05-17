@@ -19,7 +19,6 @@
           };
           root = {
             start = "513MiB";
-            end = "100%";
             content = {
               type = "luks";
               name = "crypted";
