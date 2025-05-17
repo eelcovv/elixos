@@ -5,7 +5,6 @@
       ../modules/common.nix
     ../modules/profiles/desktop.nix
     ../modules/home-manager.nix
-    ../modules/services/laptop.nix
     ../modules/secrets/singer-eelco.nix
     ../modules/services/ssh-client-keys.nix
     ../hardware/singer.nix
