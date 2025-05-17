@@ -46,9 +46,20 @@ This performs the following:
 - Pushes your Age master key (keys.txt) to the live installer
 - Pushes your repo to a bare Git repo on the VM
 - Clones the repo into ~/elixos on the VM
-- Installs the master key to /root/.config/sops/age/keys.txt
+- Installs the master key to /etc/sops/age/keys.txt
 - Partitions the disk using disko
 - Installs NixOS using the `generic-vm` configuration
+
+After bootstrapping the VM, the age key is available in memory, but not yet in the installed system.
+To fix that, after booting the VM, run:
+
+    just post-boot-setup HOST=localhost
+
+This will:
+- Push the age key to the real VM
+- Install the key to /etc/sops/age/keys.txt
+- Push and clone the repo again
+- Prepare for `nixos-rebuild switch`
 
 ### ▶️ 3. Boot the Installed VM
 
@@ -81,11 +92,11 @@ Secrets like your SSH private key are stored as encrypted YAML files.
 
 ### 🔑 Create and Encrypt a New Key
 
-    just make-secret generic-vm eelco
+    just make-secret HOST USER
 
 This creates:
-- `~/.ssh/ssh_key_generic_vm_eelco`
-- `nixos/secrets/generic-vm-eelco-secrets.yaml`
+- `~/.ssh/ssh_key_HOST_USER`
+- `nixos/secrets/HOST-USER-secrets.yaml`
 
 ### 📦 Encryption Helpers
 
@@ -106,7 +117,7 @@ This creates:
 For manual access to the live installer:
 
     just live_setup_ssh       # Start sshd and set root password
-    just ssh_authorize        # Add your SSH key to the live VM
+    just ssh_authorize USER   # Add your SSH key to the live VM
 
 ## 📈 Installation Flow Visualization
 
