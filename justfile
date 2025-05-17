@@ -87,6 +87,28 @@ clone-repo:
 remote-install-root-key:
 	ssh -p 2222 nixos@localhost 'cd ~/elixos && nix --extra-experimental-features "nix-command flakes" run nixpkgs#just -- install-root-key'
 
+
+# Check if secrets are ready. Run at the host before doing bootstrap-vm 
+check-deployable-vm:
+	@echo "🔍 Validating declarative VM secrets setup..."
+	@SECRET_FILE="nixos/secrets/generic-vm-eelco-secrets.yaml"; \
+	if [ ! -f "$SECRET_FILE" ]; then \
+		echo "❌ Secret file $SECRET_FILE does not exist"; exit 1; \
+	fi; \
+	if ! command -v sops >/dev/null; then \
+		echo "❌ sops is not installed"; exit 1; \
+	fi; \
+	echo "🔓 Decrypting secrets..."; \
+	SOPS_AGE_KEY_FILE=/dev/null sops -d "$SECRET_FILE" > /tmp/decrypted.yaml || { echo "❌ Failed to decrypt"; exit 1; }; \
+	if ! grep -q "^age_key:" /tmp/decrypted.yaml; then \
+		echo "❌ Decrypted secret is missing 'age_key'"; exit 1; \
+	fi; \
+	if ! grep -q "^id_ed25519:" /tmp/decrypted.yaml; then \
+		echo "❌ Decrypted secret is missing 'id_ed25519'"; exit 1; \
+	fi; \
+	echo "✅ Secret file contains required keys and can be decrypted declaratively"
+
+
 # Full bootstrap (key, repo, partition, install)
 bootstrap-vm:
 	@echo "📡 Pushing Age key to live installer..."
@@ -100,31 +122,6 @@ bootstrap-vm:
 	@echo "🚀 Running NixOS installation..."
 	just vm_just vm_install
 	@echo "✅ VM bootstrap complete!. You can start the vm now with just vm_run"
-
-# Check of secrets klaar zijn voor declaratieve installatie (zonder age key op disk)
-check-deployable-vm:
-	@echo "🔍 Validating declarative VM secrets setup..."
-	@SECRET_FILE="nixos/secrets/generic-vm-eelco-secrets.yaml"; \
-	if [ ! -f "$SECRET_FILE" ]; then \
-		echo "❌ Secret file $SECRET_FILE does not exist"; exit 1; \
-	fi; \
-	if ! command -v sops >/dev/null; then \
-		echo "❌ sops is not installed"; exit 1; \
-	fi; \
-	if ! grep -q "AGE-SECRET-KEY" "$SECRET_FILE"; then \
-		echo "❌ Secret file does not contain age_key"; exit 1; \
-	fi; \
-	if ! grep -q "id_ed25519" "$SECRET_FILE"; then \
-		echo "❌ Secret file does not contain id_ed25519"; exit 1; \
-	fi; \
-	echo "✅ Secret file contains required keys"
-
-	@echo "🔍 Simulating sops decrypt using internal age_key..."
-	@SOPS_AGE_KEY_FILE=/dev/null sops -d nixos/secrets/generic-vm-eelco-secrets.yaml >/dev/null \
-	&& echo "✅ sops can decrypt secrets declaratively" \
-	|| (echo "❌ sops failed to decrypt. Is age_key valid?" && exit 1)
-
-
 
 # Run nixos-install from live installer
 vm_install:
