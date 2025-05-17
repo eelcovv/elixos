@@ -1,4 +1,3 @@
-
 { config, lib, ... }:
 
 {
@@ -21,7 +20,6 @@
           };
           root = {
             start = "513MiB";
-            # end wordt automatisch tot einde disk
             content = {
               type = "luks";
               name = "crypt";
@@ -38,3 +36,4 @@
     };
   };
 }
+
