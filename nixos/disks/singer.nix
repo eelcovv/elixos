@@ -1,3 +1,4 @@
+
 {
   disko.devices = {
     disk.main = {
@@ -18,7 +19,7 @@
           };
           root = {
             start = "513MiB";
-            size = "100%";
+            end = "100%";
             content = {
               type = "luks";
               name = "crypted";
@@ -35,4 +36,3 @@
     };
   };
 }
-
