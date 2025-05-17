@@ -108,7 +108,6 @@ check-deployable-vm:
 	fi; \
 	echo "✅ Secret file contains required keys and can be decrypted declaratively"
 
-
 # Full bootstrap (key, repo, partition, install)
 bootstrap-vm:
 	@echo "📡 Pushing Age key to live installer..."
