@@ -2,7 +2,7 @@
 
 {
   imports = [
-      ../modules/common.nix
+    ../modules/common.nix
     ../modules/profiles/desktop.nix
     ../modules/home-manager.nix
     ../modules/secrets/singer-eelco.nix
@@ -16,6 +16,11 @@
     inputs.disko.nixosModules.disko
     inputs.home-manager.nixosModules.home-manager
   ];
+
+  swapDevices = [{
+    device = "/swapfile";
+    size = "8G";
+  }];
 
   networking.hostName = "singer";
 
