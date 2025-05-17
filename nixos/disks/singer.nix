@@ -1,3 +1,4 @@
+# run this with: sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --flake .#singer --mode zap_create_mount
 {
   disko.devices = {
     disk = {
