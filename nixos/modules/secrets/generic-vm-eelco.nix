@@ -30,7 +30,7 @@
     serviceConfig = {
       Type = "oneshot";
       User = "eelco";
-      ExecStart = "${pkgs.openssh}/bin/ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub";|
+      ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.openssh}/bin/ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub'";
     };
   };
 
