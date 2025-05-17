@@ -142,3 +142,21 @@ For manual access to the live installer:
 - Create VM snapshots before major system changes.
 
 Happy hacking with Elixos! 🧬
+
+# Steps laptop installation
+ 
+ ```shell
+ sudo useradd -r -s /urs/sbin/nologin -c "sshd user" sshd
+ ```
+ start sshd in the background with
+
+```shell
+sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --flake .#singer --mode zap_create_mount
+```
+
+to login: don't use password, but copy you public ssh key and add to authorized_keys. I used keep to copy my key. 
+
+
+also check your firewall if it is not running
+
+To transer your git repo, either bundle or just add your publish key to your git hub account 
