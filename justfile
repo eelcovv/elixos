@@ -153,7 +153,9 @@ encrypt SECRET:
 make-secret HOST USER:
 	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}"; \
 	AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"; \
+	echo "🔐 Extracting public age key from file $AGE_KEY_FILE"; \
 	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)"; \
+	echo "🔐 Obtained public age key  $AGE_PUB_KEY"; \
 	SSH_KEY_FILE="$HOME/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
 	SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
 	echo "🔐 Checking SSH key: $SSH_KEY_FILE"; \

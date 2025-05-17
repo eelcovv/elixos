@@ -3,7 +3,6 @@
 {
   sops.defaultSopsFile = ../../secrets/generic-vm-eelco-secrets.yaml;
 
-  environment.etc."nixos/secrets/generic-vm-eelco-secrets.yaml".source = ../../secrets/generic-vm-eelco-secrets.yaml;
 
   sops.age.keyFile = "/etc/sops/age/keys.txt";
 
@@ -12,6 +11,7 @@
     owner = "root";
     group = "root";
     mode = "0400";
+    reloadIfChanged = true;
   };
 
   sops.secrets.id_ed25519 = {
@@ -19,6 +19,7 @@
     owner = "eelco";
     group = "users";
     mode = "0400";
+    reloadIfChanged = true;
   };
 
   systemd.services.generate-ssh-pubkey = {
@@ -29,7 +30,11 @@
     serviceConfig = {
       Type = "oneshot";
       User = "eelco";
-      ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.openssh}/bin/ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub'";
+      ExecStart = "${pkgs.writeShellScript "generate-pubkey" ''
+  ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub
+''}";
+
+
     };
   };
 
