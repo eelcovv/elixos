@@ -4,10 +4,16 @@
   # De versleutelde secrets.yaml
   sops.defaultSopsFile = ../../secrets/generic-vm-eelco-secrets.yaml;
 
-  # Haal age key uit 'age_key' binnen de secrets
-  sops.age.keySources = [ "sops://age_key" ];
 
-  # Secret voor de private SSH key
+  sops.age.keyFile = "/etc/sops/age/keys.txt";
+
+  sops.secrets.age_key = {
+    path = "/etc/sops/age/keys.txt";
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
+
   sops.secrets.id_ed25519 = {
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
