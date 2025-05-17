@@ -199,7 +199,8 @@ ssh_authorize USER:
 # Test of de SOPS decryptie werkt op de live installer
 # Controleer of SOPS decryptie werkt voor een gegeven HOST en USER (op de live installer)
 check-decrypt HOST USER:
-	nix shell nixpkgs#sops -c sops -d nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml | head
+remote-check-decrypt HOST USER:
+	ssh -p 2222 nixos@localhost "nix shell nixpkgs#sops -c sops -d nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml | head"
 
 
 check-secrets:
