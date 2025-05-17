@@ -6,7 +6,8 @@
     ../modules/profiles/desktop.nix
     ../modules/home-manager.nix
     ../modules/services/laptop.nix
-    ../modules/secrets/singer.nix
+    ../modules/secrets/singer-eelco.nix
+    ../modules/services/ssh-client-keys.nix
     ../hardware/singer.nix
     ../disks/singer.nix
     ../users/eelco.nix
@@ -20,7 +21,7 @@
   networking.hostName = "singer";
 
   desktop.enableGnome = true;
-  desktop.enableKde = true;
-  desktop.enableHyperland = true;
+  desktop.enableKde = false;
+  desktop.enableHyperland = false;
 
 }

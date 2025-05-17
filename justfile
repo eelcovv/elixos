@@ -110,10 +110,6 @@ post-boot-setup HOST:
 	just clone-repo-vm
 	@echo "🚀 Ready to run nixos-rebuild on {{HOST}}"
 
-# Optional: check if secrets have been successfully deployed
-check-secrets HOST USER:
-	ssh -p 2222 {{USER}}@{{HOST}} 'ls -l ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.pub || echo "❌ Secrets not found"'
-
 # Install Age key remotely on live installer
 remote-install-root-key:
 	ssh -p 2222 nixos@localhost 'cd ~/elixos && nix --extra-experimental-features "nix-command flakes" run nixpkgs#just -- install-root-key'
