@@ -11,7 +11,6 @@
     owner = "root";
     group = "root";
     mode = "0400";
-    reloadIfChanged = true;
   };
 
   sops.secrets.id_ed25519 = {
@@ -19,7 +18,6 @@
     owner = "eelco";
     group = "users";
     mode = "0400";
-    reloadIfChanged = true;
   };
 
   systemd.services.generate-ssh-pubkey = {
