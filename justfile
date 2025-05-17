@@ -101,9 +101,7 @@ bootstrap-vm:
 	just vm_just vm_partition
 	@echo "🚀 Running NixOS installation..."
 	just vm_just vm_install
-	@echo "🧪 Verifiëren of secrets aanwezig zijn..."
-	just vm_just check-secrets
-	@echo "✅ VM bootstrap complete!"
+	@echo "✅ VM bootstrap complete!. You can start the vm now with just vm_run"
 
 
 # Run nixos-install from live installer
@@ -196,6 +194,13 @@ ssh_clear_known_host:
 ssh_authorize USER: 
 	just ssh_clear_known_host
 	ssh-copy-id -i ~/.ssh/id_ed25519.pub -p 2222 "{{USER}}@localhost"
+
+
+# Test of de SOPS decryptie werkt op de live installer
+# Controleer of SOPS decryptie werkt voor een gegeven HOST en USER (op de live installer)
+check-decrypt HOST USER:
+	nix shell nixpkgs#sops -c sops -d nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml | head
+
 
 check-secrets:
 	ssh -p 2222 nixos@localhost bash -c \
