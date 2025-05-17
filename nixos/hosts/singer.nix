@@ -17,11 +17,6 @@
     inputs.home-manager.nixosModules.home-manager
   ];
 
-  swapDevices = [{
-    device = "/swapfile";
-    size = "8G";
-  }];
-
   networking.hostName = "singer";
 
   desktop.enableGnome = true;

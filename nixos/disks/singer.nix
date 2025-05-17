@@ -18,7 +18,7 @@
           };
           root = {
             start = "513MiB";
-            # end weglaten zodat Disko zelf tot het einde vult
+            end = "-8GiB"; # laat 8GiB over aan swap (of reserve)
             content = {
               type = "luks";
               name = "crypted";
@@ -28,6 +28,12 @@
                 format = "ext4";
                 mountpoint = "/";
               };
+            };
+          };
+          swap = {
+            size = "8GiB";
+            content = {
+              type = "swap";
             };
           };
         };
