@@ -30,7 +30,7 @@
   networking.hostName = "generic-vm";
 
   desktop.enableGnome = true;
-  desktop.enableKde = true;
-  desktop.enableHyperland = true;
+  # desktop.enableKde = true;
+  # desktop.enableHyperland = true;
 
 }

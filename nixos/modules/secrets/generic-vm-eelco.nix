@@ -25,16 +25,16 @@
   systemd.services.generate-ssh-pubkey = {
     description = "Generate SSH public key from decrypted id_ed25519";
     wantedBy = [ "multi-user.target" ];
-    after = [ "default.target" ];
+    after = [ "sops-nix.service" ];
+    requires = [ "sops-nix.service" ];
     serviceConfig = {
       Type = "oneshot";
       User = "eelco";
-      ExecStart = "${pkgs.openssh}/bin/ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub";
+      ExecStart = "${pkgs.openssh}/bin/ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub";|
     };
   };
 
   systemd.tmpfiles.rules = [
     "d /home/eelco/.ssh 0700 eelco users -"
-    "f /home/eelco/.ssh/id_ed25519.pub 0644 eelco users -"
   ];
 }
