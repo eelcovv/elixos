@@ -18,7 +18,7 @@
           };
           root = {
             start = "513MiB";
-            end = "-8GiB"; # laat 8GiB over aan swap (of reserve)
+            end = "-8G";  # Laat 8G over aan swap
             content = {
               type = "luks";
               name = "crypted";
@@ -31,7 +31,7 @@
             };
           };
           swap = {
-            size = "8GiB";
+            size = "8G";  # ✅ Zonder de 'i'
             content = {
               type = "swap";
             };
