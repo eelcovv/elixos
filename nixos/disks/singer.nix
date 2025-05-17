@@ -18,7 +18,7 @@
           };
           root = {
             start = "513MiB";
-            end = "-8G";  # Laat 8G over aan swap
+            size = "100%"; # Gebruik de volledige rest van de schijf
             content = {
               type = "luks";
               name = "crypted";
@@ -30,15 +30,16 @@
               };
             };
           };
-          swap = {
-            size = "8G";  # ✅ Zonder de 'i'
-            content = {
-              type = "swap";
-            };
-          };
         };
       };
     };
+
+    # Swapfile declaratief (via systemd)
+    swapDevices = [
+      {
+        device = "/swapfile";
+        size = "8G";
+      }
+    ];
   };
 }
-
