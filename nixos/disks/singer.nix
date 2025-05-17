@@ -1,29 +1,24 @@
-{ config, lib, ... }:
-
 {
   disko.devices = {
-    disk.main = {
-      type = "disk";
-      device = "/dev/sda";
-      content = {
-        type = "gpt";
-        partitions = {
-          ESP = {
-            start = "1MiB";
-            end = "513MiB";
-            type = "EF00";
-            content = {
-              type = "filesystem";
-              format = "vfat";
-              mountpoint = "/boot";
+    disk = {
+      my-disk = {
+        device = "/dev/sda";
+        type = "disk";
+        content = {
+          type = "gpt";
+          partitions = {
+            ESP = {
+              type = "EF00";
+              size = "500M";
+              content = {
+                type = "filesystem";
+                format = "vfat";
+                mountpoint = "/boot";
+                mountOptions = [ "umask=0077" ];
+              };
             };
-          };
-          root = {
-            start = "513MiB";
-            content = {
-              type = "luks";
-              name = "crypt";
-              settings.allowDiscards = true;
+            root = {
+              size = "100%";
               content = {
                 type = "filesystem";
                 format = "ext4";
@@ -36,4 +31,3 @@
     };
   };
 }
-
