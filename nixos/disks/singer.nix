@@ -1,4 +1,3 @@
-
 {
   disko.devices = {
     disk.main = {
@@ -19,7 +18,7 @@
           };
           root = {
             start = "513MiB";
-            end = "100%";
+            # end weglaten zodat Disko zelf tot het einde vult
             content = {
               type = "luks";
               name = "crypted";
@@ -36,3 +35,4 @@
     };
   };
 }
+
