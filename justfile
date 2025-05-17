@@ -67,6 +67,7 @@ vm_partition:
 push-key:
 	scp -P 2222 ~/.config/sops/age/keys.txt nixos@localhost:/home/nixos/keys.txt
 
+
 # Install Age key in correct location (on live installer)
 install-root-key:
 	sudo mkdir -p /root/.config/sops/age
@@ -82,6 +83,37 @@ push-repo:
 # Clone from /tmp/elixos.git into ~/elixos on live installer
 clone-repo:
 	ssh -p 2222 nixos@localhost 'git clone -b main /tmp/elixos.git ~/elixos || true'
+
+push-key-vm:
+	scp -P 2222 ~/.config/sops/age/keys.txt eelco@localhost:/home/nixos/keys.txt
+
+push-repo-vm:
+	ssh -p 2222 eelco@localhost 'mkdir -p /tmp/elixos.git && git init --bare /tmp/elixos.git'
+	git push ssh://eelco@localhost:2222/tmp/elixos.git main
+
+clone-repo-vm:
+	ssh -p 2222 eelco@localhost 'git clone -b main /tmp/elixos.git ~/elixos || true'
+
+# Install age key into /etc/sops/age on remote host (requires sudo)
+install-age-key-vm:
+	ssh -p 2222 eelco@localhost \
+	  'sudo mkdir -p /etc/sops/age && \
+	   sudo mv /home/nixos/keys.txt /etc/sops/age/keys.txt && \
+	   sudo chmod 400 /etc/sops/age/keys.txt && \
+	   echo "✅ Age key installed on VM"'
+
+# === All-in-one step for real VM after boot ===
+post-boot-setup HOST:
+	just push-key-vm
+	just install-age-key-vm
+	just push-repo-vm
+	just clone-repo-vm
+	@echo "🚀 Ready to run nixos-rebuild on {{HOST}}"
+
+# Optional: check if secrets have been successfully deployed
+check-secrets HOST USER:
+	ssh -p 2222 {{USER}}@{{HOST}} 'ls -l ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.pub || echo "❌ Secrets not found"'
+
 
 # Install Age key remotely on live installer
 remote-install-root-key:
