@@ -114,6 +114,8 @@ bootstrap-vm:
 	just push-repo
 	@echo "📂 Cloning repo on live installer..."
 	just clone-repo
+	@echo "🔑 Installing Age key into /etc/sops..."
+	just vm_just install-root-key
 	@echo "💽 Partitioning disk..."
 	just vm_just vm_partition
 	@echo "🚀 Running NixOS installation..."
