@@ -87,11 +87,9 @@ clone-repo:
 remote-install-root-key:
 	ssh -p 2222 nixos@localhost 'cd ~/elixos && nix --extra-experimental-features "nix-command flakes" run nixpkgs#just -- install-root-key'
 
-
-# Check if secrets are ready. Run at the host before doing bootstrap-vm 
-check-deployable-vm:
-	@echo "🔍 Validating declarative VM secrets setup..."
-	@SECRET_FILE="nixos/secrets/generic-vm-eelco-secrets.yaml"; \
+check-deployable-vm HOST USER:
+	@echo "🔍 Validating secrets for HOST={{HOST}}, USER={{USER}}..."
+	@SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
 	if [ ! -f "$SECRET_FILE" ]; then \
 		echo "❌ Secret file $SECRET_FILE does not exist"; exit 1; \
 	fi; \
@@ -106,7 +104,7 @@ check-deployable-vm:
 	if ! grep -q "^id_ed25519:" /tmp/decrypted.yaml; then \
 		echo "❌ Decrypted secret is missing 'id_ed25519'"; exit 1; \
 	fi; \
-	echo "✅ Secret file contains required keys and can be decrypted declaratively"
+	echo "✅ $SECRET_FILE is valid and decrypts correctly"
 
 # Full bootstrap (key, repo, partition, install)
 bootstrap-vm:
