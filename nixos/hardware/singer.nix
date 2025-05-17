@@ -8,7 +8,6 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  hardware.cpu.amd.enable = true;
   hardware.enableRedistributableFirmware = true;
 
   nixpkgs.hostPlatform = "x86_64-linux";
