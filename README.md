@@ -144,6 +144,186 @@ For manual access to the live installer:
 Happy hacking with Elixos! 🧬
 
 # Steps laptop installation
+
+### Connectig with wifi
+
+
+1. log in as root 
+
+```shell
+sudo su
+```
+
+2. Look up the name of your wifi device
+
+```shell
+ip link
+```
+
+The name is for example `wlp2s0`
+
+3. Scan the available  networks
+
+```shell
+iw dev wlp2s0 scan | grep SSID
+```
+
+If you get: 'Network is down (-100), activate it with:
+
+```shell
+ip link set wlp2s0 up
+```
+
+If you now get `Operation not possible due to RF-kill`, then check
+
+```shell
+rfkill list
+```
+
+Check if 
+
+```shell
+0: phy0: Wireless LAN
+    Soft blocked: yes
+    Hard blocked: no
+```
+
+If it it soft blocked, unblock with 
+
+```shell
+rfkill unblock all
+```
+
+Now, activate your device
+
+```shell
+ip link set wlp2s0 up
+```
+
+and scan again
+
+```shell
+iw dev wlp2s0 scan | grep SSID
+```
+
+Also, check if you on the right interface with:
+
+```shell
+iw dev
+```
+
+this should show 
+```shell
+Interface wlp2s0
+    type: managed
+```
+
+Now you should see your network
+
+4. Connect to your network
+
+```shell
+wpa_passphrase "mijn-wifi-ssid" "mijn-wifi-wachtwoord" > wpa.conf
+```
+
+and then 
+
+```shell
+wpa_supplicant -B -i wlp2s0 -c wpa.conf
+```
+
+and now request a ip-address using
+
+```shell
+dhclient wlp2s0
+```
+
+or
+
+```shell
+dhcpcd wlp2s0
+```
+
+check if you are connected to the internet with 
+
+
+```shell
+ping 1.1.1.1
+```
+ 
+ ### starting sshd deamon
+
+ To start your demeaon, first set your root password with
+
+
+ ```
+ passwd
+ ```
+
+ Then run 
+
+ ```shell
+sudo systemctl start sshd
+ ```
+
+ Check if it is running
+
+ ```shell
+ sudo systemctl status sshd
+ ```
+
+ Look up your ip address with:
+
+ ```shell
+ ip ad
+ ```
+
+ It should be something like `192.168.2.3`
+
+ ### Loging in on the live installer from a host laptop
+
+ Make sure you have set the *root* password. To do that, on your live installer, login as root as
+
+ ```shell
+ sudo su
+ ```
+
+ and 
+
+ ```shell
+ passwd
+ ```
+
+ Then you should be able to login from your host machine as 
+
+ ```shell
+ ssh root@192.168.2.3
+ ```
+
+In case this is not allowed, you may want to change your */etc/ssh/sshd_config* file. Since in nixos, you cannot change settings files (even not as root), just copy the file to your home
+
+ ```shell
+ cp /etc/ssh/sshd_config ~  
+ ```
+
+ You may want to change the setting *UsePAM Yes* to *UsePAM No* 
+
+ Then, restart your sshd deamon with this new settings file as
+
+
+```shell
+sudo $(which sshd) -f ~/sshd_config
+```
+
+(Note that this which sshd is needed since you need to use the full path to the sshd file)
+
+Check if you are now listening to port 22 with
+
+```shell
+ss -tlnp | grep 22
+```
+
+
  
  ```shell
  sudo useradd -r -s /urs/sbin/nologin -c "sshd user" sshd
