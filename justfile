@@ -156,10 +156,29 @@ bootstrap-vm:
 	just vm_just vm_install
 	@echo "✅ VM bootstrap complete!. You can start the vm now with just vm_run"
 
+bootstrap-laptop HOST:
+	@echo "📡 Pushing Age key..."
+	just push-key
+	@echo "💽 Partitioning disk..."
+	just vm_partition {{HOST}}
+	@echo "🚀 Installing system..."
+	just install {{HOST}}
+
+
 # Run nixos-install from live installer
 vm_install:
 	sudo nixos-install --flake .#generic-vm
 	@echo "✅ NixOS installed."
+
+install HOST:
+	@echo "🔐 Copying age key to target..."
+	sudo mkdir -p /mnt/etc/sops/age
+	sudo cp /home/nixos/keys.txt /mnt/etc/sops/age/keys.txt
+	sudo chmod 400 /mnt/etc/sops/age/keys.txt
+	@echo "🚀 Running nixos-install for {{HOST}}..."
+	sudo nixos-install --flake /mnt/etc/nixos#{{HOST}}
+	@echo "✅ {{HOST}} is now installed!"
+
 
 # Boot VM from installed disk
 vm_run:

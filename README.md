@@ -387,11 +387,32 @@ Happy hacking with Elixos! 🧬
     ```
 
 
- 8. **Installing your laptop **
+ 8. **Installing your laptop**
 
     Start with running disko with
 
     ```shell
-    sudo nix run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/singer.nix
+    just vm_partition singer
     ```
 
+    Copy the sops age key to the laptop installer. Run from your host:
+
+    ```shell
+    scp ~/.config/sops/age/keys.txt root@192.168.2.3:~
+    ```
+
+    And then run in your live installer
+
+    ```shell
+    mkdir /root/.config/sops
+    ```
+
+    ```shell
+    mv /root/keys.txt /root/.config/sops
+    ```
+
+    Now you can install your laptop with
+
+    ```shell
+    just install singer
+    ```
