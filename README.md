@@ -389,13 +389,6 @@ Happy hacking with Elixos! 🧬
 
  8. **Installing your laptop**
 
-    First create a password in a file for luks to use in case you have luks 
-
-    ```shell
-    echo -n 'strongpassword' | sudo tee /tmp/secret.key > /dev/null
-    sudo chmod 600 /tmp/secret.key
-    ```shell
-
     Install just to be able to use is
     ```shell
     nix-shell -p just

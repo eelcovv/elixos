@@ -78,7 +78,7 @@ push-key:
 # Install Age key in correct location (on live installer)
 install-root-key:
 	sudo mkdir -p /root/.config/sops/age
-	sudo cp /home/nixos/keys.txt /root/.config/sops/age/keys.txt
+	sudo cp ~/keys.txt /root/.config/sops/age/keys.txt
 	sudo chmod 600 /root/.config/sops/age/keys.txt
 	@echo "✅ Age private key ready for nixos-install"
 
