@@ -1,9 +1,7 @@
 { config, pkgs, lib, ... }:
 
 {
-  # De versleutelde secrets.yaml
   sops.defaultSopsFile = ../../secrets/singer-eelco-secrets.yaml;
-
 
   sops.age.keyFile = "/etc/sops/age/keys.txt";
 
@@ -22,12 +20,10 @@
     restartUnits = [ "generate-ssh-pubkey.service" ];
   };
 
-  # Zorg dat ~/.ssh bestaat
   systemd.tmpfiles.rules = [
     "d /home/eelco/.ssh 0700 eelco users -"
   ];
 
-  # Genereer automatisch de .pub na decryptie van id_ed25519
   systemd.services.generate-ssh-pubkey = {
     description = "Generate SSH public key from decrypted id_ed25519";
     wantedBy = [ "multi-user.target" ];
