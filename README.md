@@ -145,198 +145,243 @@ Happy hacking with Elixos! 🧬
 
 # Steps laptop installation
 
+### Preparation
+
+1. Download the [https://nixos.org/download/](nixos minimal ISO image) and create a  live USB starter with it 
+
+2. Start up live NIXOS installer
+
+
 ### Connectig with wifi
 
 
-1. log in as root 
+1. **Log in as root**
 
-```shell
-sudo su
-```
+    ```shell
+    sudo su
+    ```
 
-2. Look up the name of your wifi device
+2. **Look up the name of your wifi device**
 
-```shell
-ip link
-```
+    ```shell
+    ip link
+    ```
 
-The name is for example `wlp2s0`
+    The name is for example `wlp2s0`
 
-3. Scan the available  networks
+3. **Scan the available  networks**
 
-```shell
-iw dev wlp2s0 scan | grep SSID
-```
+    ```shell
+    iw dev wlp2s0 scan | grep SSID
+    ```
 
-If you get: 'Network is down (-100), activate it with:
+    If you get: 'Network is down (-100), activate it with:
 
-```shell
-ip link set wlp2s0 up
-```
+    ```shell
+    ip link set wlp2s0 up
+    ```
 
-If you now get `Operation not possible due to RF-kill`, then check
+    If you now get `Operation not possible due to RF-kill`, then check
 
-```shell
-rfkill list
-```
+    ```shell
+    rfkill list
+    ```
 
-Check if 
+    Check if 
 
-```shell
-0: phy0: Wireless LAN
-    Soft blocked: yes
-    Hard blocked: no
-```
+    ```shell
+    0: phy0: Wireless LAN
+        Soft blocked: yes
+        Hard blocked: no
+    ```
 
-If it it soft blocked, unblock with 
+    If it it soft blocked, unblock with 
 
-```shell
-rfkill unblock all
-```
+    ```shell
+    rfkill unblock all
+    ```
 
-Now, activate your device
+    Now, activate your device
 
-```shell
-ip link set wlp2s0 up
-```
+    ```shell
+    ip link set wlp2s0 up
+    ```
 
-and scan again
+    and scan again
 
-```shell
-iw dev wlp2s0 scan | grep SSID
-```
+    ```shell
+    iw dev wlp2s0 scan | grep SSID
+    ```
+    
+    Also, check if you on the right interface with:
 
-Also, check if you on the right interface with:
+    ```shell
+    iw dev
+    ```
 
-```shell
-iw dev
-```
+    this should show 
+    ```shell
+    Interface wlp2s0
+        type: managed
+    ```
 
-this should show 
-```shell
-Interface wlp2s0
-    type: managed
-```
+    Now you should see your network
 
-Now you should see your network
+4. **Connect to your network**
 
-4. Connect to your network
+    ```shell
+    wpa_passphrase "mijn-wifi-ssid" "mijn-wifi-wachtwoord" > wpa.conf
+    ```
 
-```shell
-wpa_passphrase "mijn-wifi-ssid" "mijn-wifi-wachtwoord" > wpa.conf
-```
+    and then 
 
-and then 
+    ```shell
+    wpa_supplicant -B -i wlp2s0 -c wpa.conf
+    ```
 
-```shell
-wpa_supplicant -B -i wlp2s0 -c wpa.conf
-```
+    and now request a ip-address using
 
-and now request a ip-address using
+    ```shell
+    dhcpcd wlp2s0
+    ```
 
-```shell
-dhclient wlp2s0
-```
+    You can ignore the notification `read_config: /etc/dhcpcd.conf: No such file or directory`. Just check that you are connected with 
 
-or
+    ```shell
+    ip a show wlp2s0
+    ```
 
-```shell
-dhcpcd wlp2s0
-```
+    Also, check if you are connected to the internet with 
 
-check if you are connected to the internet with 
+    ```shell
+    ping 1.1.1.1
+    ```
+    
+ 5. **Starting sshd deamon**
 
+    To start your demeaon, first set your root password with
 
-```shell
-ping 1.1.1.1
-```
- 
- ### starting sshd deamon
 
- To start your demeaon, first set your root password with
+    ```
+    passwd
+    ```
 
+    Then run 
 
- ```
- passwd
- ```
+    ```shell
+    sudo systemctl start sshd
+    ```
 
- Then run 
+    Check if it is running
 
- ```shell
-sudo systemctl start sshd
- ```
+    ```shell
+    sudo systemctl status sshd
+    ```
 
- Check if it is running
+    Look up your ip address with:
 
- ```shell
- sudo systemctl status sshd
- ```
+    ```shell
+    ip ad
+    ```
 
- Look up your ip address with:
+    It should be something like `192.168.2.3`
 
- ```shell
- ip ad
- ```
+ 6. **Loging in on the live installer from a host laptop**
 
- It should be something like `192.168.2.3`
+    Make sure you have set the *root* password. To do that, on your live installer, login as root as
 
- ### Loging in on the live installer from a host laptop
+    ```shell
+    sudo su
+    ```
 
- Make sure you have set the *root* password. To do that, on your live installer, login as root as
+    and 
 
- ```shell
- sudo su
- ```
+    ```shell
+    passwd
+    ```
 
- and 
+    Then you should be able to login from your host machine as 
 
- ```shell
- passwd
- ```
+    ```shell
+    ssh root@192.168.2.3
+    ```
 
- Then you should be able to login from your host machine as 
+    If you get a warning about 'Remote Host Identification Has Changed', you have probably logged in on this IP Address earlier.Delete you key with
 
- ```shell
- ssh root@192.168.2.3
- ```
+    ```shell
+    ssh-keygen -R "[192.168.2.3]:22"
+    ```
 
-In case this is not allowed, you may want to change your */etc/ssh/sshd_config* file. Since in nixos, you cannot change settings files (even not as root), just copy the file to your home
 
- ```shell
- cp /etc/ssh/sshd_config ~  
- ```
+    In case logging in is not allowed at all, you may want to change your */etc/ssh/sshd_config* file. Since in nixos, you cannot change settings files (even not as root), just copy the file to your home
 
- You may want to change the setting *UsePAM Yes* to *UsePAM No* 
+    ```shell
+    cp /etc/ssh/sshd_config ~  
+    ```
 
- Then, restart your sshd deamon with this new settings file as
+    You may want to change the setting *UsePAM Yes* to *UsePAM No* 
 
+    Then, restart your sshd deamon with this new settings file as
 
-```shell
-sudo $(which sshd) -f ~/sshd_config
-```
 
-(Note that this which sshd is needed since you need to use the full path to the sshd file)
+    ```shell
+    sudo $(which sshd) -f ~/sshd_config
+    ```
 
-Check if you are now listening to port 22 with
+    (Note that this which sshd is needed since you need to use the full path to the sshd file)
 
-```shell
-ss -tlnp | grep 22
-```
+    Check if you are now listening to port 22 with
 
+    ```shell
+    ss -tlnp | grep 22
+    ```
 
- 
- ```shell
- sudo useradd -r -s /urs/sbin/nologin -c "sshd user" sshd
- ```
- start sshd in the background with
+    ```shell
+    sudo useradd -r -s /urs/sbin/nologin -c "sshd user" sshd
+    ```
 
-```shell
-sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --flake .#singer --mode zap_create_mount
-```
+    start sshd in the background with
 
-to login: don't use password, but copy you public ssh key and add to authorized_keys. I used keep to copy my key. 
+    ```shell
+    sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --flake .#singer --mode zap_create_mount
+    ```
 
+    to login: don't use password, but copy you public ssh key and add to authorized_keys. I used keep to copy my key. 
 
-also check your firewall if it is not running
 
-To transer your git repo, either bundle or just add your publish key to your git hub account 
+    also check your firewall if it is not running
+
+    To transer your git repo, either bundle or just add your publish key to your git hub account 
+
+ 7. **Tranfering you git repository to the laptop**
+
+    In your terminal where you are remotely logged in on you laptop do:
+
+    ```shell
+    mkdir /tmp/elixos.git
+    ```
+
+    and turn it into a bare repository with
+    ```shell
+    git init --bare /tmp/elixos.git
+    ```
+
+    On you host, do
+
+    ``` shell
+    ssh-copy-ip root@192.168.2.3
+    ```
+
+    to prevent that you have to type a password each time 
+    
+    In your elixos repository do
+
+    ```shell
+    git remote add nixtmp root@192.168.2.3:/tmp/elixos.git
+    ```
+
+    No you can push your repository to the laptop with
+
+    ```shell
+    git push nixtmp main
+    ```
