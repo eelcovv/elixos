@@ -385,3 +385,13 @@ Happy hacking with Elixos! 🧬
     ```shell
     git push nixtmp main
     ```
+
+
+ 8. **Installing your laptop **
+
+    Start with running disko with
+
+    ```shell
+    sudo nix run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/singer.nix
+    ```
+

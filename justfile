@@ -59,9 +59,16 @@ vm_run_installer:
 	@echo "🔑 ssh -p 2222 nixos@localhost to access the live installer."
 
 # Partition disk on live installer
-vm_partition:
+vm_partition_vm:
 	sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
 	@echo "✅ Partitioning done."
+
+# Partition disk on singer 
+vm_partition HOST:
+	sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/{{HOST}}.nix
+	@echo "✅ Partitioning done for {{HOST}}."
+
+
 
 # Push Age key to live installer
 push-key:
@@ -144,7 +151,7 @@ bootstrap-vm:
 	@echo "🔑 Installing Age key into /etc/sops..."
 	just vm_just install-root-key
 	@echo "💽 Partitioning disk..."
-	just vm_just vm_partition
+	just vm_just vm_partition_vm
 	@echo "🚀 Running NixOS installation..."
 	just vm_just vm_install
 	@echo "✅ VM bootstrap complete!. You can start the vm now with just vm_run"
