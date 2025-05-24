@@ -64,7 +64,7 @@ vm_partition_vm:
 	@echo "✅ Partitioning done."
 
 # Partition disk on singer 
-vm_partition HOST:
+partition HOST:
 	sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/{{HOST}}.nix
 	@echo "✅ Partitioning done for {{HOST}}."
 
