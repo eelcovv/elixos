@@ -288,3 +288,28 @@ check-secrets:
 	if [ -s /home/eelco/.ssh/id_ed25519 ] && echo "✅ id_ed25519 aanwezig" || echo "❌ id_ed25519 is missing or empty"; \
 	echo "🔍 Checking /home/eelco/.ssh/id_ed25519.pub"; \
 	if [ -s /home/eelco/.ssh/id_ed25519.pub ] && echo "✅ id_ed25519.pub aanwezig" || echo "❌ id_ed25519.pub is missing or empty"';
+
+check-install HOST USER:
+	@echo "🔍 Checking /mnt-based install for HOST={{HOST}}, USER={{USER}}..."
+
+	@if [ ! -s /mnt/etc/sops/age/keys.txt ]; then \
+		echo "❌ /mnt/etc/sops/age/keys.txt is missing or empty"; exit 1; \
+	else \
+		echo "✅ Age key is present"; \
+	fi
+
+	@KEY="/mnt/home/{{USER}}/.ssh/id_ed25519"; \
+	if [ ! -s "$$KEY" ]; then \
+		echo "❌ SSH private key ($$KEY) is missing or empty"; exit 1; \
+	else \
+		echo "✅ SSH private key is present"; \
+	fi
+
+	@PUB="/mnt/home/{{USER}}/.ssh/id_ed25519.pub"; \
+	if [ ! -s "$$PUB" ]; then \
+		echo "⚠️ SSH public key ($$PUB) is missing or empty (might be generated after boot)"; \
+	else \
+		echo "✅ SSH public key is present"; \
+	fi
+
+	@echo "✅ Basic post-install checks complete for {{HOST}}/{{USER}}"
