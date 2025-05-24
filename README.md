@@ -389,10 +389,35 @@ Happy hacking with Elixos! 🧬
 
  8. **Installing your laptop**
 
-    Start with running disko with
+    First create a password in a file for luks to use in case you have luks 
 
     ```shell
-    just vm_partition singer
+    echo -n 'strongpassword' | sudo tee /tmp/secret.key > /dev/null
+    sudo chmod 600 /tmp/secret.key
+    ```shell
+
+    Install just to be able to use is
+    ```shell
+    nix-shell -p just
+    ```
+
+    Start with running disko to partition your hard-drive
+
+    ```shell
+    just partition singer
+    ```
+
+    Check your partitions with 
+
+    ```shell
+    findmnt /mnt
+    ```
+
+    which should give you 
+    ```text
+    TARGET
+         SOURCE         FSTYPE OPTIONS
+    /mnt /dev/nvme0n1p2 ext4   rw,relatime
     ```
 
     Copy the sops age key to the laptop installer. Run from your host:
@@ -409,6 +434,14 @@ Happy hacking with Elixos! 🧬
 
     ```shell
     mv /root/keys.txt /root/.config/sops
+    ```
+
+    And also copy them to your future hardrive
+
+    ```shell
+    mkdir -p /mnt/etc/sops/age
+    cp /root/keys.txt /mnt/etc/sops/age/keys.txt
+    chmod 400 /mnt/etc/sops/age/keys.txt
     ```
 
     Now you can install your laptop with
