@@ -414,5 +414,5 @@ Happy hacking with Elixos! 🧬
     Now you can install your laptop with
 
     ```shell
-    just install singer
+    nixos-install --flake .#singer
     ```

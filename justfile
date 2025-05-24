@@ -173,7 +173,7 @@ vm_install:
 install HOST:
 	@echo "🔐 Copying age key to target..."
 	sudo mkdir -p /mnt/etc/sops/age
-	sudo cp /home/nixos/keys.txt /mnt/etc/sops/age/keys.txt
+	sudo cp /root/keys.txt /mnt/etc/sops/age/keys.txt
 	sudo chmod 400 /mnt/etc/sops/age/keys.txt
 	@echo "🚀 Running nixos-install for {{HOST}}..."
 	sudo nixos-install --flake /mnt/etc/nixos#{{HOST}}
