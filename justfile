@@ -120,7 +120,6 @@ make-secret HOST USER:
 	echo "✅ Encrypted $SECRET_FILE"; \
 	\
 	echo "age_key: |" > "$AGE_KEY_PLAIN"; \
-	sed 's/^/  /' "$AGE_KEY_FILE" >> "$AGE_KEY_PLAIN"; \
 	sops --encrypt --output-type=yaml --age "$AGE_PUB_KEY" "$AGE_KEY_PLAIN" > "$AGE_KEY_FILE_OUT" && rm "$AGE_KEY_PLAIN"; \
 	echo "✅ Encrypted $AGE_KEY_FILE_OUT"
 
