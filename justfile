@@ -1,6 +1,6 @@
 # ========== DEFAULT CONFIGURATION ========== 
 REPO_DIR := "~/elixos"
-LAPTOP_IP ?= 192.168.2.3
+LAPTOP_IP ?= "192.168.2.3"
 SSH_USER ?= root
 SSH_PORT ?= 22
 
