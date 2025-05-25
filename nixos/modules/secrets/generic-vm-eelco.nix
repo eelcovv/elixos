@@ -4,6 +4,7 @@
 
 
   sops.secrets.id_ed25519_eelco = {
+    sopsFile = ../../secrets/generic-vm-eelco-secrets.yaml;
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
     group = "users";
