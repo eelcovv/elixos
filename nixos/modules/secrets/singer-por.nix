@@ -17,14 +17,14 @@
     owner = "por";
     group = "users";
     mode = "0400";
-    restartUnits = [ "generate-ssh-pubkey.service" ];
+    restartUnits = [ "generate-ssh-pubkey-por.service" ];
   };
 
   systemd.tmpfiles.rules = [
     "d /home/por/.ssh 0700 por users -"
   ];
 
-  systemd.services.generate-ssh-pubkey = {
+  systemd.services.generate-ssh-pubkey-por = {
     description = "Generate SSH public key from decrypted id_ed25519";
     wantedBy = [ "multi-user.target" ];
     after = [ "sops-nix-id_ed25519.service" ];

@@ -17,14 +17,14 @@
     owner = "eelco";
     group = "users";
     mode = "0400";
-    restartUnits = [ "generate-ssh-pubkey.service" ];
+    restartUnits = [ "generate-ssh-pubkey-eelco.service" ];
   };
 
   systemd.tmpfiles.rules = [
     "d /home/eelco/.ssh 0700 eelco users -"
   ];
 
-  systemd.services.generate-ssh-pubkey = {
+  systemd.services.generate-ssh-pubkey-eelco = {
     description = "Generate SSH public key from decrypted id_ed25519";
     wantedBy = [ "multi-user.target" ];
     after = [ "sops-nix-id_ed25519.service" ];
