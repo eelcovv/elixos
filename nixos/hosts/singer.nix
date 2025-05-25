@@ -10,7 +10,9 @@
     ../hardware/singer.nix
     ../disks/singer.nix
     ../users/eelco.nix
+    ../users/por.nix
     ../home/eelco.nix
+    ../home/por.nix
 
     # Add modules
     inputs.disko.nixosModules.disko
