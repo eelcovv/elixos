@@ -1,8 +1,9 @@
 # ========== DEFAULT CONFIGURATION ========== 
+SSH_USER := env("SSH_USER", "root")
+SSH_PORT := env("SSH_PORT", "22")
+LAPTOP_IP := env("LAPTOP_IP", "192.168.2.3")
+
 REPO_DIR := "~/elixos"
-LAPTOP_IP ?= "192.168.2.3"
-SSH_USER ?= root
-SSH_PORT ?= 22
 
 # ========== HELPERS ==========
 load-env HOST:
