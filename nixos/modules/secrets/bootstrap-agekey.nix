@@ -1,3 +1,5 @@
+{ config, pkgs, lib, ... }:
+
 {
   # This encrypts the age key itself and stores it in a expected place
   system.activationScripts.installAgeKey.text = ''
