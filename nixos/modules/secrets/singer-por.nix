@@ -18,9 +18,8 @@
 
   systemd.services.generate-ssh-pubkey-por = {
     description = "Generate SSH public key from decrypted id_ed25519";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "sops-nix-id_ed25519.service" ];
-    requires = [ "sops-nix-id_ed25519.service" ];
+    after = [ "sops-nix-id_ed25519_por.service" ];
+    requires = [ "sops-nix-id_ed25519_por.service" ];
     serviceConfig = {
       Type = "oneshot";
       User = "por";

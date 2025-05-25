@@ -11,7 +11,6 @@ in
   # Genereer een systemd oneshot-service voor elke gebruiker
   systemd.services = lib.genAttrs sshUsers (user: {
     description = "Generate SSH public key from private key for ${user}";
-    wantedBy = [ "multi-user.target" ];
     after = [ "default.target" ];
     serviceConfig = {
       Type = "oneshot";
