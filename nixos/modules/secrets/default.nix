@@ -1,6 +1,10 @@
 { config, pkgs, lib, ... }:
 
 {
+  systemd.tmpfiles.rules = [
+    "d /etc/sops/age 0700 root root -"
+  ];
+
   sops.secrets.age_key = {
     sopsFile = ../../secrets/age_key.yaml;
     path = "/etc/sops/age/keys.txt";
