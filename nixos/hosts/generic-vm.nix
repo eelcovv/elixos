@@ -20,6 +20,7 @@
     ../modules/home-manager.nix
     ../modules/services/generic-vm.nix
     ../users/eelco.nix
+    ../modules/secrets/default.nix
     ../modules/secrets/generic-vm-eelco.nix
     ../modules/services/ssh-client-keys.nix
     ../hardware/generic-vm.nix

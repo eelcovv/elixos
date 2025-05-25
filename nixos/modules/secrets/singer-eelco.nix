@@ -1,18 +1,8 @@
 { config, pkgs, lib, ... }:
 
 {
-  sops.defaultSopsFile = ../../secrets/singer-eelco-secrets.yaml;
 
-  sops.age.keyFile = "/etc/sops/age/keys.txt";
-
-  sops.secrets.age_key = {
-    path = "/etc/sops/age/keys.txt";
-    owner = "root";
-    group = "root";
-    mode = "0400";
-  };
-
-  sops.secrets.id_ed25519 = {
+  sops.secrets.id_ed25519_eelco = {
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
     group = "users";
@@ -20,7 +10,8 @@
     restartUnits = [ "generate-ssh-pubkey-eelco.service" ];
   };
 
-  systemd.tmpfiles.rules = [
+  # mkBefore ensure that the rules of several users are merged to one list
+  systemd.tmpfiles.rules = lib.mkBefore [
     "d /home/eelco/.ssh 0700 eelco users -"
   ];
 

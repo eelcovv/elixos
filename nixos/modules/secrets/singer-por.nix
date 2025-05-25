@@ -1,18 +1,8 @@
 { config, pkgs, lib, ... }:
 
 {
-  sops.defaultSopsFile = ../../secrets/singer-por-secrets.yaml;
 
-  sops.age.keyFile = "/etc/sops/age/keys.txt";
-
-  sops.secrets.age_key = {
-    path = "/etc/sops/age/keys.txt";
-    owner = "root";
-    group = "root";
-    mode = "0400";
-  };
-
-  sops.secrets.id_ed25519 = {
+  sops.secrets.id_ed25519_por = {
     path = "/home/por/.ssh/id_ed25519";
     owner = "por";
     group = "users";
@@ -20,7 +10,8 @@
     restartUnits = [ "generate-ssh-pubkey-por.service" ];
   };
 
-  systemd.tmpfiles.rules = [
+
+  systemd.tmpfiles.rules = lib.mkBefore [
     "d /home/por/.ssh 0700 por users -"
   ];
 
