@@ -8,6 +8,7 @@
 
   ];
 
+
 system.activationScripts.installAgeKey.text = ''
   echo "🔐 Installing /etc/sops/age/keys.txt using local identity"
 
@@ -20,23 +21,29 @@ system.activationScripts.installAgeKey.text = ''
   fi
 
   echo "📁 Using SOPS_AGE_KEY_FILE at: $SOPS_AGE_KEY_FILE"
-  mkdir -p /etc/sops/age || {
-    echo "❌ Failed to create /etc/sops/age directory"
-    exit 1
-  }
-
   echo "🔎 Decrypting and writing directly..."
-  ${pkgs.sops}/bin/sops -d ${../../secrets/age_key.yaml} | \
-    ${pkgs.gnused}/bin/sed -n '/^age_key: *|/,/^sops:/p' | \
-    ${pkgs.gnused}/bin/sed '/^sops:/d' | \
-    ${pkgs.gnused}/bin/sed 's/^  //' > /etc/sops/age/keys.txt
 
-  if [ ! -s /etc/sops/age/keys.txt ]; then
-    echo "❌ /etc/sops/age/keys.txt is missing or empty"
+  DECRYPTED_KEY="$(
+    SOPS_AGE_KEY_FILE=$SOPS_AGE_KEY_FILE \
+    HOME=$HOME \
+    ${pkgs.sops}/bin/sops -d ${../../secrets/age_key.yaml} |
+    ${pkgs.gnused}/bin/sed -n '/^age_key: *|/,/^sops:/p' |
+    ${pkgs.gnused}/bin/sed '/^sops:/d' |
+    ${pkgs.gnused}/bin/sed 's/^  //'
+  )"
+
+  if [ -z "$DECRYPTED_KEY" ]; then
+    echo "❌ Failed to extract key from age_key.yaml"
     exit 1
   fi
 
-  chmod 400 /etc/sops/age/keys.txt
+  echo "$DECRYPTED_KEY" | install -D -m 0400 /dev/stdin /etc/sops/age/keys.txt
+
+  if [ ! -s /etc/sops/age/keys.txt ]; then
+    echo "❌ /etc/sops/age/keys.txt is missing or empty after install"
+    exit 1
+  fi
+
   echo "✅ /etc/sops/age/keys.txt installed"
 '';
 
