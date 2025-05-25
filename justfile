@@ -102,24 +102,20 @@ post-boot-setup HOST:
 
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
-	@bash -c '\
-		echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}"; \
-		AGE_KEY_FILE="$$HOME/.config/sops/age/keys.txt"; \
-		AGE_PUB_KEY="$$(rage-keygen -y $$AGE_KEY_FILE)"; \
-		SSH_KEY_FILE="$$HOME/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
-		SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
-		if [ ! -f "$$SSH_KEY_FILE" ]; then \
-			ssh-keygen -t ed25519 -N "" -f "$$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
-		else \
-			echo "🔁 SSH key already exists"; \
-		fi; \
-		echo "age_key: |" > "$$SECRET_FILE"; \
-		sed "s/^/  /" "$$AGE_KEY_FILE" >> "$$SECRET_FILE"; \
-		echo "id_ed25519_{{USER}}: |" >> "$$SECRET_FILE"; \
-		sed "s/^/  /" "$$SSH_KEY_FILE" >> "$$SECRET_FILE"; \
-		sops -e --age "$$AGE_PUB_KEY" -i "$$SECRET_FILE"; \
-		echo "✅ Encrypted $$SECRET_FILE"'
-
+	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}"; \
+	AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"; \
+	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)"; \
+	SSH_KEY_FILE="${HOME}/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
+	SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
+	if [ ! -f "$SSH_KEY_FILE" ]; then \
+		ssh-keygen -t ed25519 -N "" -f "$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
+	else echo "🔁 SSH key already exists"; fi; \
+	echo "age_key: |" > "$SECRET_FILE"; \
+	sed 's/^/  /' "$AGE_KEY_FILE" >> "$SECRET_FILE"; \
+	echo "id_ed25519_{{USER}}: |" >> "$SECRET_FILE"; \
+	sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE"; \
+	sops -e --age "$AGE_PUB_KEY" -i "$SECRET_FILE"; \
+	echo "✅ Encrypted $SECRET_FILE"
 
 
 decrypt-secret HOST USER:
@@ -133,12 +129,12 @@ check-install HOST USER:
 		echo "❌ /mnt/etc/sops/age/keys.txt is missing or empty"; exit 1; \
 	else echo "✅ Age key is present"; fi
 	@KEY="/mnt/home/{{USER}}/.ssh/id_ed25519"; \
-	if [ ! -s "$$KEY" ]; then \
-		echo "❌ SSH private key ($$KEY) is missing or empty"; exit 1; \
+	if [ ! -s "$KEY" ]; then \
+		echo "❌ SSH private key ($KEY) is missing or empty"; exit 1; \
 	else echo "✅ SSH private key is present"; fi
 	@PUB="/mnt/home/{{USER}}/.ssh/id_ed25519.pub"; \
-	if [ ! -s "$$PUB" ]; then \
-		echo "⚠️ SSH public key ($$PUB) is missing or empty (might be generated after boot)"; \
+	if [ ! -s "$PUB" ]; then \
+		echo "⚠️ SSH public key ($PUB) is missing or empty (might be generated after boot)"; \
 	else echo "✅ SSH public key is present"; fi
 	@echo "✅ Basic post-install checks complete for {{HOST}}/{{USER}}"
 
