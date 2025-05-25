@@ -16,6 +16,7 @@
 
   systemd.services.generate-ssh-pubkey-eelco = {
     description = "Generate SSH public key from decrypted id_ed25519";
+    wantedBy = [ "multi-user.target" ];
     after = [ "sops-nix-id_ed25519_eelco.service" ];
     requires = [ "sops-nix-id_ed25519_eelco.service" ];
     serviceConfig = {
