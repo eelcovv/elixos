@@ -7,6 +7,7 @@
     "d /etc/sops/age 0700 root root -"
 
   ];
+
   system.activationScripts.installAgeKey.text = ''
   echo "🔐 Installing /etc/sops/age/keys.txt using local identity"
 
@@ -28,7 +29,9 @@
   }
 
   echo "🔎 Extracting age_key manually..."
-  echo "$DECRYPTED" | sed -n '/^age_key: *|/,/^sops:/p' | sed '/^sops:/d' | sed 's/^  //' > /etc/sops/age/keys.txt
+  echo "$DECRYPTED" | ${pkgs.gnused}/bin/sed -n '/^age_key: *|/,/^sops:/p' | \
+    ${pkgs.gnused}/bin/sed '/^sops:/d' | \
+    ${pkgs.gnused}/bin/sed 's/^  //' > /etc/sops/age/keys.txt
 
   if [ ! -s /etc/sops/age/keys.txt ]; then
     echo "❌ /etc/sops/age/keys.txt is missing or empty"
@@ -37,6 +40,7 @@
 
   echo "✅ /etc/sops/age/keys.txt installed"
 '';
+
 
 
 }
