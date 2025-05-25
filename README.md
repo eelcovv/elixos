@@ -442,3 +442,22 @@ Happy hacking with Elixos! 🧬
     ```shell
     nixos-install --flake .#singer
     ```
+    
+
+    After installing, if you ssh keys are not present yet, you can try the following. 
+
+    First,  loging onto your newly installed laptop using the same prodceedure as above (start sshd deamon). Then copy the ~/.config/sops/age/keys.txt file to the newly installed laptop. Clone the repository to the newly installed laptop. 
+
+    Then do this
+
+    ```shell
+        mkdir -p /mnt/etc/sops/age
+        cp /root/keys.txt /mnt/etc/sops/age/keys.txt
+        chmod 400 /mnt/etc/sops/age/keys.txt
+    ```shell
+
+    And try to rebuild your system with
+
+    ```shell
+    sudo nixos-rebuild switch --flake .#singer 
+    ```
