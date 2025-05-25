@@ -107,6 +107,7 @@ make-secret HOST USER:
 	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)"; \
 	SSH_KEY_FILE="${HOME}/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
 	SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
+	AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml"; \
 	if [ ! -f "$SSH_KEY_FILE" ]; then \
 		ssh-keygen -t ed25519 -N "" -f "$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
 	else echo "🔁 SSH key already exists"; fi; \
@@ -115,7 +116,19 @@ make-secret HOST USER:
 	echo "id_ed25519_{{USER}}: |" >> "$SECRET_FILE"; \
 	sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE"; \
 	sops -e --age "$AGE_PUB_KEY" -i "$SECRET_FILE"; \
-	echo "✅ Encrypted $SECRET_FILE"
+	echo "✅ Encrypted $SECRET_FILE"; \
+	\
+	echo "age_key: |" > "$AGE_KEY_FILE_OUT"; \
+	sed 's/^/  /' "$AGE_KEY_FILE" >> "$AGE_KEY_FILE_OUT"; \
+	echo "---" >> "$AGE_KEY_FILE_OUT"; \
+	echo "sops:" >> "$AGE_KEY_FILE_OUT"; \
+	echo "  age:" >> "$AGE_KEY_FILE_OUT"; \
+	echo "    - recipient: $AGE_PUB_KEY" >> "$AGE_KEY_FILE_OUT"; \
+	echo "  encrypted_regex: ^age_key$$" >> "$AGE_KEY_FILE_OUT"; \
+	echo "  version: 3.10.1" >> "$AGE_KEY_FILE_OUT"; \
+	sops -e -i "$AGE_KEY_FILE_OUT"; \
+	echo "✅ Encrypted $AGE_KEY_FILE_OUT"
+
 
 
 decrypt-secret HOST USER:
