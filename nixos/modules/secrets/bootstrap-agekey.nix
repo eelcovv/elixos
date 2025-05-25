@@ -20,12 +20,15 @@
 
     echo "📁 Using SOPS_AGE_KEY_FILE at: $SOPS_AGE_KEY_FILE"
 
-    # Ensure the output directory exists
     mkdir -p /etc/sops/age
 
-    # Decrypt and extract only the 'age_key' value
     ${pkgs.sops}/bin/sops -d ${../../secrets/age_key.yaml} \
       | ${pkgs.yq}/bin/yq -r .age_key > /etc/sops/age/keys.txt
+
+    if [ ! -f /etc/sops/age/keys.txt ]; then
+      echo "❌ Failed to create /etc/sops/age/keys.txt"
+      exit 1
+    fi
 
     echo "✅ /etc/sops/age/keys.txt installed"
   '';
