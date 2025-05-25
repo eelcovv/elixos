@@ -20,7 +20,6 @@
   # Genereer automatisch de .pub na decryptie van id_ed25519
   systemd.services.generate-ssh-pubkey = {
     description = "Generate SSH public key from decrypted id_ed25519";
-    after = [ "sops-nix-id_ed25519_eelco.service" ];
     requires = [ "sops-nix-id_ed25519_eelco.service" ];
     serviceConfig = {
       Type = "oneshot";
