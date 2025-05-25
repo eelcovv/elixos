@@ -8,7 +8,7 @@
 
   ];
 
-  system.activationScripts.installAgeKey.text = ''
+system.activationScripts.installAgeKey.text = ''
   echo "🔐 Installing /etc/sops/age/keys.txt using local identity"
 
   export HOME="/root"
@@ -20,7 +20,10 @@
   fi
 
   echo "📁 Using SOPS_AGE_KEY_FILE at: $SOPS_AGE_KEY_FILE"
-  mkdir -p /etc/sops/age
+  mkdir -p /etc/sops/age || {
+    echo "❌ Failed to create /etc/sops/age directory"
+    exit 1
+  }
 
   echo "🔎 Attempting decryption of age_key.yaml..."
   DECRYPTED="$(${pkgs.sops}/bin/sops -d ${../../secrets/age_key.yaml})" || {
@@ -31,7 +34,10 @@
   echo "🔎 Extracting age_key manually..."
   echo "$DECRYPTED" | ${pkgs.gnused}/bin/sed -n '/^age_key: *|/,/^sops:/p' | \
     ${pkgs.gnused}/bin/sed '/^sops:/d' | \
-    ${pkgs.gnused}/bin/sed 's/^  //' > /etc/sops/age/keys.txt
+    ${pkgs.gnused}/bin/sed 's/^  //' > /etc/sops/age/keys.txt || {
+      echo "❌ Failed to write to /etc/sops/age/keys.txt"
+      exit 1
+  }
 
   if [ ! -s /etc/sops/age/keys.txt ]; then
     echo "❌ /etc/sops/age/keys.txt is missing or empty"
@@ -40,6 +46,7 @@
 
   echo "✅ /etc/sops/age/keys.txt installed"
 '';
+
 
 
 
