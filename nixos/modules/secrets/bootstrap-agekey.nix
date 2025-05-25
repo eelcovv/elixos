@@ -5,31 +5,38 @@
 
   systemd.tmpfiles.rules = [
     "d /etc/sops/age 0700 root root -"
+
   ];
-
   system.activationScripts.installAgeKey.text = ''
-    echo "🔐 Installing /etc/sops/age/keys.txt using local identity"
+  echo "🔐 Installing /etc/sops/age/keys.txt using local identity"
 
-    export HOME="/root"
-    export SOPS_AGE_KEY_FILE="/root/.config/sops/age/keys.txt"
+  export HOME="/root"
+  export SOPS_AGE_KEY_FILE="/root/.config/sops/age/keys.txt"
 
-    if [ ! -f "$SOPS_AGE_KEY_FILE" ]; then
-      echo "❌ SOPS_AGE_KEY_FILE ($SOPS_AGE_KEY_FILE) does not exist!"
-      exit 1
-    fi
+  if [ ! -f "$SOPS_AGE_KEY_FILE" ]; then
+    echo "❌ SOPS_AGE_KEY_FILE ($SOPS_AGE_KEY_FILE) does not exist!"
+    exit 1
+  fi
 
-    echo "📁 Using SOPS_AGE_KEY_FILE at: $SOPS_AGE_KEY_FILE"
+  echo "📁 Using SOPS_AGE_KEY_FILE at: $SOPS_AGE_KEY_FILE"
+  mkdir -p /etc/sops/age
 
-    mkdir -p /etc/sops/age
+  echo "🔎 Attempting decryption of age_key.yaml..."
+  DECRYPTED="$(${pkgs.sops}/bin/sops -d ${../../secrets/age_key.yaml})" || {
+    echo "❌ SOPS decryption failed"
+    exit 1
+  }
 
-    ${pkgs.sops}/bin/sops -d ${../../secrets/age_key.yaml} \
-      | ${pkgs.yq}/bin/yq -r .age_key > /etc/sops/age/keys.txt
+  echo "🔎 Extracting age_key manually..."
+  echo "$DECRYPTED" | sed -n '/^age_key: *|/,/^sops:/p' | sed '/^sops:/d' | sed 's/^  //' > /etc/sops/age/keys.txt
 
-    if [ ! -f /etc/sops/age/keys.txt ]; then
-      echo "❌ Failed to create /etc/sops/age/keys.txt"
-      exit 1
-    fi
+  if [ ! -s /etc/sops/age/keys.txt ]; then
+    echo "❌ /etc/sops/age/keys.txt is missing or empty"
+    exit 1
+  fi
 
-    echo "✅ /etc/sops/age/keys.txt installed"
-  '';
+  echo "✅ /etc/sops/age/keys.txt installed"
+'';
+
+
 }
