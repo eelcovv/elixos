@@ -124,7 +124,7 @@ make-secret HOST USER:
 	echo "sops:" >> "$AGE_KEY_FILE_OUT"; \
 	echo "  age:" >> "$AGE_KEY_FILE_OUT"; \
 	echo "    - recipient: $AGE_PUB_KEY" >> "$AGE_KEY_FILE_OUT"; \
-	echo "  encrypted_regex: ^age_key$$" >> "$AGE_KEY_FILE_OUT"; \
+	echo "  encrypted_regex: ^age_key$" >> "$AGE_KEY_FILE_OUT"; \
 	echo "  version: 3.10.1" >> "$AGE_KEY_FILE_OUT"; \
 	sops -e -i "$AGE_KEY_FILE_OUT"; \
 	echo "✅ Encrypted $AGE_KEY_FILE_OUT"
