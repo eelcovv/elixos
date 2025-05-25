@@ -5,11 +5,6 @@ LAPTOP_IP := env("LAPTOP_IP", "192.168.2.3")
 
 REPO_DIR := "~/elixos"
 
-# ========== HELPERS ==========
-load-env HOST:
-	@echo "🔄 Loading environment for {{HOST}}..." && \
-	test -f .env.{{HOST}} && export $(cat .env.{{HOST}} | xargs) || echo "⚠️ .env.{{HOST}} not found. Using fallback vars."
-
 # ========== GENERAL ==========
 default:
 	just --list --unsorted
@@ -141,3 +136,8 @@ check-install HOST USER:
 		echo "⚠️ SSH public key ($$PUB) is missing or empty (might be generated after boot)"; \
 	else echo "✅ SSH public key is present"; fi
 	@echo "✅ Basic post-install checks complete for {{HOST}}/{{USER}}"
+
+# ========== HELPERS ==========
+load-env HOST:
+	@echo "🔄 Loading environment for {{HOST}}..." && \
+	test -f .env.{{HOST}} && export $(cat .env.{{HOST}} | xargs) || echo "⚠️ .env.{{HOST}} not found. Using fallback vars."
