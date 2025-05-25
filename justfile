@@ -103,19 +103,20 @@ post-boot-setup HOST:
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
 	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}"; \
-	AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"; \
-	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)"; \
-	SSH_KEY_FILE="$HOME/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
+	AGE_KEY_FILE="$${HOME}/.config/sops/age/keys.txt"; \
+	AGE_PUB_KEY="$$(rage-keygen -y $$AGE_KEY_FILE)"; \
+	SSH_KEY_FILE="$${HOME}/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
 	SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
-	if [ ! -f "$SSH_KEY_FILE" ]; then \
-		ssh-keygen -t ed25519 -N "" -f "$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
+	if [ ! -f "$$SSH_KEY_FILE" ]; then \
+		ssh-keygen -t ed25519 -N "" -f "$$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
 	else echo "🔁 SSH key already exists"; fi; \
-	echo "age_key: |" > "$SECRET_FILE"; \
-	cat "$AGE_KEY_FILE" | sed 's/^/  /' >> "$SECRET_FILE"; \
-	echo "id_ed25519: |" >> "$SECRET_FILE"; \
-	cat "$SSH_KEY_FILE" | sed 's/^/  /' >> "$SECRET_FILE"; \
-	sops -e --age "$AGE_PUB_KEY" -i "$SECRET_FILE"; \
-	echo "✅ Encrypted $SECRET_FILE"
+	echo "age_key: |" > "$$SECRET_FILE"; \
+	sed 's/^/  /' "$$AGE_KEY_FILE" >> "$$SECRET_FILE"; \
+	echo "id_ed25519_{{USER}}: |" >> "$$SECRET_FILE"; \
+	sed 's/^/  /' "$$SSH_KEY_FILE" >> "$$SECRET_FILE"; \
+	sops -e --age "$$AGE_PUB_KEY" -i "$$SECRET_FILE"; \
+	echo "✅ Encrypted $$SECRET_FILE"
+
 
 decrypt-secret HOST USER:
 	@SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
