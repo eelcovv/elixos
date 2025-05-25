@@ -21,7 +21,6 @@
     # 🔐 Secrets
     [
       ../modules/secrets/default.nix
-      ../modules/secrets/singer-default.nix
       ../modules/secrets/singer-eelco.nix
       ../modules/secrets/singer-por.nix
     ]

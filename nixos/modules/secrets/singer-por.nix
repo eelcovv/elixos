@@ -3,6 +3,7 @@
 {
 
   sops.secrets.id_ed25519_por = {
+    sopsFile = ../../secrets/singer-por-secrets.yaml;
     path = "/home/por/.ssh/id_ed25519";
     owner = "por";
     group = "users";

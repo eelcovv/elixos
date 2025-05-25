@@ -3,7 +3,7 @@
 {
 
 
-  sops.secrets.id_ed25519 = {
+  sops.secrets.id_ed25519_eelco = {
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
     group = "users";
@@ -12,7 +12,7 @@
   };
 
   # Zorg dat ~/.ssh bestaat
-  systemd.tmpfiles.rules = [
+  systemd.tmpfiles.rules = lib.mkBefore [
     "d /home/eelco/.ssh 0700 eelco users -"
   ];
 
