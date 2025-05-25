@@ -25,27 +25,21 @@ system.activationScripts.installAgeKey.text = ''
     exit 1
   }
 
-  echo "🔎 Attempting decryption of age_key.yaml..."
-  DECRYPTED="$(${pkgs.sops}/bin/sops -d ${../../secrets/age_key.yaml})" || {
-    echo "❌ SOPS decryption failed"
-    exit 1
-  }
-
-  echo "🔎 Extracting age_key manually..."
-  echo "$DECRYPTED" | ${pkgs.gnused}/bin/sed -n '/^age_key: *|/,/^sops:/p' | \
+  echo "🔎 Decrypting and writing directly..."
+  ${pkgs.sops}/bin/sops -d ${../../secrets/age_key.yaml} | \
+    ${pkgs.gnused}/bin/sed -n '/^age_key: *|/,/^sops:/p' | \
     ${pkgs.gnused}/bin/sed '/^sops:/d' | \
-    ${pkgs.gnused}/bin/sed 's/^  //' > /etc/sops/age/keys.txt || {
-      echo "❌ Failed to write to /etc/sops/age/keys.txt"
-      exit 1
-  }
+    ${pkgs.gnused}/bin/sed 's/^  //' > /etc/sops/age/keys.txt
 
   if [ ! -s /etc/sops/age/keys.txt ]; then
     echo "❌ /etc/sops/age/keys.txt is missing or empty"
     exit 1
   fi
 
+  chmod 400 /etc/sops/age/keys.txt
   echo "✅ /etc/sops/age/keys.txt installed"
 '';
+
 
 
 
