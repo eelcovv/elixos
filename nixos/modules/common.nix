@@ -56,6 +56,7 @@
       just
       home-manager
       sops
+      yq  # needed for extracting your sops key
       rage
     ];
 
