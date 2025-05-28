@@ -22,8 +22,6 @@
     [
       ../modules/secrets/default.nix
       ../modules/secrets/bootstrap-agekey.nix
-      ../modules/secrets/singer-eelco.nix
-      ../modules/secrets/singer-por.nix
     ]
 
     ++
