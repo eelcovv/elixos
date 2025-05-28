@@ -28,8 +28,10 @@
 
     # ⚙️ Services
     [
-      ../modules/services/ssh-client-keys.nix
+      ../modules/secrets/ssh-key-eelco.nix
     ]
+
+    #  ../modules/services/ssh-client-keys.nix
 
     ++
 
