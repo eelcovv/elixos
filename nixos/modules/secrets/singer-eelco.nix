@@ -21,12 +21,13 @@
     requires = [ "sops-nix-id_ed25519_eelco.service" ];
     serviceConfig = {
       Type = "oneshot";
-      User = "eelco";
-      ExecStart = "${pkgs.writeShellScript "generate-pubkey" ''
-        #!/bin/sh
-        [ -f /home/eelco/.ssh/id_ed25519.pub ] || \
+      ExecStart = pkgs.writeShellScript "generate-pubkey" ''
+        if [ ! -f /home/eelco/.ssh/id_ed25519.pub ]; then
           ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub
-      ''}";
+          chown eelco:users /home/eelco/.ssh/id_ed25519.pub
+          chmod 0644 /home/eelco/.ssh/id_ed25519.pub
+        fi
+      '';
     };
   };
 }
