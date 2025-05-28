@@ -4,15 +4,16 @@ let
   sshUsers = [ "eelco" "por" ];
 
   userSecret = user: {
-    sops.secrets."id_ed25519_${user}" = {
-      sopsFile = ../../secrets/${config.networking.hostName}-${user}-secrets.yaml;
-      path = "/home/${user}/.ssh/id_ed25519";
-      owner = user;
-      group = "users";
-      mode = "0400";
-      restartUnits = [ "generate-ssh-pubkey-${user}.service" ];
-    };
+  "id_ed25519_${user}" = {
+    sopsFile = ../../secrets/${config.networking.hostName}-${user}-secrets.yaml;
+    path = "/home/${user}/.ssh/id_ed25519";
+    owner = user;
+    group = "users";
+    mode = "0400";
+    restartUnits = [ "generate-ssh-pubkey-${user}.service" ];
   };
+};
+
 
   userService = user: {
     "generate-ssh-pubkey-${user}" = {
