@@ -11,7 +11,7 @@
 
   # Decrypt de private key via SOPS
   sops.secrets.id_ed25519_eelco = {
-    sopsFile = ../../secrets/singer-id_ed25519.yaml;
+    sopsFile = ../../secrets/singer-eelco-secrets.yaml;
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
     group = "users";
