@@ -50,9 +50,6 @@ vm_partition:
 	sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
 	@echo "✅ Partitioning done."
 
-# Push Age key to live installer
-push-key:
-	scp -P 2222 ~/.config/sops/age/keys.txt nixos@localhost:/home/nixos/keys.txt
 
 # Install Age key in correct location (on live installer)
 install-root-key:
@@ -181,6 +178,7 @@ switch HOST:
 # ========== NETWORK INSTALL HELPERS ==========
 push-key:
 	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{LAPTOP_IP}}:/home/{{SSH_USER}}/keys.txt
+
 
 push-repo:
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{LAPTOP_IP}} 'mkdir -p /tmp/elixos.git && git init --bare /tmp/elixos.git'
