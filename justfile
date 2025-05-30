@@ -58,14 +58,6 @@ install-root-key:
 	sudo chmod 600 /root/.config/sops/age/keys.txt
 	@echo "✅ Age private key ready for nixos-install"
 
-# Push repo to live installer via local bare repo
-push-repo:
-	ssh -p 2222 nixos@localhost 'mkdir -p /tmp/elixos.git && git init --bare /tmp/elixos.git'
-	git push ssh://nixos@localhost:2222/tmp/elixos.git main
-
-# Clone from /tmp/elixos.git into ~/elixos on live installer
-clone-repo:
-	ssh -p 2222 nixos@localhost 'git clone -b main /tmp/elixos.git ~/elixos || true'
 
 # Install Age key remotely on live installer
 remote-install-root-key:
@@ -178,7 +170,6 @@ switch HOST:
 # ========== NETWORK INSTALL HELPERS ==========
 push-key:
 	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{LAPTOP_IP}}:/home/{{SSH_USER}}/keys.txt
-
 
 push-repo:
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{LAPTOP_IP}} 'mkdir -p /tmp/elixos.git && git init --bare /tmp/elixos.git'
