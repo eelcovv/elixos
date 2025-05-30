@@ -5,8 +5,8 @@
   networking.hostName = "singer";
 
   desktop.enableGnome = true;
-  desktop.enableKde = true;
-  desktop.enableHyperland = true;
+  desktop.enableKde = false;
+  desktop.enableHyperland = false;
 
   imports =
     # 🧱 Basic modules
