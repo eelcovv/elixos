@@ -135,14 +135,15 @@ vm_run_gpu:
 
 # Reset VM files to start over
 vm_reset:
-	@echo "🚀 Cleaning old vm virtual drives..." \
-	if [ -f "$HOME/vms" ]; then \
-		rm -rv $HOME/vms ; \
-		echo "🗑️ VM files removed." ; \
+	@echo "🚀 Cleaning old VM virtual drives..."
+	@if [ -d "${HOME}/vms" ]; then \
+		rm -rv "${HOME}/vms"; \
+		echo "🗑️  VM files removed."; \
 	else \
-		echo "🔁 vm was already removed  exists"; \
-	fi; \
-	echo "✅ Clean now. Start fresh with 'just vm_prepare'."
+		echo "🔁 No VM files found to remove."; \
+	fi
+	@echo "✅ Clean now. Start fresh with 'just vm_prepare'."
+
 
 # ========== SOPS ENCRYPTION HELPERS (Age only) ==========
 
