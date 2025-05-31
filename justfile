@@ -2,8 +2,7 @@
 HOST := env("HOST", "localhost")
 SSH_USER := env("SSH_USER", "root")
 SSH_PORT := env("SSH_PORT", "22")
-SSH_HOST := env("SSH_HOST", "22")
-LAPTOP_IP := env("LAPTOP_IP", "192.168.2.3")
+SSH_HOST := env("SSH_HOST", "localhost")
 
 REPO_DIR := "~/elixos"
 
@@ -178,17 +177,17 @@ switch HOST:
 
 # ========== NETWORK INSTALL HELPERS ==========
 push-key:
-	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{LAPTOP_IP}}:/home/{{SSH_USER}}/keys.txt
+	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{SSH_HOST}}:/home/{{SSH_USER}}/keys.txt
 
 push-repo:
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{LAPTOP_IP}} 'mkdir -p /tmp/elixos.git && git init --bare /tmp/elixos.git'
-	git push ssh://{{SSH_USER}}@{{LAPTOP_IP}}:{{SSH_PORT}}/tmp/elixos.git main
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'mkdir -p /tmp/elixos.git && git init --bare /tmp/elixos.git'
+	git push ssh://{{SSH_USER}}@{{SSH_HOST}}:{{SSH_PORT}}/tmp/elixos.git main
 
 clone-repo:
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{LAPTOP_IP}} 'git clone -b main /tmp/elixos.git ~/elixos || true'
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'git clone -b main /tmp/elixos.git ~/elixos || true'
 
 install-age-key:
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{LAPTOP_IP}} \
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
 	  'sudo mkdir -p /etc/sops/age && \
 	   sudo mv /home/{{SSH_USER}}/keys.txt /etc/sops/age/keys.txt && \
 	   sudo chmod 400 /etc/sops/age/keys.txt && \
