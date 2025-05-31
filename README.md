@@ -39,6 +39,21 @@ Use the following steps to quickly install a NixOS VM using QEMU.
 
 ### 🔐 2. Bootstrap the VM from the Host
 
+Load the .env file which set the environment variables of the current setup. For instance, load
+
+    . .env-generic-vm
+
+This sets:
+
+    HOST=generic-vm
+    SSH_USER=nixos
+    SSH_PORT=2222
+    SSH_HOST=localhost
+    SSH_KEY=$HOME/.ssh/ssh_key_generic-vm_eelco
+    REPO_DIR=/home/nixos/elixos
+
+Now you can run the bootstrap for this VM
+
     just bootstrap-vm
 
 This performs the following:

@@ -1,6 +1,8 @@
 # ========== DEFAULT CONFIGURATION ========== 
+HOST := env("HOST", "host")
 SSH_USER := env("SSH_USER", "root")
 SSH_PORT := env("SSH_PORT", "22")
+SSH_HOST := env("SSH_HOST", "22")
 LAPTOP_IP := env("LAPTOP_IP", "192.168.2.3")
 
 REPO_DIR := "~/elixos"
