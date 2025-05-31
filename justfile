@@ -1,5 +1,5 @@
 # ========== DEFAULT CONFIGURATION ========== 
-HOST := env("HOST", "host")
+HOST := env("HOST", "localhost")
 SSH_USER := env("SSH_USER", "root")
 SSH_PORT := env("SSH_PORT", "22")
 SSH_HOST := env("SSH_HOST", "22")
