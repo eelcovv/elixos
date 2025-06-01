@@ -1,19 +1,24 @@
 { config, lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
-  sshUsers = [ "eelco" "por" ];
+  sshUsers = config.sshUsers or [];
+
+  hasSecretFile = user:
+    builtins.pathExists (../../secrets + "/${config.networking.hostName}-${user}-secrets.yaml");
+
+  validUsers = builtins.filter hasSecretFile sshUsers;
 
   userSecret = user: {
-  "id_ed25519_${user}" = {
-    sopsFile = ../../secrets/${config.networking.hostName}-${user}-secrets.yaml;
-    path = "/home/${user}/.ssh/id_ed25519";
-    owner = user;
-    group = "users";
-    mode = "0400";
-    restartUnits = [ "generate-ssh-pubkey-${user}.service" ];
+    "id_ed25519_${user}" = {
+      sopsFile = ../../secrets/${config.networking.hostName}-${user}-secrets.yaml;
+      path = "/home/${user}/.ssh/id_ed25519";
+      owner = user;
+      group = "users";
+      mode = "0400";
+      restartUnits = [ "generate-ssh-pubkey-${user}.service" ];
+    };
   };
-};
-
 
   userService = user: {
     "generate-ssh-pubkey-${user}" = {
@@ -33,14 +38,12 @@ let
       };
     };
   };
-in
-{
-  sops.secrets = lib.mkMerge (map userSecret sshUsers);
 
-  systemd.services = lib.mkMerge (map userService sshUsers);
-
+in {
+  sops.secrets = lib.mkMerge (map userSecret validUsers);
+  systemd.services = lib.mkMerge (map userService validUsers);
   systemd.tmpfiles.rules = lib.flatten (map (user: [
     "d /home/${user}/.ssh 0700 ${user} users -"
     "f /home/${user}/.ssh/id_ed25519.pub 0644 ${user} users -"
-  ]) sshUsers);
+  ]) validUsers);
 }

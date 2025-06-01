@@ -13,6 +13,17 @@
  */
 { inputs, ... }:
 
+  # Set the target hostname
+  networking.hostName = "generic-vm";
+
+  # Choose what desktop you want to make available
+  desktop.enableGnome = true;
+  desktop.enableKde = false;
+  desktop.enableHyperland = false;
+
+  # Definine host-specifi sshUsers
+  sshUsers = [ "eelco" ];
+
 {
   imports = [
     ../modules/common.nix
@@ -28,10 +39,5 @@
     ../home/eelco.nix
   ];
 
-  networking.hostName = "generic-vm";
-
-  desktop.enableGnome = true;
-  desktop.enableKde = true;
-  desktop.enableHyperland = true;
 
 }
