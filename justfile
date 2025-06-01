@@ -37,12 +37,12 @@ vm_prerequisites:
 
 # ========== VM INSTALLATION ==========
 vm_prepare:
-	mkdir -p ~/vms/nixos
-	curl -L -o ~/vms/nixos/nixos-minimal.iso https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
-	cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd ~/vms/nixos/
-	cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd ~/vms/nixos/uefi_vars.fd
-	chmod 644 ~/vms/nixos/*.fd
-	qemu-img create -f qcow2 ~/vms/nixos/nixos-vm.qcow2 30G
+	mkdir -p $HOME/vms/nixos
+	curl -L -o $HOME/vms/nixos/nixos-minimal.iso https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
+	cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd $HOME/vms/nixos/
+	cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/nixos/uefi_vars.fd
+	chmod 644 $HOME/vms/nixos/*.fd
+	qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 30G
 	@echo "✅ VM disk prepared. Run 'just vm_run_installer'."
 
 # Start live installer VM
@@ -50,10 +50,10 @@ vm_run_installer:
 	qemu-system-x86_64 \
 		-enable-kvm \
 		-m 8G \
-		-drive if=pflash,format=raw,readonly=on,file=~/vms/nixos/OVMF_CODE.fd \
-		-drive if=pflash,format=raw,file=~/vms/nixos/uefi_vars.fd \
-		-drive if=virtio,file=~/vms/nixos/nixos-vm.qcow2,format=qcow2 \
-		-cdrom ~/vms/nixos/nixos-minimal.iso \
+		-drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
+		-drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
+		-cdrom $HOME/vms/nixos/nixos-minimal.iso \
 		-boot d \
 		-nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 	@echo "🔑 ssh -p 2222 nixos@localhost to access the live installer."
@@ -127,9 +127,9 @@ vm_run:
 		-m 8G \
 		-smp 2 \
 		-cpu host \
-		-drive if=pflash,format=raw,readonly=on,file=~/vms/nixos/OVMF_CODE.fd \
-		-drive if=pflash,format=raw,file=~/vms/nixos/uefi_vars.fd \
-		-drive if=virtio,file=~/vms/nixos/nixos-vm.qcow2,format=qcow2 \
+		-drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
+		-drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
 		-boot c \
 		-nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
@@ -144,17 +144,17 @@ vm_run_gpu:
 		-device virtio-tablet \
 		-device virtio-keyboard-pci \
 		-display gtk,gl=on \
-		-drive if=pflash,format=raw,readonly=on,file=~/vms/nixos/OVMF_CODE.fd \
-		-drive if=pflash,format=raw,file=~/vms/nixos/uefi_vars.fd \
-		-drive if=virtio,file=~/vms/nixos/nixos-vm.qcow2,format=qcow2 \
+		-drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
+		-drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
 		-boot c \
 		-nic user,model=virtio-net-pci
 
 # Reset VM files to start over
 vm_reset:
 	@echo "🚀 Cleaning old VM virtual drives..."
-	@if [ -d "~/vms" ]; then \
-		rm -rv "~/vms"; \
+	@if [ -d "${HOME}/vms" ]; then \
+		rm -rv "${HOME}/vms"; \
 		echo "🗑️  VM files removed."; \
 	else \
 		echo "🔁 No VM files found to remove."; \
