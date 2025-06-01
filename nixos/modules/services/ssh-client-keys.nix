@@ -1,3 +1,5 @@
+{ config, lib, pkgs, ... }:
+
 {
   options.sshUsers = lib.mkOption {
     type = with lib.types; listOf str;
