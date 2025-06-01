@@ -101,6 +101,8 @@ bootstrap-vm:
 	just ssh-copy-key
 	@echo "📡 Pushing Age key to live installer..."
 	just push-key
+	@echo "🔑 Installing Age key in system path..."
+	just install-age-key
 	@echo "📂 Pushing repo to live installer..."
 	just push-repo
 	@echo "📂 Cloning repo on live installer..."
@@ -207,10 +209,10 @@ clone-repo:
 
 install-age-key:
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
-	  'sudo mkdir -p /etc/sops/age && \
-	   sudo mv /home/{{SSH_USER}}/keys.txt /etc/sops/age/keys.txt && \
-	   sudo chmod 400 /etc/sops/age/keys.txt && \
-	   echo "✅ Age key installed on target"'
+	  'sudo mkdir -p /mnt/etc/sops/age && \
+	   sudo mv /home/{{SSH_USER}}/keys.txt /mnt/etc/sops/age/keys.txt && \
+	   sudo chmod 400 /mnt/etc/sops/age/keys.txt && \
+	   echo "✅ Age key installed in target root (/mnt)"'
 
 post-boot-setup HOST:
 	just load-env {{HOST}}
