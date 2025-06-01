@@ -1,5 +1,4 @@
 { config, lib, pkgs, ... }:
-{ config, lib, pkgs, ... }:
 
 let
   sshUsers = config.sshUsers or [];
