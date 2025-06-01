@@ -72,7 +72,7 @@ install-root-key:
 
 # Install Age key remotely on live installer
 remote-install-root-key:
-	ssh -p 2222 nixos@localhost 'cd ~/elixos && nix --extra-experimental-features "nix-command flakes" run nixpkgs#just -- install-root-key'
+	ssh -p 2222 nixos@localhost 'cd {{REPO_DIR}} && nix --extra-experimental-features "nix-command flakes" run nixpkgs#just -- install-root-key'
 
 
 # Check if secrets are ready. Run at the host before doing bootstrap-vm 
@@ -205,7 +205,7 @@ push-repo:
 	git push ssh://{{SSH_USER}}@{{SSH_HOST}}:{{SSH_PORT}}/tmp/elixos.git main
 
 clone-repo:
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'git clone -b main /tmp/elixos.git ~/elixos || true'
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'git clone -b main /tmp/elixos.git {{REPO_DIR}} || true'
 
 install-age-key:
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
@@ -214,13 +214,26 @@ install-age-key:
 	   sudo chmod 400 /mnt/etc/sops/age/keys.txt && \
 	   echo "✅ Age key installed in target root (/mnt)"'
 
-post-boot-setup HOST:
+post-boot-setup HOST USER:
 	just load-env {{HOST}}
 	just push-key
 	just push-repo
 	just clone-repo
 	just install-age-key
-	@echo "🚀 Ready to run nixos-rebuild on {{HOST}}"
+	just decrypt-ssh-key {{HOST}} {{USER}}
+	@echo "🚀 Ready to run nixos-rebuild on {{HOST}} as {{USER}}"
+
+
+
+decrypt-ssh-key HOST USER:
+	@echo "🔓 Decrypting SSH key for {{USER}} on {{HOST}} and writing to ~/.ssh/id_ed25519..."
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
+		'SOPS_AGE_KEY_FILE=/etc/sops/age/keys.txt \
+		sops -d {{REPO_DIR}}/nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml | \
+		yq -r .id_ed25519_{{USER}} > ~/.ssh/id_ed25519 && \
+		chmod 600 ~/.ssh/id_ed25519 && \
+		ssh-keygen -y -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub && \
+		echo "✅ SSH keypair restored to ~/.ssh/id_ed25519[.pub]"'
 
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
