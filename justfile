@@ -210,14 +210,14 @@ clone-repo:
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'git clone -b main /tmp/elixos.git {{REPO_DIR}} || true'
 
 install-age-key-mnt:
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
+	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
 	  'sudo mkdir -p /mnt/etc/sops/age && \
 	   sudo mv ~/keys.txt /mnt/etc/sops/age/keys.txt && \
 	   sudo chmod 400 /mnt/etc/sops/age/keys.txt && \
 	   echo "✅ Age key installed in target root (/mnt)"'
 
 install-age-key:
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
+	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
 	  'sudo mkdir -p /etc/sops/age && \
 	   sudo mv ~/keys.txt /etc/sops/age/keys.txt && \
 	   sudo chmod 400 /etc/sops/age/keys.txt && \
