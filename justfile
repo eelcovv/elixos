@@ -1,5 +1,7 @@
 # ========== DEFAULT CONFIGURATION ========== 
 HOST := env("HOST", "localhost")
+INSTALL_USER := env("INSTALL_USER", "root")
+POST_USER := env("USER", "eelco")
 SSH_USER := env("SSH_USER", "root")
 SSH_PORT := env("SSH_PORT", "22")
 SSH_HOST := env("SSH_HOST", "localhost")
@@ -18,7 +20,7 @@ vm_just TARGET:
 
 # Open interactive shell on VM with flake features and repo loaded
 vm_just_shell:
-	ssh -t -p {{SSH_PORT}} {{SSH_PORT}}@{{SSH_HOST}} "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#just -c bash"
+	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#just -c bash"
 
 update:
 	nix flake update
@@ -301,4 +303,4 @@ check-install HOST USER:
 # ========== HELPERS ==========
 load-env HOST:
 	@echo "🔄 Loading environment for {{HOST}}..." && \
-	test -f .env.{{HOST}} && export $(cat .env.{{HOST}} | xargs) || echo "⚠️ .env.{{HOST}} not found. Using fallback vars."
+	test -f .env.{{HOST}} && export $(cat .env.{{HOST}} | grep '^export ' | cut -d' ' -f2- | xargs) || echo "⚠️ .env.{{HOST}} not found."
