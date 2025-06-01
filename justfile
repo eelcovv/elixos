@@ -87,6 +87,8 @@ check-deployable-vm:
 
 # Full bootstrap (key, repo, partition, install)
 bootstrap-vm:
+	@echo "📡 Copying ssh key to allow password less login..."
+	just ssh-copy-key
 	@echo "📡 Pushing Age key to live installer..."
 	just push-key
 	@echo "📂 Pushing repo to live installer..."
@@ -176,6 +178,13 @@ switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
 
 # ========== NETWORK INSTALL HELPERS ==========
+ssh-copy-key:
+	@echo "📤 Creating .ssh dir and copying authorized_keys to remote"
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'mkdir -p ~/.ssh && chmod 700 ~/.ssh'
+	scp -P {{SSH_PORT}} ~/.ssh/id_ed25519.pub {{SSH_USER}}@{{SSH_HOST}}:/home/{{SSH_USER}}/.ssh/authorized_keys
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'chmod 600 ~/.ssh/authorized_keys'
+	@echo "✅ SSH key installed successfully"
+
 push-key:
 	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{SSH_HOST}}:/home/{{SSH_USER}}/keys.txt
 
