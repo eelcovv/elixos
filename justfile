@@ -10,8 +10,6 @@ REPO_DIR := "~/elixos"
 default:
 	just --list --unsorted
 
-REPO_DIR := "~/elixos"
-
 # ========== HOST MACHINE SETUP ==========
 
 # Run any just target remotely on the live VM
