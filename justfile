@@ -195,7 +195,7 @@ switch HOST:
 ssh-copy-key:
 	@echo "📤 Creating .ssh dir and copying authorized_keys to remote"
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'mkdir -p ~/.ssh && chmod 700 ~/.ssh'
-	scp -P {{SSH_PORT}} ~/.ssh/id_ed25519.pub {{SSH_USER}}@{{SSH_HOST}}:/home/{{SSH_USER}}/.ssh/authorized_keys
+	scp -P {{SSH_PORT}} ~/.ssh/id_ed25519.pub {{SSH_USER}}@{{SSH_HOST}}:~/.ssh/authorized_keys
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'chmod 600 ~/.ssh/authorized_keys'
 	@echo "✅ SSH key installed successfully"
 
@@ -212,7 +212,7 @@ clone-repo:
 install-age-key:
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
 	  'sudo mkdir -p /mnt/etc/sops/age && \
-	   sudo mv /home/{{SSH_USER}}/keys.txt /mnt/etc/sops/age/keys.txt && \
+	   sudo mv ~/keys.txt /mnt/etc/sops/age/keys.txt && \
 	   sudo chmod 400 /mnt/etc/sops/age/keys.txt && \
 	   echo "✅ Age key installed in target root (/mnt)"'
 
