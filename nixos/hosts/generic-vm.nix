@@ -12,6 +12,7 @@
  * - **system.stateVersion**: Specifies the NixOS state version, set to "24.11".
  */
 { inputs, ... }:
+{
 
   # Set the target hostname
   networking.hostName = "generic-vm";
@@ -24,7 +25,6 @@
   # Definine host-specifi sshUsers
   sshUsers = [ "eelco" ];
 
-{
   imports = [
     ../modules/common.nix
     ../modules/profiles/desktop.nix
@@ -38,6 +38,4 @@
     ../modules/disk-layouts/generic-vm.nix
     ../home/eelco.nix
   ];
-
-
 }
