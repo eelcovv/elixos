@@ -10,6 +10,18 @@ REPO_DIR := "~/elixos"
 default:
 	just --list --unsorted
 
+REPO_DIR := "~/elixos"
+
+# ========== HOST MACHINE SETUP ==========
+
+# Run any just target remotely on the live VM
+vm_just TARGET:
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' run nixpkgs#just -- {{TARGET}}"
+
+# Open interactive shell on VM with flake features and repo loaded
+vm_just_shell:
+	ssh -t -p {{SSH_PORT}} {{SSH_PORT}}@{{SSH_HOST}} "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#just -c bash"
+
 update:
 	nix flake update
 
