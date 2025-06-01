@@ -37,12 +37,12 @@ vm_prerequisites:
 
 # ========== VM INSTALLATION ==========
 vm_prepare:
-	mkdir -p $HOME/vms/nixos
-	curl -L -o $HOME/vms/nixos/nixos-minimal.iso https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
-	cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd $HOME/vms/nixos/
-	cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd $HOME/vms/nixos/uefi_vars.fd
-	chmod 644 $HOME/vms/nixos/*.fd
-	qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 30G
+	mkdir -p ~/vms/nixos
+	curl -L -o ~/vms/nixos/nixos-minimal.iso https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso
+	cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_CODE.fd ~/vms/nixos/
+	cp -v $(nix-build '<nixpkgs>' -A OVMF.fd)/FV/OVMF_VARS.fd ~/vms/nixos/uefi_vars.fd
+	chmod 644 ~/vms/nixos/*.fd
+	qemu-img create -f qcow2 ~/vms/nixos/nixos-vm.qcow2 30G
 	@echo "✅ VM disk prepared. Run 'just vm_run_installer'."
 
 # Start live installer VM
@@ -50,10 +50,10 @@ vm_run_installer:
 	qemu-system-x86_64 \
 		-enable-kvm \
 		-m 8G \
-		-drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
-		-drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
-		-drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
-		-cdrom $HOME/vms/nixos/nixos-minimal.iso \
+		-drive if=pflash,format=raw,readonly=on,file=~/vms/nixos/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,file=~/vms/nixos/uefi_vars.fd \
+		-drive if=virtio,file=~/vms/nixos/nixos-vm.qcow2,format=qcow2 \
+		-cdrom ~/vms/nixos/nixos-minimal.iso \
 		-boot d \
 		-nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 	@echo "🔑 ssh -p 2222 nixos@localhost to access the live installer."
@@ -67,7 +67,7 @@ vm_partition:
 # Install Age key in correct location (on live installer)
 install-root-key:
 	sudo mkdir -p /root/.config/sops/age
-	sudo cp /home/nixos/keys.txt /root/.config/sops/age/keys.txt
+	sudo cp ~/keys.txt /root/.config/sops/age/keys.txt
 	sudo chmod 600 /root/.config/sops/age/keys.txt
 	@echo "✅ Age private key ready for nixos-install"
 
@@ -127,9 +127,9 @@ vm_run:
 		-m 8G \
 		-smp 2 \
 		-cpu host \
-		-drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
-		-drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
-		-drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
+		-drive if=pflash,format=raw,readonly=on,file=~/vms/nixos/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,file=~/vms/nixos/uefi_vars.fd \
+		-drive if=virtio,file=~/vms/nixos/nixos-vm.qcow2,format=qcow2 \
 		-boot c \
 		-nic user,model=virtio-net-pci,hostfwd=tcp::2222-:22
 
@@ -144,17 +144,17 @@ vm_run_gpu:
 		-device virtio-tablet \
 		-device virtio-keyboard-pci \
 		-display gtk,gl=on \
-		-drive if=pflash,format=raw,readonly=on,file=$HOME/vms/nixos/OVMF_CODE.fd \
-		-drive if=pflash,format=raw,file=$HOME/vms/nixos/uefi_vars.fd \
-		-drive if=virtio,file=$HOME/vms/nixos/nixos-vm.qcow2,format=qcow2 \
+		-drive if=pflash,format=raw,readonly=on,file=~/vms/nixos/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,file=~/vms/nixos/uefi_vars.fd \
+		-drive if=virtio,file=~/vms/nixos/nixos-vm.qcow2,format=qcow2 \
 		-boot c \
 		-nic user,model=virtio-net-pci
 
 # Reset VM files to start over
 vm_reset:
 	@echo "🚀 Cleaning old VM virtual drives..."
-	@if [ -d "${HOME}/vms" ]; then \
-		rm -rv "${HOME}/vms"; \
+	@if [ -d "~/vms" ]; then \
+		rm -rv "~/vms"; \
 		echo "🗑️  VM files removed."; \
 	else \
 		echo "🔁 No VM files found to remove."; \
@@ -200,7 +200,7 @@ ssh-copy-key:
 	@echo "✅ SSH key installed successfully"
 
 push-key:
-	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{SSH_HOST}}:/home/{{SSH_USER}}/keys.txt
+	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{SSH_HOST}}:~/keys.txt
 
 push-repo:
 	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} 'mkdir -p /tmp/elixos.git && git init --bare /tmp/elixos.git'
@@ -240,11 +240,11 @@ decrypt-ssh-key HOST USER:
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
 	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}"; \
-	AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"; \
+	AGE_KEY_FILE="~/.config/sops/age/keys.txt"; \
 	echo "🔐 Extracting public age key from file $AGE_KEY_FILE"; \
 	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)"; \
 	echo "🔐 Obtained public age key  $AGE_PUB_KEY"; \
-	SSH_KEY_FILE="${HOME}/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
+	SSH_KEY_FILE="~/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
 	SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
 	AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml"; \
 	echo "🔑 Generating SSH key ${SSH_KEY_FILE} if needed..."; \
@@ -270,7 +270,7 @@ make-secret HOST USER:
 decrypt-secret HOST USER:
 	@SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
 	echo "🔓 Decrypting $SECRET_FILE..."; \
-	SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$SECRET_FILE"
+	SOPS_AGE_KEY_FILE="~/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$SECRET_FILE"
 
 check-age_key:
 	@echo "🔍 Checking if age_key.yaml can be decrypted..."; \
@@ -278,7 +278,7 @@ check-age_key:
 	if [ ! -f "$FILE" ]; then \
 		echo "❌ $FILE not found"; exit 1; \
 	fi; \
-	if SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$FILE" > /dev/null 2>&1; then \
+	if SOPS_AGE_KEY_FILE="~/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$FILE" > /dev/null 2>&1; then \
 		echo "✅ age_key.yaml is decryptable"; \
 	else \
 		echo "❌ Failed to decrypt age_key.yaml — wrong or missing key?"; exit 1; \
