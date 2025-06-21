@@ -235,13 +235,17 @@ post-boot-setup HOST USER:
 
 decrypt-ssh-key-local:
 	@echo "🔓 [local] Decrypting SSH key for $USER on $HOST..."
-	mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh
-	SOPS_AGE_KEY_FILE=$HOME/.config/sops/age/keys.txt \
-	sops -d ./nixos/secrets/$HOST-$USER-secrets.yaml > $HOME/.ssh/id_ed25519
-	chmod 600 $HOME/.ssh/id_ed25519
-	ssh-keygen -y -f $HOME/.ssh/id_ed25519 > $HOME/.ssh/id_ed25519.pub
-	chmod 644 $HOME/.ssh/id_ed25519.pub
-	@echo "✅ [local] SSH keypair written to ~/.ssh/id_ed25519[.pub]"
+	if [ -L "$HOME/.ssh/id_ed25519" ]; then \
+		echo "⚠️  Key already deployed via symlink at $HOME/.ssh/id_ed25519, skipping."; \
+	else \
+		mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh" && \
+		SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
+		sops -d "${REPO_DIR:-.}/nixos/secrets/$HOST-$USER-secrets.yaml" > "$HOME/.ssh/id_ed25519" && \
+		chmod 600 "$HOME/.ssh/id_ed25519" && \
+		ssh-keygen -y -f "$HOME/.ssh/id_ed25519" > "$HOME/.ssh/id_ed25519.pub" && \
+		chmod 644 "$HOME/.ssh/id_ed25519.pub" && \
+		echo "✅ SSH keypair written to ~/.ssh/id_ed25519[.pub]"; \
+	fi
 
 
 decrypt-ssh-key-remote:
