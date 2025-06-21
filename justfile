@@ -236,7 +236,7 @@ post-boot-setup HOST USER:
 decrypt-ssh-key-local:
 	@echo "🔓 [local] Decrypting SSH key for $USER on $(hostname)..."
 	SOPS_AGE_KEY_FILE=$HOME/.config/sops/age/keys.txt \
-	sops -d $REPO_DIR/nixos/secrets/$(hostname)-$USER-secrets.yaml > $HOME/.ssh/id_ed25519
+	sops -d ./nixos/secrets/$(hostname)-$USER-secrets.yaml > $HOME/.ssh/id_ed25519
 	chmod 600 $HOME/.ssh/id_ed25519
 	ssh-keygen -y -f $HOME/.ssh/id_ed25519 > $HOME/.ssh/id_ed25519.pub
 	chmod 644 $HOME/.ssh/id_ed25519.pub
