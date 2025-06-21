@@ -230,7 +230,12 @@ post-boot-setup HOST USER:
 	just push-repo
 	just clone-repo
 	just install-age-key
-	@echo "🚀 Ready to run nixos-rebuild on {{HOST}} as {{USER}}"
+	@echo "🚀 Initial setup complete!"
+	@echo ""
+	@echo "👉 Now run the following on the VM as user '{{USER}}':"
+	@echo "   cd {{REPO_DIR}} && sudo nixos-rebuild switch --flake .#{{HOST}}"
+	@echo ""
+	@echo "This will activate the full configuration, including SSH key generation."
 
 decrypt-ssh-key HOST USER:
 	@echo "🔓 Decrypting SSH key for {{USER}} on {{HOST}} and writing to ~/.ssh/id_ed25520..."
