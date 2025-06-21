@@ -37,9 +37,24 @@ Use the following steps to quickly install a NixOS VM using QEMU.
     just vm_prepare            # Download ISO and create VM disk
     just vm_run_installer      # Boot the live installer in QEMU
 
+In the newly started Qemu window, login as root with 
+
+    sudo su
+
+and set a password for the root with
+
+    passwd
+
+Just pick an easy password like *nixos*, as it is temporarly used anyway.
+
+At this point, you should be able to login on the Live Installer by accessing the localhost on port 2222.
+In the next steps, we are going to use that. 
+
 ### 🔐 2. Bootstrap the VM from the Host
 
-Load the .env file which set the environment variables of the current setup. For instance, load
+Now your Live installer has started, open an new terminal in your local machine and run just
+vm_prerequisites again to load the needed application. In this new terminal, load the .env file which 
+set the environment variables of the current setup. For instance, load:
 
     . .env-generic-vm
 
@@ -66,11 +81,24 @@ This performs the following:
 - Installs NixOS using the `generic-vm` configuration
 
 After bootstrapping the VM, the age key is available in memory, but not yet in the installed system.
-To fix that, after booting the VM, run:
+To fix that, after booting the VM, first load you new environment of the new virtual machine you have just installed:
+
+    . .env.localhost
+
+This sets
+
+    export HOST=generic-vm
+    export SSH_USER=eelco
+    export SSH_HOST=localhost
+    export SSH_PORT=2222
+    export REPO_DIR=/home/eelco/elixos
+
+Now you can run:
 
     just post-boot-setup HOST=localhost
 
 This will:
+
 - Push the age key to the real VM
 - Install the key to /etc/sops/age/keys.txt
 - Push and clone the repo again
