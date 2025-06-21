@@ -242,16 +242,15 @@ decrypt-ssh-key-local:
 	chmod 644 $HOME/.ssh/id_ed25519.pub
 	@echo "✅ [local] SSH keypair written to ~/.ssh/id_ed25519[.pub]"
 
-decrypt-ssh-key-remote HOST USER:
+decrypt-ssh-key-remote:
 	@echo "🔓 [remote] Decrypting SSH key for $USER on $HOST via SSH..."
-	ssh -p $SSH_PORT $SSH_USER@$SSH_HOST '
-		set -e
-		SOPS_AGE_KEY_FILE=$HOME/.config/sops/age/keys.txt
-		sops -d $REPO_DIR/nixos/secrets/$HOST-$USER-secrets.yaml > $HOME/.ssh/id_ed25519
-		chmod 600 $HOME/.ssh/id_ed25519
-		ssh-keygen -y -f $HOME/.ssh/id_ed25519 > $HOME/.ssh/id_ed25519.pub
-		chmod 644 $HOME/.ssh/id_ed25519.pub
-		echo "✅ [remote] SSH keypair written to ~/.ssh/id_ed25519[.pub]"
+	ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "set -e && \
+	SOPS_AGE_KEY_FILE=\$HOME/.config/sops/age/keys.txt && \
+	sops -d \$REPO_DIR/nixos/secrets/$HOST-$USER-secrets.yaml > \$HOME/.ssh/id_ed25519 && \
+	chmod 600 \$HOME/.ssh/id_ed25519 && \
+	ssh-keygen -y -f \$HOME/.ssh/id_ed25519 > \$HOME/.ssh/id_ed25519.pub && \
+	chmod 644 \$HOME/.ssh/id_ed25519.pub && \
+	echo '✅ [remote] SSH keypair written to ~/.ssh/id_ed25519[.pub]'"
 	'
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
