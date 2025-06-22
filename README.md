@@ -441,7 +441,7 @@ Then, restart your sshd deamon with this new settings file as
 sudo $(which sshd) -f ~/sshd_config
 ```
 
-(Note that this which sshd is needed since you need to use the full path to the sshd file)
+Note that this which sshd is needed since you need to use the full path to the sshd file.
 
 Check if you are now listening to port 22 with
 
