@@ -6,7 +6,6 @@
 # elixos
 
 <!-- markdownlint-disable-next-line MD036 -->
-
 _The Declarative Cure for Your NixOS Headaches_
 
 ## 🌐 Introduction
@@ -356,7 +355,8 @@ Happy hacking with Elixos! 🧬
    dhcpcd wlp2s0
    ```
 
-   You can ignore the notification `read_config: /etc/dhcpcd.conf: No such file or directory`. Just check that you are connected with
+   You can ignore the notification `read_config: /etc/dhcpcd.conf: No such file or directory`.
+   Just check that you are connected with:
 
    ```shell
    ip a show wlp2s0
@@ -456,7 +456,8 @@ Happy hacking with Elixos! 🧬
    start sshd in the background with
 
    ```shell
-   sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --flake .#singer --mode zap_create_mount
+   sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- \
+                --flake .#singer --mode zap_create_mount
    ```
 
    to login: don't use password, but copy you public ssh key and add to authorized_keys.
