@@ -1,4 +1,4 @@
-{ config, pkgs, lib, flake, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   home-manager.users.eelco = {
@@ -6,7 +6,9 @@
 
     imports = [
       (import ./modules/git.nix {
-        inherit pkgs flake;
+        inherit config pkgs lib;
+        userName = "Eelco van Vliet";
+        userEmail = "eelcovv@gmail.com";
       })
       ./modules/inputrc.nix
       ./modules/zsh.nix
