@@ -42,12 +42,18 @@
 
   outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, sops-nix, ... }@inputs: {
 
+    config = {
+      me.fullname = "Eelco van Vliet";
+      me.email = "eelcovv@gmail.com";
+    };
+
     # NixOS configuraties
     nixosConfigurations = {
       tongfang = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs self; };
         modules = [
+          { flake = self; }  # activating 'flake.config.me' in the modules
           ./nixos/hosts/tongfang.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
@@ -59,6 +65,7 @@
         system = "x86_64-linux";
         specialArgs = { inherit inputs self; };
         modules = [
+          { flake = self; }  # activating 'flake.config.me' in the modules
           ./nixos/hosts/generic-vm.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
@@ -78,6 +85,7 @@
         system = "x86_64-linux";
         specialArgs = { inherit inputs self; };
         modules = [
+          { flake = self; }  # activating 'flake.config.me' in the modules
           ./nixos/hosts/singer.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
@@ -89,6 +97,7 @@
         system = "x86_64-linux";
         specialArgs = { inherit inputs self; };
         modules = [
+          { flake = self; }  # activating 'flake.config.me' in the modules
           ./nixos/hosts/contabo.nix
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
