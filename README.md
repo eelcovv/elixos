@@ -339,240 +339,240 @@ Happy hacking with Elixos! 🧬
 
 4. **Connect to your network**
 
-   ```shell
-   wpa_passphrase "mijn-wifi-ssid" "mijn-wifi-wachtwoord" > wpa.conf
+```shell
+wpa_passphrase "mijn-wifi-ssid" "mijn-wifi-wachtwoord" > wpa.conf
+```
+
+and then
+
+```shell
+wpa_supplicant -B -i wlp2s0 -c wpa.conf
+```
+
+and now request a ip-address using
+
+```shell
+dhcpcd wlp2s0
+```
+
+You can ignore the notification `read_config: /etc/dhcpcd.conf: No such file or directory`.
+Just check that you are connected with:
+
+```shell
+ip a show wlp2s0
+```
+
+Also, check if you are connected to the internet with
+
+```shell
+ping 1.1.1.1
+```
+
+## Starting sshd deamon
+
+To start your demeaon, first set your root password with
+
+```shell
+passwd
+```
+
+Then run
+
+```shell
+sudo systemctl start sshd
+```
+
+Check if it is running
+
+```shell
+sudo systemctl status sshd
+```
+
+Look up your ip address with:
+
+```shell
+ip ad
+```
+
+It should be something like `192.168.2.3`
+
+## Loging in on the live installer from a host laptop
+
+Make sure you have set the _root_ password. To do that, on your live installer, login as root as
+
+```shell
+sudo su
+```
+
+and
+
+```shell
+passwd
+```
+
+Then you should be able to login from your host machine as
+
+```shell
+ssh root@192.168.2.3
+```
+
+If you get a warning about 'Remote Host Identification Has Changed', you have probably logged in on
+this IP Address earlier. Delete you key with
+
+```shell
+ssh-keygen -R "[192.168.2.3]:22"
+```
+
+Alternatively, you can just open your `~/.ssh/known_hosts` file and look for the lines containing
+`192.168.2.3` and remove those lines.
+
+In case logging in is not allowed at all, you may want to change your _/etc/ssh/sshd_config_ file.
+Since in nixos you cannot change settings files (even not as root), just copy the file to your home
+
+```shell
+cp /etc/ssh/sshd_config ~
+```
+
+You may want to change the setting _UsePAM Yes_ to _UsePAM No_
+
+Then, restart your sshd deamon with this new settings file as
+
+```shell
+sudo $(which sshd) -f ~/sshd_config
+```
+
+(Note that this which sshd is needed since you need to use the full path to the sshd file)
+
+Check if you are now listening to port 22 with
+
+```shell
+ss -tlnp | grep 22
+```
+
+```shell
+sudo useradd -r -s /urs/sbin/nologin -c "sshd user" sshd
+```
+
+start sshd in the background with
+
+```shell
+sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- \
+            --flake .#singer --mode zap_create_mount
+```
+
+to login: don't use password, but copy you public ssh key and add to authorized_keys.
+I used keep to copy my key.
+
+Also check your firewall if it is not running
+
+To transer your git repo, either bundle or just add your publish key to your git hub account
+
+## Tranfering you git repository to the laptop
+
+In your terminal where you are remotely logged in on you laptop do:
+
+```shell
+mkdir /tmp/elixos.git
+```
+
+and turn it into a bare repository with
+
+```shell
+git init --bare /tmp/elixos.git
+```
+
+On you host, do
+
+```shell
+ssh-copy-ip root@192.168.2.3
+```
+
+to prevent that you have to type a password each time
+
+In your elixos repository do
+
+```shell
+git remote add nixtmp root@192.168.2.3:/tmp/elixos.git
+```
+
+No you can push your repository to the laptop with
+
+```shell
+git push nixtmp main
+```
+
+## Installing your laptop
+
+Install just to be able to use is
+
+```shell
+nix-shell -p just
+```
+
+Start with running disko to partition your hard-drive
+
+```shell
+just partition singer
+```
+
+Check your partitions with
+
+```shell
+findmnt /mnt
+```
+
+which should give you
+
+```text
+TARGET
+        SOURCE         FSTYPE OPTIONS
+/mnt /dev/nvme0n1p2 ext4   rw,relatime
+```
+
+Copy the sops age key to the laptop installer. Run from your host:
+
+```shell
+scp ~/.config/sops/age/keys.txt root@192.168.2.3:~
+```
+
+And then run in your live installer
+
+```shell
+mkdir /root/.config/sops
+```
+
+```shell
+mv /root/keys.txt /root/.config/sops
    ```
 
-   and then
+And also copy them to your future hardrive
 
-   ```shell
-   wpa_supplicant -B -i wlp2s0 -c wpa.conf
-   ```
+```shell
+mkdir -p /mnt/etc/sops/age
+cp /root/keys.txt /mnt/etc/sops/age/keys.txt
+chmod 400 /mnt/etc/sops/age/keys.txt
+```
 
-   and now request a ip-address using
+Now you can install your laptop with
 
-   ```shell
-   dhcpcd wlp2s0
-   ```
+```shell
+nixos-install --flake .#singer
+```
 
-   You can ignore the notification `read_config: /etc/dhcpcd.conf: No such file or directory`.
-   Just check that you are connected with:
+After installing, if you ssh keys are not present yet, you can try the following.
 
-   ```shell
-   ip a show wlp2s0
-   ```
+First, loging onto your newly installed laptop using the same prodceedure as above (start sshd deamon).
+Then copy the `~/.config/sops/age/keys.txt` file to the newly installed laptop.
+Clone the repository to the newly installed laptop. Then do this:
 
-   Also, check if you are connected to the internet with
+```shell
+mkdir -p /mnt/etc/sops/age
+cp /root/keys.txt /mnt/etc/sops/age/keys.txt
+chmod 400 /mnt/etc/sops/age/keys.txt
+```
 
-   ```shell
-   ping 1.1.1.1
-   ```
+And try to rebuild your system with
 
-5. **Starting sshd deamon**
-
-   To start your demeaon, first set your root password with
-
-   ```shell
-   passwd
-   ```
-
-   Then run
-
-   ```shell
-   sudo systemctl start sshd
-   ```
-
-   Check if it is running
-
-   ```shell
-   sudo systemctl status sshd
-   ```
-
-   Look up your ip address with:
-
-   ```shell
-   ip ad
-   ```
-
-   It should be something like `192.168.2.3`
-
-6. **Loging in on the live installer from a host laptop**
-
-   Make sure you have set the _root_ password. To do that, on your live installer, login as root as
-
-   ```shell
-   sudo su
-   ```
-
-   and
-
-   ```shell
-   passwd
-   ```
-
-   Then you should be able to login from your host machine as
-
-   ```shell
-   ssh root@192.168.2.3
-   ```
-
-   If you get a warning about 'Remote Host Identification Has Changed', you have probably logged in on
-   this IP Address earlier. Delete you key with
-
-   ```shell
-   ssh-keygen -R "[192.168.2.3]:22"
-   ```
-
-   Alternatively, you can just open your `~/.ssh/known_hosts` file and look for the lines containing
-   `192.168.2.3` and remove those lines.
-
-   In case logging in is not allowed at all, you may want to change your _/etc/ssh/sshd_config_ file.
-   Since in nixos, you cannot change settings files (even not as root), just copy the file to your home
-
-   ```shell
-   cp /etc/ssh/sshd_config ~
-   ```
-
-   You may want to change the setting _UsePAM Yes_ to _UsePAM No_
-
-   Then, restart your sshd deamon with this new settings file as
-
-   ```shell
-   sudo $(which sshd) -f ~/sshd_config
-   ```
-
-   (Note that this which sshd is needed since you need to use the full path to the sshd file)
-
-   Check if you are now listening to port 22 with
-
-   ```shell
-   ss -tlnp | grep 22
-   ```
-
-   ```shell
-   sudo useradd -r -s /urs/sbin/nologin -c "sshd user" sshd
-   ```
-
-   start sshd in the background with
-
-   ```shell
-   sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- \
-                --flake .#singer --mode zap_create_mount
-   ```
-
-   to login: don't use password, but copy you public ssh key and add to authorized_keys.
-   I used keep to copy my key.
-
-   Also check your firewall if it is not running
-
-   To transer your git repo, either bundle or just add your publish key to your git hub account
-
-7. **Tranfering you git repository to the laptop**
-
-   In your terminal where you are remotely logged in on you laptop do:
-
-   ```shell
-   mkdir /tmp/elixos.git
-   ```
-
-   and turn it into a bare repository with
-
-   ```shell
-   git init --bare /tmp/elixos.git
-   ```
-
-   On you host, do
-
-   ```shell
-   ssh-copy-ip root@192.168.2.3
-   ```
-
-   to prevent that you have to type a password each time
-
-   In your elixos repository do
-
-   ```shell
-   git remote add nixtmp root@192.168.2.3:/tmp/elixos.git
-   ```
-
-   No you can push your repository to the laptop with
-
-   ```shell
-   git push nixtmp main
-   ```
-
-8. **Installing your laptop**
-
-   Install just to be able to use is
-
-   ```shell
-   nix-shell -p just
-   ```
-
-   Start with running disko to partition your hard-drive
-
-   ```shell
-   just partition singer
-   ```
-
-   Check your partitions with
-
-   ```shell
-   findmnt /mnt
-   ```
-
-   which should give you
-
-   ```text
-   TARGET
-           SOURCE         FSTYPE OPTIONS
-   /mnt /dev/nvme0n1p2 ext4   rw,relatime
-   ```
-
-   Copy the sops age key to the laptop installer. Run from your host:
-
-   ```shell
-   scp ~/.config/sops/age/keys.txt root@192.168.2.3:~
-   ```
-
-   And then run in your live installer
-
-   ```shell
-   mkdir /root/.config/sops
-   ```
-
-   ```shell
-   mv /root/keys.txt /root/.config/sops
-   ```
-
-   And also copy them to your future hardrive
-
-   ```shell
-   mkdir -p /mnt/etc/sops/age
-   cp /root/keys.txt /mnt/etc/sops/age/keys.txt
-   chmod 400 /mnt/etc/sops/age/keys.txt
-   ```
-
-   Now you can install your laptop with
-
-   ```shell
-   nixos-install --flake .#singer
-   ```
-
-   After installing, if you ssh keys are not present yet, you can try the following.
-
-   First, loging onto your newly installed laptop using the same prodceedure as above (start sshd deamon).
-   Then copy the `~/.config/sops/age/keys.txt` file to the newly installed laptop.
-   Clone the repository to the newly installed laptop. Then do this:
-
-   ```shell
-   mkdir -p /mnt/etc/sops/age
-   cp /root/keys.txt /mnt/etc/sops/age/keys.txt
-   chmod 400 /mnt/etc/sops/age/keys.txt
-   ```
-
-   And try to rebuild your system with
-
-   ```shell
-   sudo nixos-rebuild switch --flake .#singer
+```shell
+sudo nixos-rebuild switch --flake .#singer
    ```
