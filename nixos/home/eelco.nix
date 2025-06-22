@@ -10,7 +10,9 @@
         userName = "Eelco van Vliet";
         userEmail = "eelcovv@gmail.com";
       })
+      ./modules/inputrc.nix
       ./modules/zsh.nix
+      ./modules/git.nix
       ./modules/common-packages.nix
     ];
   };
