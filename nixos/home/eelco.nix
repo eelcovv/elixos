@@ -12,7 +12,6 @@
       })
       ./modules/inputrc.nix
       ./modules/zsh.nix
-      ./modules/git.nix
       ./modules/common-packages.nix
     ];
   };
