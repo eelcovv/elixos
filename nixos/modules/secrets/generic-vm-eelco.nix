@@ -19,19 +19,19 @@
 
   # Automatically generate the .pub file after decryption of id_ed25519
   systemd.services.generate-ssh-pubkey = {
-  description = "Generate SSH public key from decrypted id_ed25519";
-  requires = [ "sops-nix-id_ed25519_eelco.service" ];
-  after = [ "sops-nix-id_ed25519_eelco.service" ];
-  wantedBy = [ "default.target" ];  # optioneel
-  serviceConfig = {
-    Type = "oneshot";
-    User = "eelco";
-    ExecStartPre = "${pkgs.coreutils}/bin/test -s /home/eelco/.ssh/id_ed25519"; # alleen starten als bestand niet leeg is
-    ExecStart = "${pkgs.writeShellScript "generate-pubkey" ''
+    description = "Generate SSH public key from decrypted id_ed25519";
+    requires = [ "sops-nix-id_ed25519_eelco.service" ];
+    after = [ "sops-nix-id_ed25519_eelco.service" ];
+    wantedBy = [ "default.target" ]; # optioneel
+    serviceConfig = {
+      Type = "oneshot";
+      User = "eelco";
+      ExecStartPre = "${pkgs.coreutils}/bin/test -s /home/eelco/.ssh/id_ed25519"; # alleen starten als bestand niet leeg is
+      ExecStart = "${pkgs.writeShellScript "generate-pubkey" ''
       set -e
       ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub
     ''}";
+    };
   };
-};
 
 }

@@ -10,7 +10,7 @@
   config =
 
     let
-      sshUsers = config.sshUsers or [];
+      sshUsers = config.sshUsers or [ ];
 
       hasSecretFile = user:
         builtins.pathExists (../../secrets + "/${config.networking.hostName}-${user}-secrets.yaml");
@@ -46,13 +46,16 @@
           };
         };
       };
-    in {
+    in
+    {
       sops.secrets = lib.mkMerge (map userSecret validUsers);
       systemd.services = lib.mkMerge (map userService validUsers);
-      systemd.tmpfiles.rules = lib.flatten (map (user: [
-        "d /home/${user}/.ssh 0700 ${user} users -"
-        "f /home/${user}/.ssh/id_ed25519.pub 0644 ${user} users -"
-      ]) validUsers);
+      systemd.tmpfiles.rules = lib.flatten (map
+        (user: [
+          "d /home/${user}/.ssh 0700 ${user} users -"
+          "f /home/${user}/.ssh/id_ed25519.pub 0644 ${user} users -"
+        ])
+        validUsers);
     };
 }
 

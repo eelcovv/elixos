@@ -1,1 +1,4 @@
+MD033: false  # suppress MD046 (code blocks should be fenced)
 MD046: false  # suppress MD046 (code blocks should be fenced)
+MD013:
+  line_length: 120

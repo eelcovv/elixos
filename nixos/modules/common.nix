@@ -43,22 +43,22 @@
 
     i18n.defaultLocale = "en_US.UTF-8";
     time.timeZone = "Europe/Amsterdam";
-    
+
     environment.systemPackages =
-    with pkgs;
-    let
-      inherit (config.system) build;
-    in
-    [
-      vim
-      git
-      curl
-      just
-      home-manager
-      sops
-      yq  # needed for extracting your sops key
-      rage
-    ];
+      with pkgs;
+      let
+        inherit (config.system) build;
+      in
+      [
+        vim
+        git
+        curl
+        just
+        home-manager
+        sops
+        yq # needed for extracting your sops key
+        rage
+      ];
 
     system.stateVersion = "24.11";
 
