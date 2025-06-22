@@ -9,7 +9,7 @@
   desktop.enableHyperland = false;
 
   # Definine host-specifi sshUsers
-  sshUsers = [ "eelco", "por" ];
+  sshUsers = [ "eelco" "por" ];
 
   imports =
     # 🧱 Basic modules

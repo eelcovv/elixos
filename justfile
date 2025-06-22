@@ -15,8 +15,8 @@ default:
 # ========== HOST MACHINE SETUP ==========
 
 # Run any just target remotely on the live VM
-vm_just TARGET:
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' run nixpkgs#just -- {{TARGET}}"
+vm_just *ARGS:
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' run nixpkgs#just -- {{ARGS}}"
 
 # Open interactive shell on VM with flake features and repo loaded
 vm_just_shell:
@@ -97,23 +97,51 @@ check-deployable-vm:
 	fi; \
 	echo "✅ Secret file contains required keys and can be decrypted declaratively"
 
-# Full bootstrap (key, repo, partition, install)
-bootstrap-vm:
+# ========== SHARED BOOTSTRAP LOGIC ==========
+
+# Shared: Copy keys, repo, clone
+bootstrap-base:
 	@echo "📡 Copying ssh key to allow password less login..."
 	just ssh-copy-key
 	@echo "📡 Pushing Age key to live installer..."
 	just push-key
-	@echo "🔑 Installing Age key in system path..."
-	just install-age-key-mnt
 	@echo "📂 Pushing repo to live installer..."
 	just push-repo
 	@echo "📂 Cloning repo on live installer..."
 	just clone-repo
-	@echo "💽 Partitioning disk..."
+
+# ========== TARGET-SPECIFIC BOOTSTRAPS ==========
+
+# For VM with /dev/vda
+bootstrap-generic-vm:
+	just bootstrap-base
+	@echo "💽 Partitioning disk for VM..."
 	just vm_just vm_partition
+	@echo "🔑 Installing Age key in system path..."
+	just install-age-key
 	@echo "🚀 Running NixOS installation..."
 	just vm_just vm_install
-	@echo "✅ VM bootstrap complete!. You can start the vm now with just vm_run"
+	@echo "✅ VM bootstrap complete! You can start it with: just vm_run"
+
+# Bootstraps a physical laptop with live installer.
+# Requires: 
+# - SSH access to the live installer as root
+# - .env.<HOST> with correct SSH_HOST/PORT
+# - ./nixos/disks/<HOST>.nix defined
+# - keys.txt in ~/.config/sops/age/
+bootstrap-laptop HOST:
+	just bootstrap-base
+	@echo " Partitioning disk for laptop {{HOST}}..."
+	just vm_just partition {{HOST}}
+	@echo "🔑 Installing Age key in /mnt on target..."
+	just install-age-key-mnt
+	@echo "🚀 Running NixOS installation..."
+	just vm_just install {{HOST}}
+	@echo "✅ {{HOST}} bootstrap complete! Reboot the machine."
+
+# Legacy shortcut
+bootstrap-vm: bootstrap-generic-vm
+
 
 # Run nixos-install from live installer
 vm_install:
@@ -183,11 +211,6 @@ install HOST:
 	nixos-install --flake .#{{HOST}}
 	@echo "✅ {{HOST}} is now installed!"
 
-bootstrap-laptop HOST:
-	just load-env {{HOST}}
-	just partition {{HOST}}
-	just install {{HOST}}
-
 switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
 
@@ -212,14 +235,14 @@ clone-repo:
 install-age-key-mnt:
 	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
 	  'sudo mkdir -p /mnt/etc/sops/age && \
-	   sudo mv ~/keys.txt /mnt/etc/sops/age/keys.txt && \
+	   sudo cp -v ~/keys.txt /mnt/etc/sops/age/keys.txt && \
 	   sudo chmod 400 /mnt/etc/sops/age/keys.txt && \
 	   echo "✅ Age key installed in target root (/mnt)"'
 
 install-age-key:
 	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
 	  'sudo mkdir -p /etc/sops/age && \
-	   sudo mv ~/keys.txt /etc/sops/age/keys.txt && \
+	   sudo cp -v ~/keys.txt /etc/sops/age/keys.txt && \
 	   sudo chmod 400 /etc/sops/age/keys.txt && \
 	   echo "✅ Age key installed in target root (/)"'
 
