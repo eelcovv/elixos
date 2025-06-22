@@ -28,6 +28,12 @@
     ]
 
     ++
+    # 🛠️ Services
+    [
+          ../modules/services/ssh-client-keys.nix
+    ]
+
+    ++
 
     # 💻 Hardware and disk setup
     [
