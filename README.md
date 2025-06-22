@@ -426,6 +426,8 @@ ssh-keygen -R "[192.168.2.3]:22"
 Alternatively, you can just open your `~/.ssh/known_hosts` file and look for the lines containing
 `192.168.2.3` and remove those lines.
 
+##### trouble shooting for logging in 
+
 In case logging in is not allowed at all, you may want to change your _/etc/ssh/sshd_config_ file.
 Since in nixos you cannot change settings files (even not as root), just copy the file to your home
 
@@ -466,6 +468,39 @@ I used keep to copy my key.
 Also check your firewall if it is not running
 
 To transer your git repo, either bundle or just add your publish key to your git hub account
+
+## Transfering the installation repoo to you laptop
+
+From now on, you can use the justfile entries to install the laptop
+
+First, load the laptop environment 
+
+```shell
+. ./.env.singer
+```
+
+and run
+
+```shell
+bootstrap-laptop singer 
+```
+
+This performs all the steps. After you are done, reboot your laptop and login via ssh again and then do
+
+```shell
+just post-boot-setup singer eelco
+```
+
+This installs the age key back to /etc/sops/age
+
+Now, on the new target in de elixos repo, run
+
+```shell
+just switch singer
+```
+
+This should finalize your installation
+
 
 ## Tranfering you git repository to the laptop
 
