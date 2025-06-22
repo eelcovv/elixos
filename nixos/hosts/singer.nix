@@ -24,7 +24,6 @@
     # 🔐 Secrets
     [
       ../modules/secrets/default.nix
-      ../modules/secrets/ssh-key-eelco.nix
     ]
 
     ++
