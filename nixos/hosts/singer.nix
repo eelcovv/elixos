@@ -24,17 +24,8 @@
     # 🔐 Secrets
     [
       ../modules/secrets/default.nix
-      ../modules/secrets/bootstrap-agekey.nix
-    ]
-
-    ++
-
-    # ⚙️ Services
-    [
       ../modules/secrets/ssh-key-eelco.nix
     ]
-
-    #  ../modules/services/ssh-client-keys.nix
 
     ++
 

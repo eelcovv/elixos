@@ -122,7 +122,7 @@ vm_install:
 
 # Boot VM from installed disk
 vm_run:
-	qemu-system-x86_64 \
+	qemu-system-x86_65 \
 		-enable-kvm \
 		-m 8G \
 		-smp 2 \
