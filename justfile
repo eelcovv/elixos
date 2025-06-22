@@ -237,41 +237,6 @@ post-boot-setup HOST USER:
 	@echo ""
 	@echo "This will activate the full configuration, including SSH key generation."
 
-decrypt-ssh-key HOST USER:
-	@echo "🔓 Decrypting SSH key for {{USER}} on {{HOST}} and writing to ~/.ssh/id_ed25520..."
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
-		'SOPS_AGE_KEY_FILE=/etc/sops/age/keys.txt \
-		sops -d {{REPO_DIR}}/nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml | \
-		yq -r .id_ed25519_{{USER}} > ~/.ssh/id_ed25519 && \
-		chmod 600 ~/.ssh/id_ed25519 && \
-		ssh-keygen -y -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub && \
-		echo "✅ SSH keypair restored to ~/.ssh/id_ed25519[.pub]"'
-
-decrypt-ssh-key-local:
-	@echo "🔓 [local] Decrypting SSH key for $USER on $HOST..."
-	if [ -L "$HOME/.ssh/id_ed25519" ]; then \
-		@echo "⚠️  Key already deployed via symlink at $HOME/.ssh/id_ed25519, skipping."; \
-	else \
-		mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh" && \
-		SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
-		sops -d "${REPO_DIR:-.}/nixos/secrets/$HOST-$USER-secrets.yaml" > "$HOME/.ssh/id_ed25519" && \
-		chmod 600 "$HOME/.ssh/id_ed25519" && \
-		ssh-keygen -y -f "$HOME/.ssh/id_ed25519" > "$HOME/.ssh/id_ed25519.pub" && \
-		chmod 644 "$HOME/.ssh/id_ed25519.pub" && \
-		echo "✅ SSH keypair written to ~/.ssh/id_ed25519[.pub]"; \
-	fi
-
-
-decrypt-ssh-key-remote:
-	@echo "🔓 [remote] Decrypting SSH key for $USER on $HOST via SSH..."
-	ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "set -e && \
-	SOPS_AGE_KEY_FILE=\$HOME/.config/sops/age/keys.txt && \
-	sops -d \$REPO_DIR/nixos/secrets/$HOST-$USER-secrets.yaml > \$HOME/.ssh/id_ed25519 && \
-	chmod 600 \$HOME/.ssh/id_ed25519 && \
-	ssh-keygen -y -f \$HOME/.ssh/id_ed25519 > \$HOME/.ssh/id_ed25519.pub && \
-	chmod 644 \$HOME/.ssh/id_ed25519.pub && \
-	echo '✅ [remote] SSH keypair written to ~/.ssh/id_ed25519[.pub]'"
-	'
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
 	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}"; \
