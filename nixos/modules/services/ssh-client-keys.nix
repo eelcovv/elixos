@@ -30,26 +30,33 @@
 
       userService = user: {
         "generate-ssh-pubkey-${user}" = {
-          description = "Generate SSH public key from private key for ${user}";
+          description = "Generate SSH public key for ${user}";
           wantedBy = [ "multi-user.target" ];
           after = [ "sops-nix-id_ed25519_${user}.service" ];
           requires = [ "sops-nix-id_ed25519_${user}.service" ];
           serviceConfig = {
             Type = "oneshot";
             ExecStart = pkgs.writeShellScript "generate-id-ed25519-pub-${user}" ''
+              set -eu
+              echo "[INFO] Checking for ~/.ssh/id_ed25519.pub for user '${user}'"
               if [ ! -f /home/${user}/.ssh/id_ed25519.pub ]; then
+                echo "[INFO] Generating public key for ${user}..."
                 ssh-keygen -y -f /home/${user}/.ssh/id_ed25519 > /home/${user}/.ssh/id_ed25519.pub
                 chown ${user}:users /home/${user}/.ssh/id_ed25519.pub
                 chmod 0644 /home/${user}/.ssh/id_ed25519.pub
+              else
+                echo "[INFO] Public key for ${user} already exists, skipping."
               fi
             '';
           };
         };
       };
-    in
-    {
+
+    in {
       sops.secrets = lib.mkMerge (map userSecret validUsers);
+
       systemd.services = lib.mkMerge (map userService validUsers);
+
       systemd.tmpfiles.rules = lib.flatten (map
         (user: [
           "d /home/${user}/.ssh 0700 ${user} users -"
@@ -58,4 +65,3 @@
         validUsers);
     };
 }
-
