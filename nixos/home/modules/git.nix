@@ -1,10 +1,11 @@
-{ config, pkgs, lib, ... }:
+# modules/git.nix
+{ config, pkgs, lib, userName, userEmail, ... }:
 
 {
   programs.git = {
     enable = true;
-    userName = lib.mkDefault "Set your name";
-    userEmail = lib.mkDefault "your@email.com";
+    userName = lib.mkDefault userName;
+    userEmail = lib.mkDefault userEmail;
     extraConfig = {
       core.editor = "vim";
       color.ui = true;
