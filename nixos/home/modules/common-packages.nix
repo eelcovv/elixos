@@ -2,7 +2,7 @@
 
 {
   imports = [
-    ./git.nix
+    ./git-default.nix
     ./bash.nix
     ./inputrc.nix
     ./zsh.nix
@@ -15,4 +15,3 @@
     tree
   ];
 }
-
