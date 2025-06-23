@@ -3,13 +3,12 @@
 {
   programs.git = {
     enable = true;
-
-    userName = "Eelco van Vliet";
-    userEmail = "eelcovv@gmail.com";
-
+    userName = lib.mkDefault "Set your name";
+    userEmail = lib.mkDefault "your@email.com";
     extraConfig = {
       core.editor = "vim";
       color.ui = true;
     };
   };
 }
+
