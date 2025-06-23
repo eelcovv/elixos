@@ -1,12 +1,14 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 {
+  imports = [
+    inputs.home-manager.nixosModules.home-manager
+  ];
+
   home-manager.useGlobalPkgs = true;
   home-manager.useUserPackages = true;
 
-  # all shared home manager packages
-  #  imports = [
-  #    ./home/common-packages.nix
-  #  ];
-
+  home-manager.users.eelco = import ../../home/users/eelco.nix;
+  home-manager.users.por = import ../../home/users/por.nix;
 }
+

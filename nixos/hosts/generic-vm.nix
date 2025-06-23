@@ -36,6 +36,5 @@
     ../modules/services/ssh-client-keys.nix
     ../hardware/generic-vm.nix
     ../modules/disk-layouts/generic-vm.nix
-    ../home/users/eelco.nix
   ];
 }

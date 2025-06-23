@@ -50,14 +50,6 @@
 
     ++
 
-    # 🏠 Home-manager configurations
-    [
-      ../home/users/eelco.nix
-      ../home/users/por.nix
-    ]
-
-    ++
-
     # 🧩 External modules
     [
       inputs.disko.nixosModules.disko
