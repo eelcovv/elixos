@@ -21,6 +21,11 @@
       default = [ "eelco" ];
       description = "List of users who have SSH client keys.";
     };
+    configuredUsers = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = "List of users to configure via Home Manager and other modules.";
+    };
   };
 
   config = {

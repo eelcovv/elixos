@@ -10,6 +10,8 @@
 
   # Definine host-specifi sshUsers
   sshUsers = [ "eelco" "por" ];
+  configuredUsers = [ "eelco" "por"];
+
 
   imports =
     # 🧱 Basic modules

@@ -23,6 +23,7 @@
   desktop.enableHyperland = false;
 
   # Definine host-specifi sshUsers
+  configuredUsers = [ "eelco" ];
   sshUsers = [ "eelco" ];
 
 
