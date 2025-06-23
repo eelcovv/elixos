@@ -8,11 +8,12 @@
   imports = [
     ./modules/common-packages.nix
 
-    # Personal overrides
     (import ./modules/git.nix {
-      inherit config pkgs lib;
-      userName = "Eelco van Vliet";
-      userEmail = "eelcovv@gmail.com";
-    })
+        inherit config pkgs lib;
+        userName = "Eelco van Vliet";
+        userEmail = "eelcovv@gmail.com";
+      }
+    )
+
   ];
 }

@@ -7,12 +7,5 @@
 
   imports = [
     ./modules/common-packages.nix
-
-    # Personal overrides
-    (import ./modules/git.nix {
-      inherit config pkgs lib;
-      userName = "Por Mangkang";
-      userEmail = "karnrawee.mangkang@gmail.com";
-    })
   ];
 }
