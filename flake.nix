@@ -54,13 +54,14 @@
       };
     };
 
-
-
-    # NixOS configuraties
+    # NixOS configurations
     nixosConfigurations = {
       tongfang = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs self; };
+        specialArgs = {
+          inherit inputs self;
+          userModulesPath = ./nixos/home/users;
+        };
         modules = [
           ./nixos/hosts/tongfang.nix
           disko.nixosModules.disko
@@ -71,7 +72,10 @@
 
       generic-vm = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs self; };
+        specialArgs = {
+          inherit inputs self;
+          userModulesPath = ./nixos/home/users;
+        };
         modules = [
           ./nixos/hosts/generic-vm.nix
           disko.nixosModules.disko
@@ -82,15 +86,21 @@
 
       test-vm = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = {
+          inherit inputs self;
+          userModulesPath = ./nixos/home/users;
+        };
         modules = [
           ./nixos/hosts/test-vm.nix
         ];
       };
 
-
       singer = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs self; };
+        specialArgs = {
+          inherit inputs self;
+          userModulesPath = ./nixos/home/users;
+        };
         modules = [
           ./nixos/hosts/singer.nix
           disko.nixosModules.disko
@@ -101,7 +111,10 @@
 
       contabo = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs self; };
+        specialArgs = {
+          inherit inputs self;
+          userModulesPath = ./nixos/home/users;
+        };
         modules = [
           ./nixos/hosts/contabo.nix
           disko.nixosModules.disko
@@ -113,7 +126,7 @@
 
     # Packages (optional, if you need them for specific systems)
     # You could possibly replace this with:
-    #Packages.x86_64-Linux = buildtins.Mapattrs (_: CFG: CFG.Config.System.build.toplevel) Self.nixos configuration;
+    # packages.x86_64-linux = builtins.mapAttrs (_: cfg: cfg.config.system.build.toplevel) self.nixosConfigurations;
     packages.x86_64-linux = rec {
       tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
       generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
@@ -123,3 +136,4 @@
     };
   };
 }
+
