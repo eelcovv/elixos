@@ -6,17 +6,12 @@
     "d /etc/sops/age 0700 root root -"
   ];
 
-  # Let Nix know where the Age Key should go
-  sops.age.keyFile = "/etc/sops/age/keys.txt";
+  # The Age Private Key is in /run/secrets.d/age-keys.txt via Sops Bootstrap
+  sops.age.keyFile = "/run/secrets.d/age-keys.txt";
 
-  # Declarative decrypts from the Age Key itself
-  sops.secrets.age_key = {
-    sopsFile = ../../secrets/age_key.yaml;
-    path = "/etc/sops/age/keys.txt";
-    owner = "root";
-    group = "root";
-    mode = "0400";
-  };
+  # Set correct Symlink for Sops to expected location
+  environment.etc."sops/age/keys.txt".source = config.sops.age.keyFile;
+
 
   # For use in Systemd Services (optional, depending on your setup)
   systemd.services."sops-install-secrets".environment.SOPS_AGE_KEY_FILE = "/etc/sops/age/keys.txt";
