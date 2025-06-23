@@ -31,7 +31,6 @@
     ../modules/profiles/desktop.nix
     ../modules/home-manager.nix
     ../users/eelco.nix
-    ../users/por.nix
     ../modules/secrets/default.nix
     ../modules/secrets/generic-vm-eelco.nix
     ../modules/services/ssh-client-keys.nix
