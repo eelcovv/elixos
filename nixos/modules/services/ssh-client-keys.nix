@@ -36,6 +36,20 @@
           requires = [ "sops-nix-id_ed25519_${user}.service" ];
           serviceConfig = {
             Type = "oneshot";
+            ExecStartPre = pkgs.writeShellScript "wait-for-secret-${user}" ''
+              set -eu
+              echo "[INFO] Waiting for private key /home/${user}/.ssh/id_ed25519 to be ready..."
+              for i in $(seq 1 10); do
+                if [ -s /home/${user}/.ssh/id_ed25519 ]; then
+                  echo "[INFO] Private key is available."
+                  exit 0
+                fi
+                echo "[WARN] Private key not ready yet, retrying in 1s..."
+                sleep 1
+              done
+              echo "[ERROR] Timeout waiting for id_ed25519 to be available"
+              exit 1
+            '';
             ExecStart = pkgs.writeShellScript "generate-id-ed25519-pub-${user}" ''
               set -eu
               echo "[INFO] Checking for ~/.ssh/id_ed25519.pub for user '${user}'"
