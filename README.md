@@ -6,6 +6,7 @@
 # elixos
 
 <!-- markdownlint-disable-next-line MD036 -->
+
 _The Declarative Cure for Your NixOS Headaches_
 
 ## 🌐 Introduction
@@ -157,7 +158,7 @@ This will:
 
 ### ▶️ 3. Boot the Installed VM
 
-At this point you can start your newly created VM. Make sure to close the Live 
+At this point you can start your newly created VM. Make sure to close the Live
 Installer first, because you cannot run two QEMU windows simultaneously.
 Then, start the VM with:
 
@@ -190,7 +191,7 @@ If backspace does not work:
    sudo nixos-rebuild switch --flake .#generic-vm
    ```
 
-   The last command can be replaced with 
+   The last command can be replaced with
 
    ```shell
    just switch generic-vm
@@ -436,7 +437,7 @@ ssh-keygen -R "[192.168.2.3]:22"
 Alternatively, you can just open your `~/.ssh/known_hosts` file and look for the lines containing
 `192.168.2.3` and remove those lines.
 
-##### trouble shooting for logging in 
+##### trouble shooting for logging in
 
 In case logging in is not allowed at all, you may want to change your _/etc/ssh/sshd_config_ file.
 Since in nixos you cannot change settings files (even not as root), just copy the file to your home
@@ -483,7 +484,7 @@ To transer your git repo, either bundle or just add your publish key to your git
 
 From now on, you can use the justfile entries to install the laptop
 
-First, load the laptop environment 
+First, load the laptop environment
 
 ```shell
 . ./.env.singer
@@ -492,7 +493,7 @@ First, load the laptop environment
 and run
 
 ```shell
-bootstrap-laptop singer 
+bootstrap-laptop singer
 ```
 
 This performs all the steps. After you are done, reboot your laptop and login via ssh again and then do
@@ -510,7 +511,6 @@ just switch singer
 ```
 
 This should finalize your installation
-
 
 ## Tranfering you git repository to the laptop
 
@@ -588,7 +588,7 @@ mkdir /root/.config/sops
 
 ```shell
 mv /root/keys.txt /root/.config/sops
-   ```
+```
 
 And also copy them to your future hardrive
 
@@ -620,4 +620,4 @@ And try to rebuild your system with
 
 ```shell
 sudo nixos-rebuild switch --flake .#singer
-   ```
+```

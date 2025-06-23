@@ -66,7 +66,8 @@
         };
       };
 
-    in {
+    in
+    {
       sops.secrets = lib.mkMerge (map userSecret validUsers);
 
       systemd.services = lib.mkMerge (map userService validUsers);

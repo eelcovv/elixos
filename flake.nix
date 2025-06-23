@@ -42,17 +42,17 @@
 
   outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, sops-nix, ... }@inputs: {
 
-  homeConfigurations = {
-    eelco = inputs.home-manager.lib.homeManagerConfiguration {
-      pkgs = nixpkgs.legacyPackages.x86_64-linux;
-      modules = [
-        ./nixos/home/eelco.nix
-      ];
-      extraSpecialArgs = {
-        inherit inputs;
+    homeConfigurations = {
+      eelco = inputs.home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        modules = [
+          ./nixos/home/eelco.nix
+        ];
+        extraSpecialArgs = {
+          inherit inputs;
+        };
       };
     };
-  };
 
 
 
