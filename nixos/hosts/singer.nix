@@ -52,8 +52,8 @@
 
     # 🏠 Home-manager configurations
     [
-      ../home/eelco.nix
-      ../home/por.nix
+      ../home/users/eelco.nix
+      ../home/users/por.nix
     ]
 
     ++
