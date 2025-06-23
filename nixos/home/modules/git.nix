@@ -3,7 +3,10 @@
 {
   programs.git = {
     enable = true;
-    inherit userName userEmail;
+    user = {
+      name = userName;
+      email = userEmail;
+    };
     extraConfig = {
       core.editor = "vim";
       color.ui = true;
