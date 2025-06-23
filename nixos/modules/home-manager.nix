@@ -8,7 +8,7 @@
   home-manager.useGlobalPkgs = true;
   home-manager.useUserPackages = true;
 
-  home-manager.users.eelco = import ../../home/users/eelco.nix;
-  home-manager.users.por = import ../../home/users/por.nix;
+  home-manager.users.eelco = import "${inputs.self}/nixos/home/users/eelco.nix";
+  home-manager.users.por = import "${inputs.self}/nixos/home/users/por.nix";
 }
 
