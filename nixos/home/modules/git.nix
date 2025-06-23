@@ -1,4 +1,4 @@
-{ config, pkgs, lib, userName, userEmail, ... }:
+{ config, pkgs, lib, userName ? "Default User", userEmail ? "default@example.com", ... }:
 
 {
   programs.git = {
@@ -11,4 +11,3 @@
     };
   };
 }
-
