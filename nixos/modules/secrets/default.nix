@@ -1,18 +1,22 @@
 { config, pkgs, lib, ... }:
 
 {
-  # Make sure the target folder exists
+  # Zorg dat de map bestaat
   systemd.tmpfiles.rules = [
     "d /etc/sops/age 0700 root root -"
   ];
 
-  # The Age Private Key is in /run/secrets.d/age-keys.txt via Sops Bootstrap
-  sops.age.keyFile = "/run/secrets.d/age-keys.txt";
+  # Zet de age key op de juiste plek
+  sops.age.keyFile = "/etc/sops/age/keys.txt";
 
-  # Set correct Symlink for Sops to expected location
-  environment.etc."sops/age/keys.txt".source = config.sops.age.keyFile;
+  sops.secrets.age_key = {
+    sopsFile = ../../secrets/age_key.yaml;
+    path = "/etc/sops/age/keys.txt";
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
 
-
-  # For use in Systemd Services (optional, depending on your setup)
+  # Zodat systemd environment variabelen deze kunnen vinden
   systemd.services."sops-install-secrets".environment.SOPS_AGE_KEY_FILE = "/etc/sops/age/keys.txt";
 }
