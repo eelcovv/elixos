@@ -6,6 +6,6 @@
   home.stateVersion = "24.05"; # Gebruik de juiste versie hier
 
   imports = [
-    ./modules/common-packages.nix
+    ../modules/common-packages.nix
   ];
 }
