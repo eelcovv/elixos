@@ -1,14 +1,18 @@
 { config, pkgs, lib, ... }:
 
 {
-  home-manager.users.eelco = {
-    home.stateVersion = "24.11";
+  home.username = "eelco";
+  home.homeDirectory = "/home/eelco";
+  home.stateVersion = "24.11";
 
-    imports = [
-      ./modules/git.nix
-      ./modules/inputrc.nix
-      ./modules/zsh.nix
-      ./modules/common-packages.nix
-    ];
-  };
+  imports = [
+    (import ./modules/git.nix {
+      inherit config pkgs lib;
+      userName = "Eelco van Vliet";
+      userEmail = "eelcovv@gmail.com";
+    })
+    ./modules/inputrc.nix
+    ./modules/zsh.nix
+    ./modules/common-packages.nix
+  ];
 }
