@@ -2,7 +2,6 @@
 
 {
 
-
   sops.secrets.id_ed25519_eelco = {
     sopsFile = ../../secrets/generic-vm-eelco-secrets.yaml;
     path = "/home/eelco/.ssh/id_ed25519";
@@ -11,6 +10,7 @@
     mode = "0400";
     restartUnits = [ "generate-ssh-pubkey.service" ];
   };
+
 
   # Make sure that  ~/.ssh exists and has the right permissions
   systemd.tmpfiles.rules = lib.mkBefore [

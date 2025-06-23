@@ -25,6 +25,7 @@
   # Definine host-specifi sshUsers
   sshUsers = [ "eelco" ];
 
+
   imports = [
     ../modules/common.nix
     ../modules/profiles/desktop.nix

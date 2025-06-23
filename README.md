@@ -157,6 +157,10 @@ This will:
 
 ### ▶️ 3. Boot the Installed VM
 
+At this point you can start your newly created VM. Make sure to close the Live 
+Installer first, because you cannot run two QEMU windows simultaneously.
+Then, start the VM with:
+
 ```shell
 just vm_run
 ```
@@ -184,6 +188,12 @@ If backspace does not work:
    cd ~/elixos
    git pull
    sudo nixos-rebuild switch --flake .#generic-vm
+   ```
+
+   The last command can be replaced with 
+
+   ```shell
+   just switch generic-vm
    ```
 
 ## 🔐 SOPS and SSH Key Management
