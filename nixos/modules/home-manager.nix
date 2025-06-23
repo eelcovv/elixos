@@ -1,14 +1,13 @@
-{ config, lib, pkgs, inputs, ... }:
-
-{
-  imports = [
-    inputs.home-manager.nixosModules.home-manager
-  ];
-
+{ config, lib, pkgs, inputs, ... }: {
   home-manager.useGlobalPkgs = true;
   home-manager.useUserPackages = true;
 
-  home-manager.users.eelco = import "${inputs.self}/nixos/home/users/eelco.nix";
-  home-manager.users.por = import "${inputs.self}/nixos/home/users/por.nix";
+  home-manager.users = lib.mkMerge [
+    (lib.mkIf (config.users.users ? eelco) {
+      eelco = import ../../home/users/eelco.nix;
+    })
+    (lib.mkIf (config.users.users ? por) {
+      por = import ../../home/users/por.nix;
+    })
+  ];
 }
-
