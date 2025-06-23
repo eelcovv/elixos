@@ -46,7 +46,7 @@
       eelco = inputs.home-manager.lib.homeManagerConfiguration {
         pkgs = nixpkgs.legacyPackages.x86_64-linux;
         modules = [
-          ./nixos/home/eelco.nix
+          ./nixos/home/users/eelco.nix
         ];
         extraSpecialArgs = {
           inherit inputs;
