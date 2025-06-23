@@ -1,5 +1,10 @@
+{ config, lib, pkgs, inputs, ... }:
+
 let
-  userPath = ../home/users;
+  # Pad naar de gebruikersconfiguraties
+  userPath = ../../home/users;
+
+  # Genereer een attribuutset van alle gebruikers in `configuredUsers`
   userConfigs = lib.genAttrs config.configuredUsers (user:
     let
       path = userPath + "/${user}.nix";
@@ -9,8 +14,11 @@ let
   );
 in
 {
+  # Home Manager integratie met NixOS
   home-manager.useGlobalPkgs = true;
   home-manager.useUserPackages = true;
+
+  # Alleen voor opgegeven gebruikers
   home-manager.users = userConfigs;
 }
 
