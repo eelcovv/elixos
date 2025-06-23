@@ -1,11 +1,13 @@
-{ config, pkgs, lib, userName, userEmail, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   programs.git = {
     enable = true;
+    user = {
+      name = "Eelco van Vliet";
+      email = "eelcovv@gmail.com";
+    };
     extraConfig = {
-      user.name = userName;
-      user.email = userEmail;
       core.editor = "vim";
       color.ui = true;
     };
