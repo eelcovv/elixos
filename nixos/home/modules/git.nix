@@ -3,13 +3,13 @@
 {
   programs.git = {
     enable = true;
-    user = {
-      name = name;
-      email = email;
-    };
+
+    userName  = name;
+    userEmail = email;
+
     extraConfig = {
       core.editor = "vim";
-      color.ui = true;
+      color.ui    = true;
     };
   };
 }
