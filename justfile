@@ -214,6 +214,9 @@ install HOST:
 switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
 
+home USER:
+	home-manager switch --flake .#{{USER}}
+
 # ========== NETWORK INSTALL HELPERS ==========
 ssh-copy-key:
 	@echo "📤 Creating .ssh dir and copying authorized_keys to remote"
