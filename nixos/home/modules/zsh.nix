@@ -8,7 +8,7 @@
         export TERM=xterm-256color
       fi
 
-      # Extra prompt / plugins / theming hier later
+      # Extra prompt / plugins / theming here later
     '';
   };
 }
