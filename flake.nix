@@ -109,20 +109,20 @@
         ];
       };
 
-      contabo = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs self;
-          userModulesPath = ./nixos/home/users;
-        };
-        modules = [
-          ./nixos/hosts/contabo.nix
-          disko.nixosModules.disko
-          home-manager.nixosModules.home-manager
-          sops-nix.nixosModules.sops
-        ];
-      };
-    };
+    #   contabo = nixpkgs.lib.nixosSystem {
+    #     system = "x86_64-linux";
+    #     specialArgs = {
+    #       inherit inputs self;
+    #       userModulesPath = ./nixos/home/users;
+    #     };
+    #     modules = [
+    #       ./nixos/hosts/contabo.nix
+    #       disko.nixosModules.disko
+    #       home-manager.nixosModules.home-manager
+    #       sops-nix.nixosModules.sops
+    #     ];
+    #   };
+    # };
 
     # Packages (optional, if you need them for specific systems)
     # You could possibly replace this with:
@@ -132,7 +132,7 @@
       generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
       test-vm = self.nixosConfigurations.test-vm.config.system.build.toplevel;
       singer = self.nixosConfigurations.singer.config.system.build.toplevel;
-      contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
+      # contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
     };
   };
 }
