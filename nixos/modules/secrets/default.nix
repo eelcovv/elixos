@@ -15,6 +15,7 @@
     owner = "root";
     group = "root";
     mode = "0400";
+    earlySecret = true;
   };
 
   # Zodat systemd environment variabelen deze kunnen vinden
