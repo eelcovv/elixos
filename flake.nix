@@ -37,8 +37,7 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     home-manager.url = "github:nix-community/home-manager";
     disko.url = "github:nix-community/disko";
-    # sops-nix.url = "github:Mic92/sops-nix";
-    sops-nix.url = "github:Mic92/sops-nix/b5cd2be48e7f8e08b3d10b03a1728d68e4a514fa";
+    sops-nix.url = "github:Mic92/sops-nix";
 
   };
 
