@@ -3,7 +3,6 @@
 {
   imports = [
     ../modules/common.nix
-    ../hardware/contabo.nix
     ../users/users.nix
   ];
 
