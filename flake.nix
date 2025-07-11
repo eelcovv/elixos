@@ -127,13 +127,12 @@
     # Packages (optional, if you need them for specific systems)
     # You could possibly replace this with:
     # packages.x86_64-linux = builtins.mapAttrs (_: cfg: cfg.config.system.build.toplevel) self.nixosConfigurations;
+      # contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
     packages.x86_64-linux = rec {
       tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
       generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
       test-vm = self.nixosConfigurations.test-vm.config.system.build.toplevel;
       singer = self.nixosConfigurations.singer.config.system.build.toplevel;
-      # contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
     };
   };
 }
-
