@@ -9,13 +9,15 @@
   # Zet de age key op de juiste plek
   sops.age.keyFile = "/etc/sops/age/keys.txt";
 
-  sops.secrets.age_key = {
-    sopsFile = ../../secrets/age_key.yaml;
-    path = "/run/secrets/age_key";     
-    owner = "root";
-    group = "root";
-    mode = "0400";
-  };
+sops.secrets.age_key = {
+  sopsFile = ../../secrets/age_key.yaml;
+  path = "/run/secrets/age_key";
+  name = "age_key"; # voorkomt `.d/` herschrijving
+  owner = "root";
+  group = "root";
+  mode = "0400";
+};
+
 
   # Zorg dat age_key uitgerold is vóór sops-install-secrets
   systemd.services."sops-install-secrets".requires = [ "sops-nix-age_key.service" ];
