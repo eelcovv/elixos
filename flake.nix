@@ -135,4 +135,4 @@
       singer = self.nixosConfigurations.singer.config.system.build.toplevel;
     };
   };
-}
+};
