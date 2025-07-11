@@ -122,7 +122,8 @@
     #       sops-nix.nixosModules.sops
     #     ];
     #   };
-    # };
+
+    };
 
     # Packages (optional, if you need them for specific systems)
     # You could possibly replace this with:
