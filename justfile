@@ -266,11 +266,11 @@ post-boot-setup HOST USER:
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
 	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}" && \
-	AGE_KEY_FILE="~/.config/sops/age/keys.txt" && \
+	AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" && \
 	echo "🔐 Extracting public age key from file $$AGE_KEY_FILE" && \
 	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)" && \
 	echo "🔐 Obtained public age key $AGE_PUB_KEY" && \
-	SSH_KEY_FILE="~/.ssh/id_ed25519_{{USER}}_{{HOST}}" && \
+	SSH_KEY_FILE="$HOME/.ssh/id_ed25519_{{USER}}_{{HOST}}" && \
 	SECRET_FILE="nixos/secrets/id_ed25519_{{USER}}_{{HOST}}.yaml" && \
 	AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml" && \
 	echo "🔑 Generating SSH key $SSH_KEY_FILE if needed..." && \
@@ -294,21 +294,22 @@ make-secret HOST USER:
 
 
 decrypt-secret HOST USER:
-	@SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
-	echo "🔓 Decrypting $SECRET_FILE..."; \
-	SOPS_AGE_KEY_FILE="~/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$SECRET_FILE"
+	@SECRET_FILE="nixos/secrets/id_ed25519_{{USER}}_{{HOST}}.yaml" && \
+	echo "🔓 Decrypting $SECRET_FILE..." && \
+	SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$SECRET_FILE"
 
 check-age_key:
-	@echo "🔍 Checking if age_key.yaml can be decrypted..."; \
-	FILE="nixos/secrets/age_key.yaml"; \
+	@echo "🔍 Checking if age_key.yaml can be decrypted..." && \
+	FILE="nixos/secrets/age_key.yaml" && \
 	if [ ! -f "$FILE" ]; then \
 		echo "❌ $FILE not found"; exit 1; \
-	fi; \
-	if SOPS_AGE_KEY_FILE="~/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$FILE" > /dev/null 2>&1; then \
+	fi && \
+	if SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$FILE" > /dev/null 2>&1; then \
 		echo "✅ age_key.yaml is decryptable"; \
 	else \
-		echo "❌ Failed to decrypt age_key.yaml — wrong or missing key?"; exit 1; \
+		echo "❌ Failed to decrypt age_key.yaml — wrong of ontbrekende key?"; exit 1; \
 	fi
+
 
 # ========== VALIDATION ==========
 check-install HOST USER:
