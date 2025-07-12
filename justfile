@@ -33,7 +33,7 @@ fmt:
 
 # ========== DEVELOPMENT ==========
 vm_prerequisites:
-	nix-shell -p qemu qemu-utils OVMF rage sops
+	nix-shell -p qemu qemu-utils OVMF rage sops yq-go
 
 # ========== VM INSTALLATION ==========
 vm_prepare:
@@ -264,56 +264,55 @@ post-boot-setup HOST USER:
 	@echo "This will activate the full configuration, including SSH key generation."
 
 # ========== SECRET MANAGEMENT ==========
-make-secret HOST USER KEY_NAME?="":
-	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}, KEY_NAME={{KEY_NAME}}" && \
-	TMP_DIR=$(mktemp -d) && \
-	AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" && \
-	mkdir -p nixos/secrets && \
-	echo "🔐 Extracting public age key from $AGE_KEY_FILE..." && \
-	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)" && \
-	echo "🔐 Obtained public key: $AGE_PUB_KEY" && \
-	if [ "{{KEY_NAME}}" = "" ]; then \
-		KEY="id_ed25519_{{USER}}_{{HOST}}"; \
-	else \
-		KEY="{{KEY_NAME}}"; \
-	fi && \
-	SSH_KEY_FILE="$TMP_DIR/$KEY" && \
-	SECRET_FILE="nixos/secrets/$KEY.yaml" && \
-	echo "🔑 Generating SSH key if needed: $SSH_KEY_FILE..." && \
-	if [ ! -f "$SSH_KEY_FILE" ]; then \
-		ssh-keygen -t ed25519 -N "" -f "$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
-	else \
-		echo "🔁 SSH key already exists"; \
-	fi && \
-	echo "✍️  Creating and encrypting $SECRET_FILE..." && \
-	echo "$KEY: |" > "$SECRET_FILE" && \
-	sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE" && \
-	sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$SECRET_FILE" && \
-	echo "✅ Encrypted $SECRET_FILE" && \
-	if [ "$KEY" = "age_key_{{USER}}" ] || [ "$KEY" = "age_key_{{HOST}}" ]; then \
-		echo "🔁 Also updating age_key.yaml (root age key)..." && \
-		AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml" && \
-		echo "age_key: |" > "$AGE_KEY_FILE_OUT" && \
-		sed 's/^/  /' "$AGE_KEY_FILE" >> "$AGE_KEY_FILE_OUT" && \
-		sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$AGE_KEY_FILE_OUT" && \
-		echo "✅ Encrypted $AGE_KEY_FILE_OUT"; \
-	fi && \
-	echo "🧹 Cleaning up..." && \
-	rm -rf "$TMP_DIR"
+make-secret HOST USER:
+    just make-secret-with-key {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
 
-decrypt-secret HOST USER KEY_NAME?="":
-	@echo "🔓 Decrypting secret for HOST={{HOST}}, USER={{USER}}, KEY_NAME={{KEY_NAME}}" && \
-	if [ "{{KEY_NAME}}" = "" ]; then \
-		KEY="id_ed25519_{{USER}}_{{HOST}}"; \
-	else \
-		KEY="{{KEY_NAME}}"; \
-	fi && \
-	SECRET_FILE="nixos/secrets/$KEY.yaml" && \
-	echo "📂 Looking for secret file: $SECRET_FILE" && \
-	if [ ! -f "$SECRET_FILE" ]; then \
-		echo "❌ Secret file $SECRET_FILE not found!" && exit 1; \
-	fi && \
-	sops --decrypt --output - "$SECRET_FILE"
+make-age-key ROLE:
+    just make-secret-with-key dummyhost {{ROLE}} age_key_{{ROLE}}
+
+make-secret-with-key HOST USER KEY_NAME:
+    @echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}, KEY_NAME={{KEY_NAME}}" && \
+    TMP_DIR=$(mktemp -d) && \
+    AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" && \
+    echo "🔐 Extracting public age key from file $AGE_KEY_FILE" && \
+    AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)" && \
+    echo "🔐 Obtained public age key $AGE_PUB_KEY" && \
+    SSH_KEY_FILE="$TMP_DIR/{{KEY_NAME}}" && \
+    SECRET_FILE="nixos/secrets/{{KEY_NAME}}.yaml" && \
+    AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml" && \
+    echo "🔑 Generating SSH key $SSH_KEY_FILE if needed..." && \
+    if [ ! -f "$SSH_KEY_FILE" ]; then \
+        ssh-keygen -t ed25519 -N "" -f "$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
+    else \
+        echo "🔁 SSH key already exists"; \
+    fi && \
+    echo "🔐 Creating secret YAML → $SECRET_FILE" && \
+    mkdir -p nixos/secrets && \
+    echo "✍️  Building user secret file..." && \
+    echo "{{KEY_NAME}}: |" > "$SECRET_FILE" && \
+    sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE" && \
+    sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$SECRET_FILE" && \
+    echo "✅ Encrypted $SECRET_FILE" && \
+    echo "✍️  Building and encrypting age_key.yaml..." && \
+    echo "age_key: |" > "$AGE_KEY_FILE_OUT" && \
+    sed 's/^/  /' "$AGE_KEY_FILE" >> "$AGE_KEY_FILE_OUT" && \
+    sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$AGE_KEY_FILE_OUT" && \
+    echo "✅ Encrypted $AGE_KEY_FILE_OUT" && \
+    echo "🧹 Cleaning up..." && \
+    rm -rf "$TMP_DIR"
+
+
+decrypt-secret HOST USER:
+    just decrypt-secret-with-key {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
+
+decrypt-secret-with-key HOST USER KEY_NAME:
+    @echo "🔓 Decrypting secret for HOST={{HOST}}, USER={{USER}}, KEY_NAME={{KEY_NAME}}" && \
+    FILE="nixos/secrets/{{KEY_NAME}}.yaml" && \
+    if [ ! -f "$FILE" ]; then \
+        echo "❌ $FILE not found"; exit 1; \
+    fi && \
+    echo "📤 Decrypted content for key {{KEY_NAME}}:" && \
+    sops -d "$FILE" | yq ".\"{{KEY_NAME}}\""
 
 check-age_key:
 	@echo "🔍 Checking if age_key.yaml can be decrypted..." && \
