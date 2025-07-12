@@ -5,9 +5,9 @@
     ./default.nix
   ];
 
-  sops.secrets.id_ed25519_eelco_singer = {
-    sopsFile = ../../secrets/id_ed25519_eelco_singer.yaml;
-    key = "id_ed25519_eelco_singer"; 
+  sops.secrets.id_ed25519_eelco_generic-vm = {
+    sopsFile = ../../secrets/id_ed25519_eelco_generic-vm.yaml;
+    key = "id_ed25519_eelco_generic-vm"; 
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
     group = "users";
