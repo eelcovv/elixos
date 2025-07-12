@@ -125,8 +125,17 @@ This performs the following:
 - Partitions the disk using disko
 - Installs NixOS using the `generic-vm` configuration
 
+### ▶️ 3. Boot the Installed VM
+
+First, close the live installer and run
+
+```shell
+just vm_run
+```
+
 After bootstrapping the VM, the age key is available in memory, but not yet in the installed system.
-To fix that, after booting the VM, first load you new environment of the new virtual machine you have just installed:
+To fix that, after booting the VM, first load you new environment of the new virtual machine you have just installed. 
+First you have to close the still running Live installer. Then do:
 
 ```shell
 . .env.localhost
@@ -155,15 +164,11 @@ This will:
 - Push and clone the repo again
 - Prepare for `nixos-rebuild switch`
 
-### ▶️ 3. Boot the Installed VM
 
 At this point you can start your newly created VM. Make sure to close the Live
 Installer first, because you cannot run two QEMU windows simultaneously.
 Then, start the VM with:
 
-```shell
-just vm_run
-```
 
 ### 🔑 4. SSH Login
 

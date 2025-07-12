@@ -3,6 +3,7 @@
 {
   imports = [
     ./default.nix
+    ./age-key-eelco.nix
   ];
 
   sops.secrets.id_ed25519_eelco = {
