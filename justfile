@@ -282,7 +282,7 @@ make-secret HOST USER:
 	echo "🔐 Creating secret YAML → $SECRET_FILE" && \
 	mkdir -p nixos/secrets && \
 	echo "✍️  Building user secret file..." && \
-	echo "id_ed25519_{{USER}}_{{HOST}}: |" > "$SECRET_FILE" && \
+	echo "id_ed25519_{{USER}}: |" > "$SECRET_FILE"
 	sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE" && \
 	sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$SECRET_FILE" && \
 	echo "✅ Encrypted $SECRET_FILE" && \
