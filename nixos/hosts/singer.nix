@@ -5,7 +5,7 @@
   networking.hostName = "singer";
 
   desktop.enableGnome = false;
-  desktop.enableKde = false;
+  desktop.enableKde = true;
   desktop.enableHyperland = true;
 
   # Definine host-specifi sshUsers
@@ -17,7 +17,8 @@
     # 🧱 Basic modules
     [
       ../modules/common.nix
-      ../modules/profiles/desktop.nix
+      ../modules/profiles/desktop-options.nix
+      ../modules/profiles/desktop-configs.nix
       ../modules/home-manager.nix
     ]
 
