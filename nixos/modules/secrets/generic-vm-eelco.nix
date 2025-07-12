@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+u{ config, pkgs, lib, ... }:
 
 {
   imports = [
@@ -6,7 +6,7 @@
     ./age-key-eelco.nix
   ];
 
-  sops.secrets.id_ed25519_eelco = {
+  sops.secrets.id_ed25519_eelco_generic-vm = {
     sopsFile = ../../secrets/id_ed25519_eelco_generic-vm.yaml;
     key = "id_ed25519_eelco";
     path = "/home/eelco/.ssh/id_ed25519";
