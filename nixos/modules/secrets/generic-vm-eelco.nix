@@ -30,8 +30,8 @@
       User = "eelco";
       ExecStartPre = "${pkgs.coreutils}/bin/test -s /home/eelco/.ssh/id_ed25519";
       ExecStart = "${pkgs.writeShellScript "generate-pubkey" ''
-        set -e 
-        ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub
+        set -e
+        ${pkgs.openssh}/bin/ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub
         chown eelco:users /home/eelco/.ssh/id_ed25519.pub
         chmod 0644 /home/eelco/.ssh/id_ed25519.pub
       ''}";
