@@ -265,12 +265,9 @@ post-boot-setup HOST USER:
 
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
-    just make-secret-with-key {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
+    just make-ssh-secret {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
 
-make-age-key ROLE:
-    just make-secret-with-key dummyhost {{ROLE}} age_key_{{ROLE}}
-
-make-secret-with-key HOST USER KEY_NAME:
+make-ssh-secret HOST USER KEY_NAME:
     @echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}, KEY_NAME={{KEY_NAME}}" && \
     TMP_DIR=$(mktemp -d) && \
     AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" && \
@@ -279,7 +276,6 @@ make-secret-with-key HOST USER KEY_NAME:
     echo "🔐 Obtained public age key $AGE_PUB_KEY" && \
     SSH_KEY_FILE="$TMP_DIR/{{KEY_NAME}}" && \
     SECRET_FILE="nixos/secrets/{{KEY_NAME}}.yaml" && \
-    AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml" && \
     echo "🔑 Generating SSH key $SSH_KEY_FILE if needed..." && \
     if [ ! -f "$SSH_KEY_FILE" ]; then \
         ssh-keygen -t ed25519 -N "" -f "$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
@@ -293,14 +289,8 @@ make-secret-with-key HOST USER KEY_NAME:
     sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE" && \
     sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$SECRET_FILE" && \
     echo "✅ Encrypted $SECRET_FILE" && \
-    echo "✍️  Building and encrypting age_key.yaml..." && \
-    echo "age_key: |" > "$AGE_KEY_FILE_OUT" && \
-    sed 's/^/  /' "$AGE_KEY_FILE" >> "$AGE_KEY_FILE_OUT" && \
-    sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$AGE_KEY_FILE_OUT" && \
-    echo "✅ Encrypted $AGE_KEY_FILE_OUT" && \
     echo "🧹 Cleaning up..." && \
     rm -rf "$TMP_DIR"
-
 
 decrypt-secret HOST USER:
     just decrypt-secret-with-key {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
@@ -313,19 +303,6 @@ decrypt-secret-with-key HOST USER KEY_NAME:
     fi && \
     echo "📤 Decrypted content for key {{KEY_NAME}}:" && \
     sops -d "$FILE" | yq ".\"{{KEY_NAME}}\""
-
-check-age_key:
-	@echo "🔍 Checking if age_key.yaml can be decrypted..." && \
-	FILE="nixos/secrets/age_key.yaml" && \
-	if [ ! -f "$FILE" ]; then \
-		echo "❌ $FILE not found"; exit 1; \
-	fi && \
-	if SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" nix shell nixpkgs#sops --command sops -d "$FILE" > /dev/null 2>&1; then \
-		echo "✅ age_key.yaml is decryptable"; \
-	else \
-		echo "❌ Failed to decrypt age_key.yaml — wrong of ontbrekende key?"; exit 1; \
-	fi
-
 
 
 # ========== VALIDATION ==========
