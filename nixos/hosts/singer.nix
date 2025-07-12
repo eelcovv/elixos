@@ -19,6 +19,7 @@
       ../modules/common.nix
       ../modules/profiles/desktop-options.nix
       ../modules/profiles/desktop-configs.nix
+      ../modules/profiles/desktop-software.nix
       ../modules/home-manager.nix
     ]
 
