@@ -1,10 +1,7 @@
-{ config, lib, pkgs, ... }:
-
-{
-  config = lib.mkIf config.desktop.enableHyperland {
+{ config, lib, pkgs, ... }: {
+  config = {
     programs.hyprland.enable = true;
 
-    # Hyprland werkt met Wayland direct, dus geen xserver of gdm nodig.
     environment.systemPackages = with pkgs; [
       hyprpaper
       waybar
