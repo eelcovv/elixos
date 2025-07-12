@@ -266,11 +266,12 @@ post-boot-setup HOST USER:
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
 	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}" && \
+	TMP_DIR=$(mktemp -d) && \
 	AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" && \
 	echo "🔐 Extracting public age key from file $$AGE_KEY_FILE" && \
 	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)" && \
 	echo "🔐 Obtained public age key $AGE_PUB_KEY" && \
-	SSH_KEY_FILE="$HOME/.ssh/id_ed25519_{{USER}}_{{HOST}}" && \
+	SSH_KEY_FILE="$TMP_DIR/id_ed25519_{{USER}}_{{HOST}}" && \
 	SECRET_FILE="nixos/secrets/id_ed25519_{{USER}}_{{HOST}}.yaml" && \
 	AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml" && \
 	echo "🔑 Generating SSH key $SSH_KEY_FILE if needed..." && \
@@ -290,7 +291,9 @@ make-secret HOST USER:
 	echo "age_key: |" > "$AGE_KEY_FILE_OUT" && \
 	sed 's/^/  /' "$AGE_KEY_FILE" >> "$AGE_KEY_FILE_OUT" && \
 	sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$AGE_KEY_FILE_OUT" && \
-	echo "✅ Encrypted $AGE_KEY_FILE_OUT"
+	echo "✅ Encrypted $AGE_KEY_FILE_OUT" && \
+	echo "🧹 Cleaning up..." && \
+	rm -rf "${TMP_DIR}"
 
 
 decrypt-secret HOST USER:
