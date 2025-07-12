@@ -1,7 +1,7 @@
 { config, pkgs, lib, ... }:
 
 {
-  sops.secrets.age_key_user = {
+  sops.secrets.age_key = {
     sopsFile = ../../secrets/age_key.yaml;
     path = "/home/eelco/.config/sops/age/keys.txt";
     owner = "eelco";
