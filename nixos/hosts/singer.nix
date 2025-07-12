@@ -17,7 +17,8 @@
     # 🧱 Basic modules
     [
       ../modules/common.nix
-      ../modules/profiles/desktop.nix
+      ../modules/profiles/desktop-options.nix
+      ../modules/profiles/desktop-imports.nix
       ../modules/profiles/desktop-software.nix
       ../modules/home-manager.nix
     ]
