@@ -237,17 +237,24 @@ clone-repo:
 
 install-age-key-mnt:
 	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
-	  'sudo mkdir -p /mnt/etc/sops/age && \
-	   sudo cp -v ~/keys.txt /mnt/etc/sops/age/keys.txt && \
-	   sudo chmod 400 /mnt/etc/sops/age/keys.txt && \
-	   echo "✅ Age key installed in target root (/mnt)"'
+		'sudo mkdir -p /mnt/etc/sops/age && \
+		sudo cp -v ~/keys.txt /mnt/etc/sops/age/keys.txt && \
+		sudo chmod 400 /mnt/etc/sops/age/keys.txt && \
+		echo "✅ Age key installed in target root (/mnt)"'
 
 install-age-key:
 	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
-	  'sudo mkdir -p /etc/sops/age && \
-	   sudo cp -v ~/keys.txt /etc/sops/age/keys.txt && \
-	   sudo chmod 400 /etc/sops/age/keys.txt && \
-	   echo "✅ Age key installed in target root (/)"'
+		'sudo mkdir -p /etc/sops/age && \
+		sudo cp -v ~/keys.txt /etc/sops/age/keys.txt && \
+		sudo chmod 400 /etc/sops/age/keys.txt && \
+		echo "✅ Age key installed in target root (/)"'
+
+install-user-age-key:
+	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} \
+		'mkdir -p ~/.config/sops/age && \
+		cp -v ~/keys.txt ~/.config/sops/age/keys.txt && \
+		chmod 400 ~/.config/sops/age/keys.txt && \
+		echo "✅ Age key installed in user config (~/.config/sops/age)"'
 
 post-boot-setup HOST USER:
 	just load-env {{HOST}}
@@ -256,6 +263,7 @@ post-boot-setup HOST USER:
 	just push-repo
 	just clone-repo
 	just install-age-key
+	just install-user-age-key
 	@echo "🚀 Initial setup complete!"
 	@echo ""
 	@echo "👉 Now run the following on the VM as user '{{USER}}':"
@@ -263,11 +271,13 @@ post-boot-setup HOST USER:
 	@echo ""
 	@echo "This will activate the full configuration, including SSH key generation."
 
-# ========== SECRET MANAGEMENT ==========
-make-secret HOST USER:
-    just make-ssh-secret {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
 
-make-ssh-secret HOST USER KEY_NAME:
+# ========== SECRET MANAGEMENT ==========
+# Create a new secret file
+make-secret HOST USER:
+    just _make-ssh-secret {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
+
+_make-ssh-secret HOST USER KEY_NAME:
     @echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}, KEY_NAME={{KEY_NAME}}" && \
     TMP_DIR=$(mktemp -d) && \
     AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" && \
@@ -293,16 +303,16 @@ make-ssh-secret HOST USER KEY_NAME:
     rm -rf "$TMP_DIR"
 
 decrypt-secret HOST USER:
-    just decrypt-secret-with-key {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
+    just _decrypt-secret-with-key {{HOST}} {{USER}} id_ed25519_{{USER}}_{{HOST}}
 
-decrypt-secret-with-key HOST USER KEY_NAME:
+_decrypt-secret-with-key HOST USER KEY_NAME:
     @echo "🔓 Decrypting secret for HOST={{HOST}}, USER={{USER}}, KEY_NAME={{KEY_NAME}}" && \
     FILE="nixos/secrets/{{KEY_NAME}}.yaml" && \
     if [ ! -f "$FILE" ]; then \
         echo "❌ $FILE not found"; exit 1; \
     fi && \
     echo "📤 Decrypted content for key {{KEY_NAME}}:" && \
-    sops -d "$FILE" | yq ".\"{{KEY_NAME}}\""
+    sops -d "$FILE" | yq -r ".\"{{KEY_NAME}}\""
 
 
 # ========== VALIDATION ==========
