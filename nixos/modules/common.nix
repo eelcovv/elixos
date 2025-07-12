@@ -40,7 +40,10 @@
 
     # General system settings
 
-    allowUnfree = true;
+    nixpkgs = {
+      config.allowUnfree = true;
+    };
+
 
     programs.zsh.enable = true;
 
