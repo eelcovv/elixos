@@ -1,9 +1,6 @@
 { config, pkgs, lib, ... }:
 
 {
-  imports = [
-    ./default.nix
-  ];
 
   # Ensure ~/.ssh exists before anything else touches it
   systemd.tmpfiles.rules = lib.mkBefore [
