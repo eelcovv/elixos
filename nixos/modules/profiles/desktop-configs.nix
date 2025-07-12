@@ -17,8 +17,8 @@
 
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde) {
       services.displayManager.gdm.enable = true;
-      services.displayManager.gdm.autoLogin.enable = false;
-      services.displayManager.gdm.autoLogin.user = lib.mkForce null;
+      services.xserver.displayManager.gdm.autoLogin.enable = false;
+      services.xserver.displayManager.gdm.autoLogin.user = lib.mkForce null;
 
       programs.ssh.askPassword = lib.mkForce "${pkgs.openssh}/libexec/ssh-askpass";
     })
