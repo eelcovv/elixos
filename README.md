@@ -104,11 +104,10 @@ This sets:
 
 ```text
 HOST=generic-vm
-SSH_USER=nixos
+SSH_USER=root
 SSH_PORT=2222
 SSH_HOST=localhost
-SSH_KEY=$HOME/.ssh/ssh_key_generic-vm_eelco
-REPO_DIR=/home/nixos/elixos
+REPO_DIR=/root/elixos
 ```
 
 Now you can run the bootstrap for this VM
@@ -146,7 +145,7 @@ REPO_DIR=/home/eelco/elixos
 Now you can run:
 
 ```shell
-just post-boot-setup HOST=localhost
+just post-boot-setup generic-vm eelco
 ```
 
 This will:
