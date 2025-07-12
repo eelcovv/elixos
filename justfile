@@ -265,34 +265,33 @@ post-boot-setup HOST USER:
 
 # ========== SECRET MANAGEMENT ==========
 make-secret HOST USER:
-	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}"; \
-	AGE_KEY_FILE="~/.config/sops/age/keys.txt"; \
-	echo "🔐 Extracting public age key from file $AGE_KEY_FILE"; \
-	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)"; \
-	echo "🔐 Obtained public age key  $AGE_PUB_KEY"; \
-	SSH_KEY_FILE="~/.ssh/id_ed25519_{{USER}}_{{HOST}}";
-	SECRET_FILE="nixos/secrets/id_ed25519_{{USER}}_{{HOST}}.yaml";
-
-	AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml"; \
-	echo "🔑 Generating SSH key ${SSH_KEY_FILE} if needed..."; \
+	@echo "🔐 Preparing secrets for HOST={{HOST}}, USER={{USER}}" && \
+	AGE_KEY_FILE="~/.config/sops/age/keys.txt" && \
+	echo "🔐 Extracting public age key from file $$AGE_KEY_FILE" && \
+	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)" && \
+	echo "🔐 Obtained public age key $AGE_PUB_KEY" && \
+	SSH_KEY_FILE="~/.ssh/id_ed25519_{{USER}}_{{HOST}}" && \
+	SECRET_FILE="nixos/secrets/id_ed25519_{{USER}}_{{HOST}}.yaml" && \
+	AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml" && \
+	echo "🔑 Generating SSH key $SSH_KEY_FILE if needed..." && \
 	if [ ! -f "$SSH_KEY_FILE" ]; then \
 		ssh-keygen -t ed25519 -N "" -f "$SSH_KEY_FILE" -C "{{USER}}@{{HOST}}"; \
 	else \
 		echo "🔁 SSH key already exists"; \
-	fi; \
-	echo "🔐 Creating secret YAML → $SECRET_FILE"; \
-	mkdir -p nixos/secrets; \
-	echo "✍️  Building user secret file..."; \
-	echo "id_ed25519_{{USER}}_{{HOST}}: |" > "$SECRET_FILE";
-	sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE"; \
-	sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$SECRET_FILE"; \
-	echo "✅ Encrypted $SECRET_FILE"; \
-	\
-	echo "✍️  Building and encrypting age_key.yaml..."; \
-	echo "age_key: |" > "$AGE_KEY_FILE_OUT"; \
-	sed 's/^/  /' "$AGE_KEY_FILE" >> "$AGE_KEY_FILE_OUT"; \
-	sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$AGE_KEY_FILE_OUT"; \
+	fi && \
+	echo "🔐 Creating secret YAML → $SECRET_FILE" && \
+	mkdir -p nixos/secrets && \
+	echo "✍️  Building user secret file..." && \
+	echo "id_ed25519_{{USER}}_{{HOST}}: |" > "$SECRET_FILE" && \
+	sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE" && \
+	sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$SECRET_FILE" && \
+	echo "✅ Encrypted $SECRET_FILE" && \
+	echo "✍️  Building and encrypting age_key.yaml..." && \
+	echo "age_key: |" > "$AGE_KEY_FILE_OUT" && \
+	sed 's/^/  /' "$AGE_KEY_FILE" >> "$AGE_KEY_FILE_OUT" && \
+	sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$AGE_KEY_FILE_OUT" && \
 	echo "✅ Encrypted $AGE_KEY_FILE_OUT"
+
 
 decrypt-secret HOST USER:
 	@SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
