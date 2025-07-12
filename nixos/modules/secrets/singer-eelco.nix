@@ -8,7 +8,8 @@
 
   # Decrypt the private SSH key into the standard OpenSSH location
   sops.secrets.id_ed25519_eelco = {
-    sopsFile = ../../secrets/singer-eelco-secrets.yaml;
+    sopsFile = ../../secrets/id_ed25519_eelco_singer.yaml;
+
     key = "id_ed25519_eelco";
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";

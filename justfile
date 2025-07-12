@@ -270,8 +270,9 @@ make-secret HOST USER:
 	echo "🔐 Extracting public age key from file $AGE_KEY_FILE"; \
 	AGE_PUB_KEY="$(rage-keygen -y $AGE_KEY_FILE)"; \
 	echo "🔐 Obtained public age key  $AGE_PUB_KEY"; \
-	SSH_KEY_FILE="~/.ssh/ssh_key_{{HOST}}_{{USER}}"; \
-	SECRET_FILE="nixos/secrets/{{HOST}}-{{USER}}-secrets.yaml"; \
+	SSH_KEY_FILE="~/.ssh/id_ed25519_{{USER}}_{{HOST}}";
+	SECRET_FILE="nixos/secrets/id_ed25519_{{USER}}_{{HOST}}.yaml";
+
 	AGE_KEY_FILE_OUT="nixos/secrets/age_key.yaml"; \
 	echo "🔑 Generating SSH key ${SSH_KEY_FILE} if needed..."; \
 	if [ ! -f "$SSH_KEY_FILE" ]; then \
@@ -282,7 +283,7 @@ make-secret HOST USER:
 	echo "🔐 Creating secret YAML → $SECRET_FILE"; \
 	mkdir -p nixos/secrets; \
 	echo "✍️  Building user secret file..."; \
-	echo "id_ed25519_{{USER}}: |" > "$SECRET_FILE"; \
+	echo "id_ed25519_{{USER}}_{{HOST}}: |" > "$SECRET_FILE";
 	sed 's/^/  /' "$SSH_KEY_FILE" >> "$SECRET_FILE"; \
 	sops --encrypt --input-type=yaml --output-type=yaml --age "$AGE_PUB_KEY" -i "$SECRET_FILE"; \
 	echo "✅ Encrypted $SECRET_FILE"; \
