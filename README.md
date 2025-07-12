@@ -127,7 +127,7 @@ This performs the following:
 
 ### ▶️ 3. Boot the Installed VM
 
-First, close the live installer and run
+First, close the live installer and start up your newly create VM with: 
 
 ```shell
 just vm_run
@@ -200,6 +200,8 @@ If backspace does not work:
    ```shell
    just switch generic-vm
    ```
+
+   Try restarting your machine if you dont see an id_ed25519 file yet in your .ssh folder
 
 ## 🔐 SOPS and SSH Key Management
 
