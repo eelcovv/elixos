@@ -3,6 +3,7 @@
 {
   imports = [
     ./devel/git-default.nix
+    ./devel/vscode.nix
     ./shell/bash.nix
     ./shell/inputrc.nix
     ./shell/zsh.nix

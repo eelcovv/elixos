@@ -7,6 +7,7 @@
 
   imports = [
     ../modules/common-packages.nix
+    ../modules/devel-packages.nix
 
     # Personal git configuration with explicit parameters
     (import ../modules/git.nix {
