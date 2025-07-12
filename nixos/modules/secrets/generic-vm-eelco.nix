@@ -5,14 +5,16 @@
     ./default.nix
   ];
 
-  sops.secrets.id_ed25519_eelco_generic-vm = {
+  sops.secrets.id_ed25519_eelco = {
     sopsFile = ../../secrets/id_ed25519_eelco_generic-vm.yaml;
+    key = "id_ed25519_eelco";
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
     group = "users";
     mode = "0400";
     restartUnits = [ "generate-ssh-pubkey.service" ];
   };
+
 
   # Make sure that ~/.ssh exists and has the right permissions
   systemd.tmpfiles.rules = lib.mkBefore [
@@ -22,8 +24,8 @@
   # Automatically generate the .pub file after decryption of id_ed25519
   systemd.services.generate-ssh-pubkey = {
     description = "Generate SSH public key from decrypted id_ed25519";
-    requires = [ "sops-nix-id_ed25519_eelco_generic-vm.service" ];
-    after = [ "sops-nix-id_ed25519_eelco_generic-vm.service" ];
+    requires = [ "sops-nix-id_ed25519_eelco.service" ];
+    after = [ "sops-nix-id_ed25519_eelco.service" ];
     wantedBy = [ "default.target" ]; # optional
     serviceConfig = {
       Type = "oneshot";
