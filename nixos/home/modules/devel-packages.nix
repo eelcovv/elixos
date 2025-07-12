@@ -14,5 +14,6 @@
     htop
     wget
     tree
+    direnv
   ];
 }
