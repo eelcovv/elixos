@@ -1,50 +1,16 @@
-{ config, pkgs, lib, ... }:
+{ config, lib, ... }:
 
 {
-  options.desktop.enableGnome = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable GNOME desktop";
+  options.desktop = {
+    enableGnome = lib.mkEnableOption "Enable GNOME desktop";
+    enableKde = lib.mkEnableOption "Enable KDE Plasma desktop";
+    enableHyperland = lib.mkEnableOption "Enable Hyperland desktop";
   };
 
-  options.desktop.enableKde = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable KDE Plasma desktop";
-  };
-
-  options.desktop.enableHyperland = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Enable Hyperland desktop";
-  };
-
-  config = lib.mkMerge [
-    # GNOME
-    (lib.mkIf config.desktop.enableGnome {
-      services.xserver.enable = true;
-      services.desktopManager.gnome.enable = true;
-    })
-
-    # KDE
-    (lib.mkIf config.desktop.enableKde {
-      services.xserver.enable = true;
-      services.desktopManager.plasma6.enable = true;
-    })
-
-    # Hyperland
-    (lib.mkIf config.desktop.enableHyperland {
-      programs.hyprland.enable = true;
-    })
-
-    # Set GDM as the only display manager if a desktop is active
-    (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde) {
-      # force the display manager to be gdm
-      services.displayManager.gdm.enable = true;
-
-      # force the password prompt to be gnome's askpass
-      programs.ssh.askPassword = lib.mkForce "${pkgs.openssh}/libexec/ssh-askpass";
-    })
+  config.imports = lib.concatLists [
+    (lib.optional config.desktop.enableGnome ./gnome.nix)
+    (lib.optional config.desktop.enableKde ./kde.nix)
+    (lib.optional config.desktop.enableHyperland ./hyperland.nix)
   ];
 }
 

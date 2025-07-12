@@ -8,5 +8,6 @@
     libreoffice
     gimp
     filezilla
+    krita
   ];
 }
