@@ -25,7 +25,7 @@
 
     # 🔐 Secrets
     [
-      ../modules/secrets/default.nix
+        ../modules/secrets/singer-eelco.nix
     ]
 
     ++

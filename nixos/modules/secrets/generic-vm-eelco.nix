@@ -1,6 +1,9 @@
 { config, pkgs, lib, ... }:
 
 {
+  imports = [
+    ./default.nix
+  ];
 
   sops.secrets.id_ed25519_eelco_generic-vm = {
     sopsFile = ../../secrets/id_ed25519_eelco_generic-vm.yaml;
@@ -29,9 +32,10 @@
       ExecStart = "${pkgs.writeShellScript "generate-pubkey" ''
         set -e
         ssh-keygen -y -f /home/eelco/.ssh/id_ed25519 > /home/eelco/.ssh/id_ed25519.pub
+        chown eelco:users /home/eelco/.ssh/id_ed25519.pub
+        chmod 0644 /home/eelco/.ssh/id_ed25519.pub
       ''}";
     };
   };
-
 }
 

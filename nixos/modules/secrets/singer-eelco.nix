@@ -1,6 +1,10 @@
 { config, pkgs, lib, ... }:
 
 {
+  imports = [
+    ./default.nix
+  ];
+
   # Ensure ~/.ssh exists before anything else touches it
   systemd.tmpfiles.rules = lib.mkBefore [
     "d /home/eelco/.ssh 0700 eelco users -"
@@ -9,7 +13,6 @@
   # Decrypt the private SSH key into the standard OpenSSH location
   sops.secrets.id_ed25519_eelco = {
     sopsFile = ../../secrets/id_ed25519_eelco_singer.yaml;
-
     key = "id_ed25519_eelco";
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
