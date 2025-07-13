@@ -2,7 +2,9 @@
 
 {
   imports = [
-    ../modules/hardware/efi-boot.nix
+    ../../modules/hardware/efi-boot.nix
+    ./graphics-configuration.nix
+    ./hardware-configuration.nix
   ];
 
   hardware.enableRedistributableFirmware = true;
