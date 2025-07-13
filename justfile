@@ -202,7 +202,7 @@ partition HOST:
 	@echo "✅ Partitioning done for {{HOST}}."
 
 partition-dry HOST:
-	nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --mode dry-run ./nixos/disks/{{HOST}}.nix
+	nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --dry-run --mode zap_create_mount ./nixos/disks/{{HOST}}.nix
 
 
 install HOST:
