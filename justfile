@@ -135,7 +135,9 @@ bootstrap-laptop HOST:
 	just vm_just partition {{HOST}}
 	@echo "🔑 Installing Age key in /mnt on target..."
 	just install-age-key-mnt
-	@echo "🚀 Running NixOS installation..." just vm_just install {{HOST}} @echo "✅ {{HOST}} bootstrap complete! Reboot the machine."
+	@echo "🚀 Running NixOS installation..."
+	just vm_just install {{HOST}}
+	@echo "✅ {{HOST}} bootstrap complete! Reboot the machine."
 # Legacy shortcut
 bootstrap-vm: bootstrap-generic-vm
 
@@ -198,6 +200,10 @@ encrypt SECRET:
 partition HOST:
 	sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/{{HOST}}.nix
 	@echo "✅ Partitioning done for {{HOST}}."
+
+partition-dry HOST:
+	nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --mode dry-run ./nixos/disks/{{HOST}}.nix
+
 
 install HOST:
 	@echo "🔐 Copying age key to target..."

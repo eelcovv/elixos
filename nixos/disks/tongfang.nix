@@ -10,6 +10,7 @@
       # ls -l /dev/disk/by-id/ | grep SAMSUNG ^
       "by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929" = {
         type = "disk";
+        device = "/dev/disk/by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929"; 
         content = {
           type = "gpt";
           partitions = {
