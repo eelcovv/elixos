@@ -501,7 +501,7 @@ First, load the laptop environment
 and run
 
 ```shell
-bootstrap-laptop singer
+just bootstrap-laptop singer
 ```
 
 This performs all the steps. After you are done, reboot your laptop and login via ssh again and then do
