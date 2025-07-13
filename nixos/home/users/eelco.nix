@@ -6,6 +6,7 @@
   home.stateVersion = "24.05";
 
   imports = [
+    ../modules/office-packages.nix
     ../modules/common-packages.nix
     ../modules/devel-packages.nix
 
@@ -15,6 +16,23 @@
       userName = "Eelco van Vliet";
       userEmail = "eelcovv@gmail.com";
     })
+
+    # Thunderbird config with user-specific accounts
+    (import ../modules/office/thunderbird.nix {
+      inherit pkgs;
+      accounts = [
+        "eelco@davelab.nl"
+        "eelcovv@gmail.com"
+      ];
+    })
   ];
+
+  (import ../modules/office/nextcloud.nix {
+  inherit pkgs;
+  config = {
+    url = "https://cloud.davelab.nl";
+  };
+})
+
 }
 
