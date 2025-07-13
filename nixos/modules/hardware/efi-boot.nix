@@ -17,16 +17,9 @@
 
 {
   boot.loader = {
-    /**
-     * Enables the systemd-boot bootloader.
-     *
-     * When set to `true`, this option configures the system to use systemd-boot
-     * as the bootloader. Systemd-boot is a simple UEFI boot manager that works
-     * well with modern systems using UEFI firmware.
-     *
-     * Note: Ensure that your system supports UEFI before enabling this option.
-     */
     systemd-boot.enable = true;
+    systemd-boot.configurationLimit = 10;
+    systemd-boot.editor = false;
     efi.canTouchEfiVariables = true;
     efi.efiSysMountPoint = "/boot/efi";
   };

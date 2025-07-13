@@ -2,6 +2,7 @@
 {
   imports = [
     ../modules/hardware/efi-boot.nix
+    ../modules/hardware/efi-dualboot.nix
   ];
 
   hardware.enableRedistributableFirmware = true;
