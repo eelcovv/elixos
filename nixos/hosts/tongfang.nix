@@ -41,7 +41,7 @@
 
     # 💻 Hardware and disk setup
     [
-      ../hardware/tongfang/configuration.nix
+      ../hardware/tongfang.nix
       ../disks/tongfang.nix
     ]
 
