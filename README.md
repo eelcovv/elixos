@@ -279,6 +279,8 @@ Happy hacking with Elixos! 🧬
 
 2. Start up live NIXOS installer
 
+   Tip: use the copytoram option to prevent issues during startup (blackscreen)
+
 ## Connectig with wifi
 
 1. **Log in as root**
