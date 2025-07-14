@@ -1,6 +1,5 @@
 /result
 /.direnv
-/.pre-commit-config.yaml
 .vscode
 *.qcow2
 /result*
