@@ -29,6 +29,7 @@ clean:
 	nix-collect-garbage
 
 fmt:
+
 	pre-commit run --all-files
 
 # ========== DEVELOPMENT ==========

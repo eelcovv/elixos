@@ -1,0 +1,5 @@
+repos:
+- repo: https://github.com/kamadorueda/alejandra
+  rev: 4.0.0 # kies een specifieke release
+  hooks:
+  - id: alejandra
