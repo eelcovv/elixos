@@ -17,12 +17,13 @@
 #   - `tongfang`: Configuration for the "tongfang" host.
 #   - `generic-vm`: Configuration for a generic virtual machine, including the disko module.
 #   - `singer`: Configuration for the "singer" host.
+#   - `alloy`: Configuration for the "alloy" host.
 #   - `contabo`: Configuration for the "contabo" host.
 #
 # - `packages.x86_64-linux`: Provides the top-level system build outputs for each configuration:
 #   - `tongfang`: Build output for the "tongfang" host.
 #   - `generic-vm`: Build output for the generic virtual machine.
-#   - `singer`: Build output for the "singer" host.
+#   - `alloy`: Build output for the "alloy" host.
 #   - `contabo`: Build output for the "contabo" host.
 #
 # ## Notes
@@ -150,6 +151,19 @@
             sops-nix.nixosModules.sops
           ];
         };
+        alloy = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {
+            inherit inputs self;
+            userModulesPath = ./nixos/home/users;
+          };
+          modules = [
+            ./nixos/hosts/alloy.nix
+            disko.nixosModules.disko
+            home-manager.nixosModules.home-manager
+            sops-nix.nixosModules.sops
+          ];
+        };
 
         # contabo = nixpkgs.lib.nixosSystem {
         #   system = "x86_64-linux";
@@ -172,6 +186,7 @@
         generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
         test-vm = self.nixosConfigurations.test-vm.config.system.build.toplevel;
         singer = self.nixosConfigurations.singer.config.system.build.toplevel;
+        alloy = self.nixosConfigurations.alloy.config.system.build.toplevel;
         # contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
       };
     };
