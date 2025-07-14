@@ -1,9 +1,13 @@
-{ config, lib, pkgs, modulesPath, ... }:
-
 {
-    imports = [
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}: {
+  imports = [
     ../../modules/hardware/efi-boot.nix
-    ../../modules/hardware/nvidea-wayland-env.nix
+    ../../modules/hardware/nvidia-wayland-env.nix
     ./hardware-configuration.nix
   ];
 
@@ -18,6 +22,5 @@
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
-  services.xserver.videoDrivers = [ "nvidia" ];
+  services.xserver.videoDrivers = ["nvidia"];
 }
-
