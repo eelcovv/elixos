@@ -6,7 +6,7 @@
   ...
 }: {
   imports = [
-    ../../modules/hardware/efi-boot.nix
+    ../../modules/hardware/efi-boot-at-root.nix
     ../../modules/hardware/nvidia-wayland-env.nix
     ../../modules/hardware/nvidia-legacy.nix
     ./hardware-configuration.nix
