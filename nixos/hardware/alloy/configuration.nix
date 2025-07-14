@@ -8,6 +8,7 @@
   imports = [
     ../../modules/hardware/efi-boot.nix
     ../../modules/hardware/nvidia-wayland-env.nix
+    ../../modules/hardware/nvidia-legacy.nix
     ./hardware-configuration.nix
   ];
 

@@ -9,6 +9,7 @@
     ../../modules/hardware/efi-boot.nix
     ../../modules/hardware/efi-dualboot.nix
     ../../modules/hardware/nvidia-wayland-env.nix
+    ../../modules/hardware/nvidia-open.nix
     ./hardware-configuration.nix
   ];
 
