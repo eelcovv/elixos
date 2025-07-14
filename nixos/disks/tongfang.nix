@@ -17,6 +17,7 @@
             ESP = {
               size = "512M";
               type = "EF00";
+              partlabel = "ESP";
               content = {
                 type = "filesystem";
                 format = "vfat";
@@ -27,6 +28,7 @@
 
             swap = {
               size = "96G";
+              partlabel = "swap";
               content = {
                 type = "luks";
                 name = "cryptswap";
@@ -40,6 +42,7 @@
 
             root = {
               size = "200G";
+              partlabel = "root";
               content = {
                 type = "luks";
                 name = "cryptroot";
@@ -54,6 +57,7 @@
 
             home = {
               size = "100%"; # rest van de schijf
+              partlabel = "home";
               content = {
                 type = "luks";
                 name = "crypthome";
