@@ -10,5 +10,8 @@
     lshw
     intel-gpu-tools
     inxi
+    gptfdisk
+    ntfs3g
+    fsarchiver
   ];
 }
