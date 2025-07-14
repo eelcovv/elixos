@@ -11,7 +11,7 @@
       # do not use the backslash
       "nvme0n1" = {
         type = "disk";
-        # Note! This device should be the real name corresponding to nvme0n1!!
+        # Note! This device should be the real name corresponding to nvme0n1!
         device = "/dev/disk/by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929";
         content = {
           type = "gpt";
