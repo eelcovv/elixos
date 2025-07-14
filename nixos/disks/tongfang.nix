@@ -9,7 +9,7 @@
       # distingish the drives, like.
       # ls -l /dev/disk/by-id/ | grep SAMSUNG ^
       # do not use the backslash
-      "SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929" = {
+      "nvme0n1" = {
         type = "disk";
         device = "/dev/disk/by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929";
         content = {
