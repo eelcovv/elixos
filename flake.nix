@@ -38,102 +38,128 @@
     home-manager.url = "github:nix-community/home-manager";
     disko.url = "github:nix-community/disko";
     sops-nix.url = "github:Mic92/sops-nix";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, home-manager, disko, sops-nix, ... }@inputs: {
-
-    homeConfigurations = {
-      eelco = inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
-        modules = [
-          ./nixos/home/users/eelco.nix
-        ];
-        extraSpecialArgs = {
-          inherit inputs;
+  outputs = inputs@{ self, nixpkgs, nixos-hardware, home-manager, disko, sops-nix, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
         };
+      in {
+        # Development shell for tools like pre-commit, alejandra, rage, etc.
+        devShells.default = pkgs.mkShell {
+          packages = with pkgs; [
+            pre-commit
+            alejandra
+            rage
+            sops
+            yq-go
+            OVMF
+            qemu
+            git
+            openssh
+            age
+            just
+          ];
+
+          shellHook = ''
+            echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
+          '';
+        };
+      }
+    ) // {
+      # Home Manager configuration
+      homeConfigurations = {
+        eelco = home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          modules = [
+            ./nixos/home/users/eelco.nix
+          ];
+          extraSpecialArgs = {
+            inherit inputs;
+          };
+        };
+      };
+
+      # NixOS system configurations
+      nixosConfigurations = {
+        tongfang = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {
+            inherit inputs self;
+            userModulesPath = ./nixos/home/users;
+          };
+          modules = [
+            ./nixos/hosts/tongfang.nix
+            disko.nixosModules.disko
+            home-manager.nixosModules.home-manager
+            sops-nix.nixosModules.sops
+          ];
+        };
+
+        generic-vm = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {
+            inherit inputs self;
+            userModulesPath = ./nixos/home/users;
+          };
+          modules = [
+            ./nixos/hosts/generic-vm.nix
+            disko.nixosModules.disko
+            home-manager.nixosModules.home-manager
+            sops-nix.nixosModules.sops
+          ];
+        };
+
+        test-vm = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {
+            inherit inputs self;
+            userModulesPath = ./nixos/home/users;
+          };
+          modules = [
+            ./nixos/hosts/test-vm.nix
+          ];
+        };
+
+        singer = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {
+            inherit inputs self;
+            userModulesPath = ./nixos/home/users;
+          };
+          modules = [
+            ./nixos/hosts/singer.nix
+            disko.nixosModules.disko
+            home-manager.nixosModules.home-manager
+            sops-nix.nixosModules.sops
+          ];
+        };
+
+        # contabo = nixpkgs.lib.nixosSystem {
+        #   system = "x86_64-linux";
+        #   specialArgs = {
+        #     inherit inputs self;
+        #     userModulesPath = ./nixos/home/users;
+        #   };
+        #   modules = [
+        #     ./nixos/hosts/contabo.nix
+        #     disko.nixosModules.disko
+        #     home-manager.nixosModules.home-manager
+        #     sops-nix.nixosModules.sops
+        #   ];
+        # };
+      };
+
+      # Toplevel system packages per host
+      packages.x86_64-linux = rec {
+        tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
+        generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
+        test-vm = self.nixosConfigurations.test-vm.config.system.build.toplevel;
+        singer = self.nixosConfigurations.singer.config.system.build.toplevel;
+        # contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
       };
     };
-
-    # NixOS configurations
-    nixosConfigurations = {
-      tongfang = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs self;
-          userModulesPath = ./nixos/home/users;
-        };
-        modules = [
-          ./nixos/hosts/tongfang.nix
-          disko.nixosModules.disko
-          home-manager.nixosModules.home-manager
-          sops-nix.nixosModules.sops
-        ];
-      };
-
-      generic-vm = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs self;
-          userModulesPath = ./nixos/home/users;
-        };
-        modules = [
-          ./nixos/hosts/generic-vm.nix
-          disko.nixosModules.disko
-          home-manager.nixosModules.home-manager
-          sops-nix.nixosModules.sops
-        ];
-      };
-
-      test-vm = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs self;
-          userModulesPath = ./nixos/home/users;
-        };
-        modules = [
-          ./nixos/hosts/test-vm.nix
-        ];
-      };
-
-      singer = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs self;
-          userModulesPath = ./nixos/home/users;
-        };
-        modules = [
-          ./nixos/hosts/singer.nix
-          disko.nixosModules.disko
-          home-manager.nixosModules.home-manager
-          sops-nix.nixosModules.sops
-        ];
-      };
-
-    #   contabo = nixpkgs.lib.nixosSystem {
-    #     system = "x86_64-linux";
-    #     specialArgs = {
-    #       inherit inputs self;
-    #       userModulesPath = ./nixos/home/users;
-    #     };
-    #     modules = [
-    #       ./nixos/hosts/contabo.nix
-    #       disko.nixosModules.disko
-    #       home-manager.nixosModules.home-manager
-    #       sops-nix.nixosModules.sops
-    #     ];
-    #   };
-
-    };
-
-    # Packages (optional, if you need them for specific systems)
-    # You could possibly replace this with:
-    # packages.x86_64-linux = builtins.mapAttrs (_: cfg: cfg.config.system.build.toplevel) self.nixosConfigurations;
-      # contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
-    packages.x86_64-linux = rec {
-      tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
-      generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
-      test-vm = self.nixosConfigurations.test-vm.config.system.build.toplevel;
-      singer = self.nixosConfigurations.singer.config.system.build.toplevel;
-    };
-  };
 }

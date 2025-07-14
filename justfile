@@ -33,7 +33,9 @@ fmt:
 
 # ========== DEVELOPMENT ==========
 vm_prerequisites:
-	nix-shell -p qemu qemu-utils OVMF rage sops yq-go
+	@echo "Old sersion did: nix-shell -p qemu qemu-utils OVMF rage sops yq-go"
+	@echo "Now, just run: nix develop"
+	nix develop
 
 # ========== VM INSTALLATION ==========
 vm_prepare:
