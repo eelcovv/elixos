@@ -8,7 +8,8 @@
       # guarenteed. Therefore, use the real device name to
       # distingish the drives, like.
       # ls -l /dev/disk/by-id/ | grep SAMSUNG ^
-      "by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929" = {
+      # do not use the backslash
+      "SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929" = {
         type = "disk";
         device = "/dev/disk/by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929";
         content = {
@@ -17,7 +18,6 @@
             ESP = {
               size = "512M";
               type = "EF00";
-              partlabel = "ESP";
               content = {
                 type = "filesystem";
                 format = "vfat";
@@ -28,7 +28,6 @@
 
             swap = {
               size = "96G";
-              partlabel = "swap";
               content = {
                 type = "luks";
                 name = "cryptswap";
@@ -42,7 +41,6 @@
 
             root = {
               size = "200G";
-              partlabel = "root";
               content = {
                 type = "luks";
                 name = "cryptroot";
@@ -57,7 +55,6 @@
 
             home = {
               size = "100%"; # rest van de schijf
-              partlabel = "home";
               content = {
                 type = "luks";
                 name = "crypthome";
