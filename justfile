@@ -207,6 +207,14 @@ partition-dry HOST:
 	nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --dry-run --mode zap_create_mount ./nixos/disks/{{HOST}}.nix
 
 
+# 🛠 Generate hardware configuration (after partitioning!)
+generate-hardware-config:
+	sudo nixos-generate-config --root /mnt
+
+# 💡 Reminder: after running `generate-hardware-config`, copy
+# the generated `/mnt/etc/nixos/hardware-configuration.nix`
+# into `nixos/hardware/tongfang/hardware-configuration.nix`
+
 install HOST:
 	@echo "🔐 Copying age key to target..."
 	mkdir -p /mnt/etc/sops/age

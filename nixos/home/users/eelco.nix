@@ -13,15 +13,13 @@
     ../modules/devel-packages.nix
     ../modules/maintainance-packages.nix
     ../modules/office-packages.nix
-    ../modules/office/nextcloud.nix
 
-    (import ../modules/office/thunderbird.nix {
-      inherit pkgs;
-      accounts = [
-        "eelco@davelab.nl"
-        "eelcovv@gmail.com"
-      ];
-    })
+    #(import ../modules/office/thunderbird.nix {
+    #  inherit pkgs;
+    #  accounts = [
+    #    "eelco@davelab.nl"
+    #  ];
+    #})
 
     (import ../modules/devel/git.nix {
       inherit config pkgs lib;
@@ -30,8 +28,8 @@
     })
   ];
 
-  programs.nextcloud-extra = {
-    enable = true;
-    url = "https://cloud.davelab.nl";
-  };
+  #programs.nextcloud-extra = {
+  #  enable = true;
+  #  url = "https://cloud.davelab.nl";
+  #};
 }

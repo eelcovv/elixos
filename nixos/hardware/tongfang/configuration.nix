@@ -6,8 +6,9 @@
   ...
 }: {
   imports = [
-    ../modules/hardware/efi-boot.nix
-    ../modules/hardware/efi-dualboot.nix
+    ../../modules/hardware/efi-boot.nix
+    ../../modules/hardware/efi-dualboot.nix
+    ./hardware-configuration.nix
   ];
 
   hardware.enableRedistributableFirmware = true;

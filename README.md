@@ -612,6 +612,22 @@ cp /root/keys.txt /mnt/etc/sops/age/keys.txt
 chmod 400 /mnt/etc/sops/age/keys.txt
 ```
 
+⚠️ Important: `hardware-configuration.nix` can only be generated after the partitions have been created and mounted.
+
+To initialize the disk layout:
+
+    sudo nix run github:nix-community/disko -- --flake .#tongfang --mode zap_create_mount
+
+Then generate the hardware configuration:
+
+    sudo nixos-generate-config --root /mnt
+
+After that, copy the generated `hardware-configuration.nix` to:
+
+    nixos/hardware/tongfang/hardware-configuration.nix
+
+You can then proceed with `nixos-rebuild` or `nixos-install` using your flake-based configuration.
+
 Now you can install your laptop with
 
 ```shell

@@ -3,24 +3,22 @@
   pkgs,
   config,
   ...
-}:
-with lib; let
+}: let
   cfg = config.programs.nextcloud-extra;
 in {
   options.programs.nextcloud-extra = {
-    enable = mkEnableOption "Extra Nextcloud configuration";
-    url = mkOption {
-      type = types.str;
+    enable = lib.mkEnableOption "Extra Nextcloud configuration";
+    url = lib.mkOption {
+      type = lib.types.str;
       default = "";
-      description = "Optional default URL for Nextcloud.";
+      description = "Optional Nextcloud URL";
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     programs.nextcloud-client = {
       enable = true;
       package = pkgs.nextcloud-client;
-
       settings = {
         startInBackground = true;
         launchOnSystemStartup = true;
@@ -28,7 +26,7 @@ in {
       };
     };
 
-    home.sessionVariables = mkIf (cfg.url != "") {
+    home.sessionVariables = lib.mkIf (cfg.url != "") {
       NEXTCLOUD_URL = cfg.url;
     };
   };
