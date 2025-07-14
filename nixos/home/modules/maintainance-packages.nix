@@ -6,9 +6,7 @@
 }: {
   home.packages = with pkgs; [
     pciutils
-    mesa-utils
-    nvidia-smi
-    nvtop
+    mesa-demos
     lshw
     intel-gpu-tools
     inxi
