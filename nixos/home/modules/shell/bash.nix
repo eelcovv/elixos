@@ -1,6 +1,4 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   programs.bash.enable = true;
 
   home.file.".bashrc".text = ''

@@ -1,6 +1,8 @@
-{ pkgs, config ? { url = ""; }, ... }:
-
 {
+  pkgs,
+  config ? {url = "";},
+  ...
+}: {
   programs.nextcloud-client = {
     enable = true;
     package = pkgs.nextcloud-client;
@@ -9,7 +11,7 @@
     settings = {
       startInBackground = true;
       launchOnSystemStartup = true;
-      syncFolders = [ ]; # ← optioneel later
+      syncFolders = []; # ← optioneel later
     };
   };
 

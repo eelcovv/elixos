@@ -1,6 +1,8 @@
-{ config, pkgs, ... }:
-
 {
+  config,
+  pkgs,
+  ...
+}: {
   networking.hostName = "test-vm";
   services.openssh.enable = true;
   programs.zsh.enable = true;
@@ -23,4 +25,3 @@
 
   system.stateVersion = "24.11";
 }
-

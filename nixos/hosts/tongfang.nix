@@ -1,8 +1,4 @@
-
-{ inputs, ... }:
-
-{
-
+{inputs, ...}: {
   networking.hostName = "tongfang";
 
   desktop.enableGnome = false;
@@ -10,9 +6,8 @@
   desktop.enableHyperland = true;
 
   # Definine host-specifi sshUsers
-  sshUsers = [ "eelco" ];
-  configuredUsers = [ "eelco" ];
-
+  sshUsers = ["eelco"];
+  configuredUsers = ["eelco"];
 
   imports =
     # 🧱 Basic modules
@@ -23,42 +18,32 @@
       ../modules/profiles/desktop-software.nix
       ../modules/home-manager.nix
     ]
-
     ++
-
     # 🔐 Secrets
     [
-        ../modules/secrets/tongfang-eelco.nix
+      ../modules/secrets/tongfang-eelco.nix
     ]
-
     ++
     # 🛠️ Services
     [
       ../modules/services/ssh-client-keys.nix
     ]
-
     ++
-
     # 💻 Hardware and disk setup
     [
       ../hardware/tongfang.nix
       ../disks/tongfang.nix
     ]
-
     ++
-
     # 👤 Users
     [
       ../users/eelco.nix
       ../users/por.nix
     ]
-
     ++
-
     # 🧩 External modules
     [
       inputs.disko.nixosModules.disko
       inputs.home-manager.nixosModules.home-manager
     ];
-
 }

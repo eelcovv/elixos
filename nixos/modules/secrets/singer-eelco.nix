@@ -1,20 +1,22 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   imports = [
     ./default.nix
   ];
 
   sops.secrets.id_ed25519_eelco_singer = {
     sopsFile = ../../secrets/id_ed25519_eelco_singer.yaml;
-    key = "id_ed25519_eelco_singer"; 
+    key = "id_ed25519_eelco_singer";
     path = "/home/eelco/.ssh/id_ed25519";
     owner = "eelco";
     group = "users";
     mode = "0400";
-    restartUnits = [ "generate-ssh-pubkey.service" ];
+    restartUnits = ["generate-ssh-pubkey.service"];
   };
-
 
   # Make sure that ~/.ssh exists and has the right permissions
   systemd.tmpfiles.rules = lib.mkBefore [
@@ -24,7 +26,7 @@
   # Automatically generate the .pub file after decryption of id_ed25519
   systemd.services.generate-ssh-pubkey = {
     description = "Generate SSH public key from decrypted id_ed25519";
-    wantedBy = [ "default.target" ];
+    wantedBy = ["default.target"];
     serviceConfig = {
       Type = "oneshot";
       User = "eelco";
@@ -37,6 +39,4 @@
       ''}";
     };
   };
-
 }
-

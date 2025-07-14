@@ -3,22 +3,21 @@
 # with the correct permissions and ownership.
 # The default value is derived from the authorized keys.
 # This approach is required because the approach with
-# users.users.eelco.openssh.authorizedKeys.keys = [ "...key..." ]; 
-# fails to create the authorized_keys file. This is a known issue 
-{ config
-, lib
-, ...
-}:
-
-let
+# users.users.eelco.openssh.authorizedKeys.keys = [ "...key..." ];
+# fails to create the authorized_keys file. This is a known issue
+{
+  config,
+  lib,
+  ...
+}: let
   perUserKeys = {
     eelco = {
       trusted = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHz8QYZSfdWv5R4trQbiJ8wGekQQVCozBoLqfiSITJ51 eelco@tongfang"
       ];
       hostSpecific = {
-        tongfang = [ ];
-        generic-vm = [ ];
+        tongfang = [];
+        generic-vm = [];
       };
     };
 
@@ -27,7 +26,7 @@ let
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDeployKey deploy@somewhere"
       ];
       hostSpecific = {
-        contabo = [ ];
+        contabo = [];
       };
     };
   };
@@ -36,25 +35,24 @@ let
 
   usersWithKeys = lib.attrNames perUserKeys;
 
-  buildKeyList = user:
-    let
-      base = perUserKeys.${user}.trusted or [ ];
-      hostKeys = perUserKeys.${user}.hostSpecific.${host} or [ ];
-    in
+  buildKeyList = user: let
+    base = perUserKeys.${user}.trusted or [];
+    hostKeys = perUserKeys.${user}.hostSpecific.${host} or [];
+  in
     base ++ hostKeys;
 
   allKeysPerUser = lib.genAttrs usersWithKeys buildKeyList;
 
-  tmpfilesForUser = user:
-    let keys = allKeysPerUser.${user};
-    in [
+  tmpfilesForUser = user: let
+    keys = allKeysPerUser.${user};
+  in
+    [
       "d /home/${user}/.ssh 0700 ${user} users"
-    ] ++ map (key: "f /home/${user}/.ssh/authorized_keys 0600 ${user} users - ${key}") keys;
+    ]
+    ++ map (key: "f /home/${user}/.ssh/authorized_keys 0600 ${user} users - ${key}") keys;
 
   tmpfilesAll = lib.flatten (map tmpfilesForUser usersWithKeys);
-
-in
-{
+in {
   options = {
     authorizedKeys.perUser = lib.mkOption {
       type = lib.types.attrsOf (lib.types.listOf lib.types.str);
@@ -74,4 +72,3 @@ in
     authorizedKeys.tmpfilesRules = tmpfilesAll;
   };
 }
-

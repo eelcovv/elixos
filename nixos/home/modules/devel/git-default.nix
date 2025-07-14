@@ -1,6 +1,4 @@
-{ lib, ... }:
-
-{
+{lib, ...}: {
   programs.git = {
     enable = true;
     userName = lib.mkDefault "Default User";

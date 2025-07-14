@@ -1,18 +1,20 @@
-{ config, lib, pkgs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   config = lib.mkMerge [
-
     (lib.mkIf config.desktop.enableGnome (
-      (import ./gnome.nix { inherit lib pkgs; }).config
+      (import ./gnome.nix {inherit lib pkgs;}).config
     ))
 
     (lib.mkIf config.desktop.enableKde (
-      (import ./kde.nix { inherit lib pkgs; }).config
+      (import ./kde.nix {inherit lib pkgs;}).config
     ))
 
     (lib.mkIf config.desktop.enableHyperland (
-      (import ./hyperland.nix { inherit lib pkgs; }).config
+      (import ./hyperland.nix {inherit lib pkgs;}).config
     ))
 
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde) {
@@ -24,4 +26,3 @@
     })
   ];
 }
-

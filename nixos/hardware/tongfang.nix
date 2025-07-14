@@ -1,5 +1,10 @@
-{ config, lib, pkgs, modulesPath, ... }:
 {
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}: {
   imports = [
     ../modules/hardware/efi-boot.nix
     ../modules/hardware/efi-dualboot.nix
@@ -11,7 +16,7 @@
 
   specialisation = {
     on-the-go.configuration = {
-      system.nixos.tags = [ "on-the-go" ];
+      system.nixos.tags = ["on-the-go"];
       hardware.nvidia = {
         prime = {
           sync.enable = lib.mkForce false;
@@ -24,8 +29,7 @@
     };
 
     nvidea.configuration = {
-
-      system.nixos.tags = [ "nvidea" ];
+      system.nixos.tags = ["nvidea"];
       # see https://nixos.wiki/wiki/Nvidia for details on this section
       hardware.nvidia.prime = {
         # use this to be able to switch between amdgpu and nvidia

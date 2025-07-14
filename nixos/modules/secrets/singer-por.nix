@@ -1,7 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
-
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Ensure ~/.ssh exists before anything else touches it
   systemd.tmpfiles.rules = lib.mkBefore [
     "d /home/por/.ssh 0700 por users -"
@@ -15,15 +17,15 @@
     owner = "por";
     group = "users";
     mode = "0400";
-    restartUnits = [ "generate-ssh-pubkey-por.service" ];
+    restartUnits = ["generate-ssh-pubkey-por.service"];
   };
 
   # Automatically generate .pub key once private key is available
   systemd.services.generate-ssh-pubkey-por = {
     description = "Generate SSH public key for user por";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "sops-nix-id_ed25519_por.service" ];
-    requires = [ "sops-nix-id_ed25519_por.service" ];
+    wantedBy = ["multi-user.target"];
+    after = ["sops-nix-id_ed25519_por.service"];
+    requires = ["sops-nix-id_ed25519_por.service"];
     serviceConfig = {
       Type = "oneshot";
       User = "por";
@@ -36,4 +38,3 @@
     };
   };
 }
-

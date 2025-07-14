@@ -3,7 +3,7 @@
   disko.devices = {
     disk = {
       my-disk = {
-        # only use device references with a number like this if you dont have other hardrives! 
+        # only use device references with a number like this if you dont have other hardrives!
         # See comment with tongfang.nix
         device = "/dev/nvme0n1";
         type = "disk";
@@ -17,7 +17,7 @@
                 type = "filesystem";
                 format = "vfat";
                 mountpoint = "/boot/efi";
-                mountOptions = [ "umask=0077" ];
+                mountOptions = ["umask=0077"];
               };
             };
             luks = {

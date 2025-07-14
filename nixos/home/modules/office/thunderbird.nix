@@ -1,4 +1,7 @@
-{ pkgs, accounts ? [] }: {
+{
+  pkgs,
+  accounts ? [],
+}: {
   programs.thunderbird = {
     enable = true;
     package = pkgs.thunderbird;
@@ -8,7 +11,8 @@
   accounts.email.accounts = builtins.listToAttrs (
     map (addr: {
       name = addr;
-      value = { thunderbird.enable = true; };
-    }) accounts
+      value = {thunderbird.enable = true;};
+    })
+    accounts
   );
 }

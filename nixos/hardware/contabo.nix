@@ -1,6 +1,4 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   imports = [
     # Dit kan een door nixos-generate-config gemaakte hardware config zijn
     ./contabo-hardware-configuration.nix

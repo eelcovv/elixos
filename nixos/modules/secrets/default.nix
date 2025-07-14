@@ -1,5 +1,5 @@
 {
-  # this file should be loaded by all profile to announce that we have the keys.txt file in the 
+  # this file should be loaded by all profile to announce that we have the keys.txt file in the
   # /etc/sops/age map
   # this file should be copied there manually, or by running just post-boot-setup, which takes care
   # of copying your keys.txt file

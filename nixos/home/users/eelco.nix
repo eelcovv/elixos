@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   home.username = "eelco";
   home.homeDirectory = "/home/eelco";
   home.stateVersion = "24.05";
@@ -26,14 +29,13 @@
         "eelcovv@gmail.com"
       ];
     })
+
+    # Nextcloud configuration
+    (import ../modules/office/nextcloud.nix {
+      inherit pkgs;
+      config = {
+        url = "https://cloud.davelab.nl";
+      };
+    })
   ];
-
-  (import ../modules/office/nextcloud.nix {
-  inherit pkgs;
-  config = {
-    url = "https://cloud.davelab.nl";
-  };
-})
-
 }
-

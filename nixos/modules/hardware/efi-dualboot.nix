@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # Add a custom boot entry for Windows to systemd-boot
   boot.loader.systemd-boot.extraEntries = {
     "windows.conf" = ''
@@ -17,4 +20,3 @@
     fi
   '';
 }
-
