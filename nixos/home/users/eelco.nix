@@ -13,15 +13,8 @@
     ../modules/devel-packages.nix
     ../modules/maintainance-packages.nix
     ../modules/office-packages.nix
+    ../modules/office/nextcloud.nix
 
-    # Personal git configuration with explicit parameters
-    (import ../modules/devel/git.nix {
-      inherit config pkgs lib;
-      userName = "Eelco van Vliet";
-      userEmail = "eelcovv@gmail.com";
-    })
-
-    # Thunderbird config with user-specific accounts
     (import ../modules/office/thunderbird.nix {
       inherit pkgs;
       accounts = [
@@ -30,12 +23,15 @@
       ];
     })
 
-    # Nextcloud configuration
-    (import ../modules/office/nextcloud.nix {
-      inherit pkgs lib;
-      cfg = {
-        url = "https://cloud.davelab.nl";
-      };
+    (import ../modules/devel/git.nix {
+      inherit config pkgs lib;
+      userName = "Eelco van Vliet";
+      userEmail = "eelcovv@gmail.com";
     })
   ];
+
+  programs.nextcloud-extra = {
+    enable = true;
+    url = "https://cloud.davelab.nl";
+  };
 }
