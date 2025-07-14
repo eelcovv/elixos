@@ -32,6 +32,14 @@ It leverages flakes and sops-nix for secure, reproducible, and extendable NixOS 
 
 ## 🚀 Preparation before starting with your install
 
+As a start do:
+
+```shell
+nix develop
+```
+
+This installs all the required development tools.
+
 Use the following steps to quickly install a NixOS VM using QEMU.
 
 ## 🔑 Initial Setup: Generating Your Age Key
