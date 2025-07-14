@@ -32,8 +32,8 @@
 
     # Nextcloud configuration
     (import ../modules/office/nextcloud.nix {
-      inherit pkgs;
-      config = {
+      inherit pkgs lib;
+      cfg = {
         url = "https://cloud.davelab.nl";
       };
     })
