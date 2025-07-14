@@ -6,9 +6,10 @@
   home.stateVersion = "24.05";
 
   imports = [
-    ../modules/office-packages.nix
     ../modules/common-packages.nix
     ../modules/devel-packages.nix
+    ../modules/maintainance-packages.nix
+    ../modules/office-packages.nix
 
     # Personal git configuration with explicit parameters
     (import ../modules/devel/git.nix {
