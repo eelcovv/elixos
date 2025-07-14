@@ -71,6 +71,9 @@
             openssh
             age
             just
+            prettier
+            pre-commit
+            nodejs # Needed for Prettier Cli
           ];
 
           shellHook = ''

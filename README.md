@@ -135,14 +135,14 @@ This performs the following:
 
 ### ▶️ 3. Boot the Installed VM
 
-First, close the live installer and start up your newly create VM with: 
+First, close the live installer and start up your newly create VM with:
 
 ```shell
 just vm_run
 ```
 
 After bootstrapping the VM, the age key is available in memory, but not yet in the installed system.
-To fix that, after booting the VM, first load you new environment of the new virtual machine you have just installed. 
+To fix that, after booting the VM, first load you new environment of the new virtual machine you have just installed.
 First you have to close the still running Live installer. Then do:
 
 ```shell
@@ -172,11 +172,9 @@ This will:
 - Push and clone the repo again
 - Prepare for `nixos-rebuild switch`
 
-
 At this point you can start your newly created VM. Make sure to close the Live
 Installer first, because you cannot run two QEMU windows simultaneously.
 Then, start the VM with:
-
 
 ### 🔑 4. SSH Login
 
