@@ -1,11 +1,20 @@
 * {
-  font-family: "Noto Sans", sans-serif;
+  font-family: "JetBrainsMono Nerd Font", "FontAwesome", sans-serif;
   font-size: 13px;
+  font-size: 14px;
   border: none;
   border-radius: 0;
   padding: 0 8px;
   color: #ffffff;
+  min-height: 36px;
 }
+
+window#waybar {
+  background-color: rgba(30, 30, 30, 0.9);
+  border-bottom: 2px solid #5e81ac;
+  color: white;
+}
+
 
 window#waybar {
   background-color: rgba(30, 30, 46, 0.9);
