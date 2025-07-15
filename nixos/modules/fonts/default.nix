@@ -10,7 +10,7 @@
       nerd-fonts.hack
       nerd-fonts.iosevka
       nerd-fonts.sauce-code-pro
-      nerd-fonts.terminus
+      nerd-fonts.terminess
       nerd-fonts.fantasque-sans-mono
       nerd-fonts.mononoki
     ];
