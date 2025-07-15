@@ -1,13 +1,27 @@
 {
   config,
-  lib,
   pkgs,
   ...
-}: {
+}: let
+  wallpaperPath = ./wallpapers/nixos.png;
+in {
   xdg.configFile."hypr/hyprland.conf".source = ./hyprland.conf;
   xdg.configFile."hypr/hyprpaper.conf".source = ./hyprpaper.conf;
+  xdg.configFile."waybar/config.jsonc".source = ./waybar.jsonc;
+  xdg.configFile."waybar/style.css".source = ./waybar.css;
 
-  # Eventueel andere tools:
-  xdg.configFile."waybar/config.jsonc".source = ./waybar/config.jsonc;
-  xdg.configFile."rofi/config.rasi".source = ./rofi/config.rasi;
+  # Zorg dat de wallpaper beschikbaar is
+  home.file."Pictures/wallpapers/nixos.png".source = wallpaperPath;
+
+  # Install extra packages
+  home.packages = with pkgs; [
+    kitty
+    rofi-wayland
+    hyprpaper
+    waybar
+    dunst
+    brightnessctl
+    pavucontrol
+    wl-clipboard
+  ];
 }
