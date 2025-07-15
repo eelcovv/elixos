@@ -12,14 +12,14 @@
     (lib.mkIf config.desktop.enableKde (
       lib.mkMerge [
         (import ./kde.nix {inherit lib pkgs;}).config
-        (import ./wayland-session.nix {inherit lib pkgs;}).config
+        (import ./wayland-session.nix {inherit lib pkgs;})
       ]
     ))
 
     (lib.mkIf config.desktop.enableHyperland (
       lib.mkMerge [
-        (import ./hyperland.nix {inherit lib pkgs;}).config
-        (import ./wayland-session.nix {inherit lib pkgs;}).config
+        (import ./hyperland.nix {inherit lib pkgs;})
+        (import ./wayland-session.nix {inherit lib pkgs;})
       ]
     ))
 
