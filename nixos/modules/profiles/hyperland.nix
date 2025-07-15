@@ -35,8 +35,10 @@
   ];
 
   # Zet environment variabelen voor Wayland goed
-  environment.sessionVariables = {
-    XDG_CURRENT_DESKTOP = "Hyprland";
-    XDG_SESSION_DESKTOP = "Hyprland";
-  };
+  environment.sessionVariables = lib.mkMerge [
+    {
+      XDG_CURRENT_DESKTOP = "Hyprland";
+      XDG_SESSION_DESKTOP = "Hyprland";
+    }
+  ];
 }
