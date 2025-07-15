@@ -9,7 +9,7 @@
       nerd-fonts.jetbrains-mono
       nerd-fonts.hack
       nerd-fonts.iosevka
-      nerd-fonts.source-code-pro
+      nerd-fonts.sauce-code-pro
       nerd-fonts.terminus
       nerd-fonts.fantasque-sans-mono
       nerd-fonts.mononoki
