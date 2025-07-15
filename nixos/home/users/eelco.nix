@@ -10,6 +10,7 @@
 
   imports = [
     ../modules/common-packages.nix
+    ../modules/hyperland
     ../modules/devel-packages.nix
     ../modules/maintainance-packages.nix
     ../modules/office-packages.nix

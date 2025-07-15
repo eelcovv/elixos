@@ -10,5 +10,6 @@
 
   imports = [
     ../modules/common-packages.nix
+    ../modules/hyperland
   ];
 }
