@@ -14,7 +14,7 @@
     rofi-wayland
     foot
     kitty
-    duns
+    dunst
     networkmanagerapplet
     wl-clipboard
     brightnessctl
