@@ -5,6 +5,8 @@
   ...
 }: {
   config = lib.mkMerge [
+    (import ./fonts.nix {inherit pkgs;})
+
     (lib.mkIf config.desktop.enableGnome (
       (import ./gnome.nix {inherit lib pkgs;}).config
     ))

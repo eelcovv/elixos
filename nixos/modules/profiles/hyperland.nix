@@ -7,15 +7,6 @@
   # Hyprland aanzetten
   programs.hyprland.enable = true;
 
-  # Fonts installeren voor betere weergave in bv. Chrome
-  fonts.packages = with pkgs; [
-    noto-fonts
-    noto-fonts-cjk-sans
-    noto-fonts-emoji
-    font-awesome
-    (nerdfonts.override {fonts = ["FiraCode" "JetBrainsMono"];})
-  ];
-
   # Extra software en tools
   environment.systemPackages = with pkgs; [
     hyprpaper
@@ -23,7 +14,7 @@
     rofi-wayland
     foot
     kitty
-    dunst
+    duns
     networkmanagerapplet
     wl-clipboard
     brightnessctl
