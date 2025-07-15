@@ -11,7 +11,7 @@
 
     (lib.mkIf config.desktop.enableKde (
       lib.mkMerge [
-        (import ./kde.nix {inherit config lib pkgs;}).config
+        (import ./kde.nix {inherit lib pkgs;}).config
         (import ./wayland-session.nix {inherit config lib pkgs;})
       ]
     ))
