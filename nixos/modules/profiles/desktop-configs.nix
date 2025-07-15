@@ -10,11 +10,17 @@
     ))
 
     (lib.mkIf config.desktop.enableKde (
-      (import ./kde.nix {inherit lib pkgs;}).config
+      lib.mkMerge [
+        (import ./kde.nix {inherit lib pkgs;}).config
+        (import ./wayland-session.nix {inherit lib pkgs;}).config
+      ]
     ))
 
     (lib.mkIf config.desktop.enableHyperland (
-      (import ./hyperland.nix {inherit lib pkgs;}).config
+      lib.mkMerge [
+        (import ./hyperland.nix {inherit lib pkgs;}).config
+        (import ./wayland-session.nix {inherit lib pkgs;}).config
+      ]
     ))
 
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde) {
