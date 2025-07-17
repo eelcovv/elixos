@@ -18,5 +18,6 @@
     tree
     nautilus
     keeweb
+    gnome-keyring
   ];
 }

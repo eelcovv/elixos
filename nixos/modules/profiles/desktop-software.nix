@@ -13,6 +13,8 @@
       gimp
       filezilla
       krita
+      seahorse
+      libsecret
     ]
     ++ lib.optionals config.desktop.enableKde [pkgs.kdePackages.bluedevil]
     ++ lib.optionals config.desktop.enableHyperland [pkgs.blueman]
