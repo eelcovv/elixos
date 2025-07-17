@@ -20,6 +20,7 @@
     brightnessctl
     grim
     slurp
+    swaynotificationcenter
     pavucontrol
     neofetch
     htop
