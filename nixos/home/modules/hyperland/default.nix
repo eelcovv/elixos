@@ -18,11 +18,13 @@ in {
     kitty
     rofi-wayland
     hyprpaper
+    hyprshot
     wofi
     waybar
     dunst
     brightnessctl
     pavucontrol
     wl-clipboard
+    swaync
   ];
 }
