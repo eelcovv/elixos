@@ -21,10 +21,10 @@ in {
     hyprshot
     wofi
     waybar
+    swaynotificationcenter
     dunst
     brightnessctl
     pavucontrol
     wl-clipboard
-    swaync
   ];
 }

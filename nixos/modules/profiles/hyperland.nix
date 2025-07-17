@@ -23,6 +23,7 @@
     swaynotificationcenter
     pavucontrol
     neofetch
+    libnotify
     htop
   ];
 
