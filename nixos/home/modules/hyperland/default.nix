@@ -6,6 +6,7 @@
   wallpaperPath = ./wallpapers/nixos.png;
 in {
   xdg.configFile."hypr/hyprland.conf".source = ./hyprland.conf;
+  xdg.configFile."hypr/hyprlock.conf".source = ./hyprlock.conf;
   xdg.configFile."hypr/hyprpaper.conf".source = ./hyprpaper.conf;
   xdg.configFile."waybar/config.jsonc".source = ./waybar.jsonc;
   xdg.configFile."waybar/style.css".source = ./waybar.css;
@@ -19,6 +20,7 @@ in {
     rofi-wayland
     hyprpaper
     hyprshot
+    hyprlock
     wofi
     waybar
     swaynotificationcenter
