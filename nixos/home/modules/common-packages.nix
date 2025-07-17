@@ -17,5 +17,6 @@
     wget
     tree
     nautilus
+    keeweb
   ];
 }
