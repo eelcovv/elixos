@@ -16,5 +16,6 @@
     htop
     wget
     tree
+    nautilus
   ];
 }

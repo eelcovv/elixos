@@ -18,6 +18,7 @@ in {
     kitty
     rofi-wayland
     hyprpaper
+    wofi
     waybar
     dunst
     brightnessctl
