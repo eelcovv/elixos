@@ -7,6 +7,7 @@
 in {
   xdg.configFile."hypr/hyprland.conf".source = ./hyprland.conf;
   xdg.configFile."hypr/hyprlock.conf".source = ./hyprlock.conf;
+  xdg.configFile."hypr/hypridle.conf".source = ./hypridle.conf;
   xdg.configFile."hypr/hyprpaper.conf".source = ./hyprpaper.conf;
   xdg.configFile."waybar/config.jsonc".source = ./waybar.jsonc;
   xdg.configFile."waybar/style.css".source = ./waybar.css;
