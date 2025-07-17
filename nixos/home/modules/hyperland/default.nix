@@ -22,7 +22,7 @@ in {
     hyprpaper
     hyprshot
     hyprlock
-    hypridlle
+    hypridle
     wofi
     waybar
     swaynotificationcenter
