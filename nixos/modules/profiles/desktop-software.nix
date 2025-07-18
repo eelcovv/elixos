@@ -18,7 +18,7 @@
     ]
     ++ lib.optionals config.desktop.enableKde [pkgs.kdePackages.bluedevil]
     ++ lib.optionals config.desktop.enableHyperland [pkgs.blueman]
-    ++ lib.optionals config.desktop.enableGnome [pkgs.gnome.gnome-bluetooth];
+    ++ lib.optionals config.desktop.enableGnome [pkgs.gnome-bluetooth];
 
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
