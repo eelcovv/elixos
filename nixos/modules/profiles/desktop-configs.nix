@@ -5,7 +5,7 @@
   ...
 }: {
   imports = [
-    ./accountsservice-session-overrides.nix
+    ./account-session-overrides.nix
   ];
 
   config = lib.mkMerge [
