@@ -30,6 +30,14 @@ This NixOS configuration module defines common system settings:
       default = [];
       description = "List of users to configure via Home Manager and other modules.";
     };
+
+    # this allows is to added extra meta data to the user, which we can use to store
+    # the default choise of session per user.
+    options.userMeta = lib.mkOption {
+      type = lib.types.attrs;
+      default = {};
+      description = "User-specific metadata, e.g. defaultSession per user.";
+    };
   };
 
   config = {

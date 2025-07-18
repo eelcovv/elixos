@@ -4,17 +4,20 @@
   pkgs,
   ...
 }: let
-  # Filter alle gebruikers met een defaultSession attribuut
   usersWithSession =
-    lib.filterAttrs (_name: user: user ? defaultSession) config.users.users;
+    lib.filterAttrs (
+      _name: _:
+        lib.hasAttrByPath ["userMeta" "defaultSession"] config
+        && lib.hasAttr _name config.userMeta.defaultSession
+    )
+    config.users.users;
 
-  # Maak voor elke gebruiker een environment.etc entry
   sessionEtcEntries =
-    lib.mapAttrs' (name: user: {
+    lib.mapAttrs' (name: _: {
       name = "accountsservice/users/${name}";
       value.text = ''
         [User]
-        Session=${user.defaultSession}
+        Session=${config.userMeta.defaultSession.${name}}
       '';
     })
     usersWithSession;

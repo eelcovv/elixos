@@ -40,8 +40,8 @@
     openssh.authorizedKeys.keys = config.authorizedKeys.perUser.eelco;
   };
 
-  # De default desktop session for the user eelco
-  config.eelco.defaultSession = "hyprland";
+  # the default desktop enviroment for eelco in case nothing is selected
+  userMeta.defaultSession.eelco = "hyprland";
 
   systemd.tmpfiles.rules = config.authorizedKeys.tmpfilesRules;
 }
