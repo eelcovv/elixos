@@ -4,6 +4,10 @@
   pkgs,
   ...
 }: {
+  imports = [
+    ./accountsservice-session-overrides.nix
+  ];
+
   config = lib.mkMerge [
     (import ../fonts/default.nix {inherit pkgs;}).config
 
