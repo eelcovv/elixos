@@ -1,7 +1,7 @@
 {inputs, ...}: {
   networking.hostName = "tongfang";
 
-  desktop.enableGnome = false;
+  desktop.enableGnome = true;
   desktop.enableKde = true;
   desktop.enableHyperland = true;
 
