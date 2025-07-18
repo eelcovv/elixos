@@ -8,6 +8,12 @@
   home.homeDirectory = "/home/eelco";
   home.stateVersion = "24.05";
 
+  # pick your default choise of desktop here.
+  home.file.".dmrc".text = ''
+    [Desktop]
+    Session=hyprland
+  '';
+
   imports = [
     ../modules/common-packages.nix
     ../modules/hyperland
@@ -28,9 +34,4 @@
       userEmail = "eelcovv@gmail.com";
     })
   ];
-
-  #programs.nextcloud-extra = {
-  #  enable = true;
-  #  url = "https://cloud.davelab.nl";
-  #};
 }

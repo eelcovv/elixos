@@ -27,7 +27,7 @@
       ]
     ))
 
-    (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde) {
+    (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
       services.displayManager.gdm.enable = true;
       services.displayManager.autoLogin.enable = false;
       services.displayManager.autoLogin.user = lib.mkForce null;
