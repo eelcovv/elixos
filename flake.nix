@@ -17,6 +17,7 @@
 #   - `tongfang`: Configuration for the "tongfang" host.
 #   - `generic-vm`: Configuration for a generic virtual machine, including the disko module.
 #   - `singer`: Configuration for the "singer" host.
+#   - `ellie`: Configuration for the "ellie" host.
 #   - `alloy`: Configuration for the "alloy" host.
 #   - `contabo`: Configuration for the "contabo" host.
 #
@@ -151,6 +152,19 @@
             sops-nix.nixosModules.sops
           ];
         };
+        ellie = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {
+            inherit inputs self;
+            userModulesPath = ./nixos/home/users;
+          };
+          modules = [
+            ./nixos/hosts/ellie.nix
+            disko.nixosModules.disko
+            home-manager.nixosModules.home-manager
+            sops-nix.nixosModules.sops
+          ];
+        };
         alloy = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = {
@@ -186,6 +200,7 @@
         generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
         test-vm = self.nixosConfigurations.test-vm.config.system.build.toplevel;
         singer = self.nixosConfigurations.singer.config.system.build.toplevel;
+        ellie = self.nixosConfigurations.ellie.config.system.build.toplevel;
         alloy = self.nixosConfigurations.alloy.config.system.build.toplevel;
         # contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
       };
