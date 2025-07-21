@@ -18,4 +18,7 @@ in {
   home-manager.useGlobalPkgs = true;
   home-manager.useUserPackages = true;
   home-manager.users = userConfigs;
+
+    # Create back up in case of a conflict
+  home-manager.backupFileExtension = "backup";
 }
