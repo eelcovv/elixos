@@ -1,7 +1,7 @@
 {inputs, ...}: {
   networking.hostName = "singer";
 
-  desktop.enableGnome = false;
+  desktop.enableGnome = true;
   desktop.enableKde = true;
   desktop.enableHyperland = true;
 
@@ -31,7 +31,7 @@
     ++
     # 💻 Hardware and disk setup
     [
-      ../hardware/singer.nix
+      ../hardware/singer/configuration.nix
       ../disks/singer.nix
     ]
     ++
