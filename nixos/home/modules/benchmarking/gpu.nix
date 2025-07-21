@@ -1,7 +1,10 @@
-{ config, pkgs, lib, ... }:
-
 {
-  options = { };
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
+  options = {};
   config = {
     home.packages = [
       # GPU benchmarks
@@ -14,7 +17,7 @@
     ];
 
     # Zet ~/.local/bin in je PATH voor eventuele scripts
-    home.sessionPath = [ "$HOME/.local/bin" ];
+    home.sessionPath = ["$HOME/.local/bin"];
 
     # Optioneel: voorbereid scriptmapje maken
     home.file.".local/bin/run-gpu-benchmarks".text = ''
@@ -22,14 +25,14 @@
       set -e
 
       echo "=== GLMark2 (OpenGL) benchmark ==="
-      glmark2 -f || echo "glmark2 faalde"
+      glmark2 -f || echo "glmark2 failure"
 
       echo
       echo "=== VkMark (Vulkan) benchmark ==="
-      vkmark || echo "vkmark faalde"
+      vkmark || echo "vKark failed"
 
       echo
-      echo "Klaar met GPU-benchmarks."
+      echo "Ready with GPU benchmarks. "
     '';
     home.file.".local/bin/run-gpu-benchmarks".executable = true;
   };
