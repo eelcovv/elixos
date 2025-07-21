@@ -29,21 +29,21 @@
   '';
   home.file.".local/bin/run-benchmarks".executable = true;
 
-  # Automatisch ingestelde batchconfiguratie
-  home.file.".phoronix-test-suite/user-config.xml".text = ''
-    <?xml version="1.0"?>
-    <PhoronixTestSuite>
-      <Options>
-        <SaveResults>FALSE</SaveResults>
-        <OpenBrowser>FALSE</OpenBrowser>
-        <UploadResults>FALSE</UploadResults>
-        <PromptForTestDescription>FALSE</PromptForTestDescription>
-        <PromptSaveName>FALSE</PromptSaveName>
-        <RunAllTestCombinations>FALSE</RunAllTestCombinations>
-        <RunAllTestIterations>FALSE</RunAllTestIterations>
-        <PromptSaveIdentifier>FALSE</PromptSaveIdentifier>
-      </Options>
-    </PhoronixTestSuite>
-  '';
+xdg.configFile."phoronix-test-suite/user-config.xml".text = ''
+  <?xml version="1.0"?>
+  <PhoronixTestSuite>
+    <Options>
+      <SaveResults>FALSE</SaveResults>
+      <OpenBrowser>FALSE</OpenBrowser>
+      <UploadResults>FALSE</UploadResults>
+      <PromptForTestDescription>FALSE</PromptForTestDescription>
+      <PromptSaveName>FALSE</PromptSaveName>
+      <RunAllTestCombinations>FALSE</RunAllTestCombinations>
+      <RunAllTestIterations>FALSE</RunAllTestIterations>
+      <PromptSaveIdentifier>FALSE</PromptSaveIdentifier>
+    </Options>
+  </PhoronixTestSuite>
+'';
+
 }
 
