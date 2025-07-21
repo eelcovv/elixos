@@ -21,7 +21,7 @@
     ++
     # 🔐 Secrets
     [
-      ../modules/secrets/singer-eelco.nix
+      ../modules/secrets/ellie-eelco.nix
     ]
     ++
     # 🛠️ Services
@@ -31,8 +31,8 @@
     ++
     # 💻 Hardware and disk setup
     [
-      ../hardware/singer/configuration.nix
-      ../disks/singer.nix
+      ../hardware/ellie/configuration.nix
+      ../disks/ellie.nix
     ]
     ++
     # 👤 Users
