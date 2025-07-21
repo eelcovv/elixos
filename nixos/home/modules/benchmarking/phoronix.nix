@@ -4,10 +4,9 @@
   home.packages = [
     pkgs.phoronix-test-suite
     pkgs.firefox
-    pkgs.google-chrome # optioneel, als je ook Chrome wil benchmarken
+    pkgs.google-chrome
   ];
 
-  # Script om benchmarks te draaien en op te slaan in ~/benchmarks/<datum>/
   home.file.".local/bin/run-benchmarks".text = ''
     #!/bin/sh
     set -e
@@ -29,5 +28,22 @@
       | tee "$OUTDIR/output.txt"
   '';
   home.file.".local/bin/run-benchmarks".executable = true;
+
+  # Automatisch ingestelde batchconfiguratie
+  home.file.".phoronix-test-suite/user-config.xml".text = ''
+    <?xml version="1.0"?>
+    <PhoronixTestSuite>
+      <Options>
+        <SaveResults>FALSE</SaveResults>
+        <OpenBrowser>FALSE</OpenBrowser>
+        <UploadResults>FALSE</UploadResults>
+        <PromptForTestDescription>FALSE</PromptForTestDescription>
+        <PromptSaveName>FALSE</PromptSaveName>
+        <RunAllTestCombinations>FALSE</RunAllTestCombinations>
+        <RunAllTestIterations>FALSE</RunAllTestIterations>
+        <PromptSaveIdentifier>FALSE</PromptSaveIdentifier>
+      </Options>
+    </PhoronixTestSuite>
+  '';
 }
 
