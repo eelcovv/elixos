@@ -28,6 +28,9 @@
     #  ];
     #})
 
+    (import ../modules/benchmarking { inherit lib; })
+
+
     (import ../modules/devel/git.nix {
       inherit config pkgs lib;
       userName = "Eelco van Vliet";
