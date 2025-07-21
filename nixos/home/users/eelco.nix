@@ -13,28 +13,22 @@
     [Desktop]
     Session=hyprland
   '';
-
   imports = [
-    ../modules/common-packages.nix
-    ../modules/hyperland
-    ../modules/devel-packages.nix
-    ../modules/maintainance-packages.nix
-    ../modules/office-packages.nix
+  ../modules/common-packages.nix
+  ../modules/hyperland
+  ../modules/devel-packages.nix
+  ../modules/maintainance-packages.nix
+  ../modules/office-packages.nix
 
-    #(import ../modules/office/thunderbird.nix {
-    #  inherit pkgs;
-    #  accounts = [
-    #    "eelco@davelab.nl"
-    #  ];
-    #})
+  # Uitpakken van benchmarking lijst:
+] ++ (import ../modules/benchmarking { inherit lib; }) ++ [
 
-    (import ../modules/benchmarking { inherit lib; })
+  (import ../modules/devel/git.nix {
+    inherit config pkgs lib;
+    userName = "Eelco van Vliet";
+    userEmail = "eelcovv@gmail.com";
+  })
+];
 
 
-    (import ../modules/devel/git.nix {
-      inherit config pkgs lib;
-      userName = "Eelco van Vliet";
-      userEmail = "eelcovv@gmail.com";
-    })
-  ];
 }
