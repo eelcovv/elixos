@@ -12,8 +12,5 @@
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
 
-  # LUKS declaratie – nodig naast disko!
-  boot.initrd.luks.devices."cryptroot".device = "/dev/disk/by-partlabel/luks";
-
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
