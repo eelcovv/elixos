@@ -41,7 +41,9 @@
   };
 
   # the default desktop enviroment for eelco in case nothing is selected
-  userMeta.defaultSession.eelco = "hyprland";
+  userMeta.defaultSession = {
+    eelco = "hyprland";
+  };
 
   systemd.tmpfiles.rules = config.authorizedKeys.tmpfilesRules;
 }
