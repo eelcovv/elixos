@@ -11,8 +11,8 @@
 
   # Decrypt the private SSH key into the standard OpenSSH location
   sops.secrets.id_ed25519_por = {
-    sopsFile = ../../secrets/id_ed25519_por_singer.yaml;
-    key = "id_ed25519_por_singer";
+    sopsFile = ../../secrets/id_ed25519_por_ellie.yaml;
+    key = "id_ed25519_por_ellie";
     path = "/home/por/.ssh/id_ed25519";
     owner = "por";
     group = "users";
