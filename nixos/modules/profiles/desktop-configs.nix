@@ -27,11 +27,15 @@ lib.mkMerge [
       (import ./start-keyring-daemon.nix {inherit config lib pkgs;})
     ]
   ))
-
   {
     services.displayManager.gdm.enable = true;
-    services.displayManager.autoLogin.enable = false;
-    services.displayManager.autoLogin.user = lib.mkForce null;
+
+    services.displayManager.autoLogin = {
+      enable = false;
+      user = lib.mkForce null;
+    };
+
+    services.displayManager.defaultSession = "hyprland";
 
     programs.ssh.askPassword = lib.mkForce "${pkgs.openssh}/libexec/ssh-askpass";
   }
