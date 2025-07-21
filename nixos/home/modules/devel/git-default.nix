@@ -6,6 +6,7 @@
     extraConfig = {
       core.editor = "vim";
       color.ui = true;
+      pull.rebase = lib.mkDefault false;
     };
   };
 }
