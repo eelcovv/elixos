@@ -1,7 +1,7 @@
 {inputs, ...}: {
   networking.hostName = "singer";
 
-  desktop.enableGnome = false;
+  desktop.enableGnome = true;
   desktop.enableKde = true;
   desktop.enableHyperland = true;
 
