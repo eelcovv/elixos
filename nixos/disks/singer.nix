@@ -1,10 +1,7 @@
-# run this with: sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --flake .#singer --mode zap_create_mount
 {
   disko.devices = {
     disk = {
       my-disk = {
-        # only use device references with a number like this if you dont have other hardrives!
-        # See comment with tongfang.nix
         device = "/dev/nvme0n1";
         type = "disk";
         content = {
@@ -17,11 +14,12 @@
                 type = "filesystem";
                 format = "vfat";
                 mountpoint = "/boot/efi";
-                mountOptions = ["umask=0077"];
+                mountOptions = [ "umask=0077" ];
               };
             };
-            luks = {
-              size = "100%";
+
+            luks-root = {
+              size = "50G";
               content = {
                 type = "luks";
                 name = "cryptroot";
@@ -33,9 +31,36 @@
                 };
               };
             };
+
+            luks-swap = {
+              size = "6G";
+              content = {
+                type = "luks";
+                name = "cryptswap";
+                settings.allowDiscards = true;
+                content = {
+                  type = "swap";
+                };
+              };
+            };
+
+            luks-home = {
+              size = "100%";
+              content = {
+                type = "luks";
+                name = "crypthome";
+                settings.allowDiscards = true;
+                content = {
+                  type = "filesystem";
+                  format = "ext4";
+                  mountpoint = "/home";
+                };
+              };
+            };
           };
         };
       };
     };
   };
 }
+
