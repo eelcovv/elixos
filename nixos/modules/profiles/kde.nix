@@ -1,9 +1,10 @@
 {
   lib,
   pkgs,
+  config,
   ...
 }: {
-  config = {
+  config = lib.mkIf config.desktop.enableKde {
     services.xserver.enable = true;
     services.desktopManager.plasma6.enable = true;
 
@@ -17,7 +18,6 @@
       kwallet = {
         enable = true;
       };
-      # Let op: GEEN kwallet5 hier
     };
 
     environment.sessionVariables = {
