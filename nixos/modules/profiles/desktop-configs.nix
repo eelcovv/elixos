@@ -31,39 +31,20 @@
       ]
     ))
 
-    # GDM + ssh-askpass indien een desktop actief is
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
-      services.displayManager.gdm.enable = true;
-      services.displayManager.autoLogin.enable = false;
-      services.displayManager.autoLogin.user = lib.mkForce null;
-
-      programs.ssh.askPassword = lib.mkForce "${pkgs.openssh}/libexec/ssh-askpass";
-    })
-
-    # GNOME XDG-variabelen
-    (lib.mkIf config.desktop.enableGnome {
-      environment.sessionVariables = {
-        XDG_CURRENT_DESKTOP = "GNOME";
-        XDG_SESSION_DESKTOP = "GNOME";
+      services.displayManager.gdm = {
+        enable = true;
+        wayland = true; # standaard true, maar expliciet is goed als je Wayland-sessies draait
       };
-    })
 
-    # KDE XDG-variabelen
-    (lib.mkIf config.desktop.enableKde {
-      environment.sessionVariables = {
-        XDG_CURRENT_DESKTOP = "KDE";
-        XDG_SESSION_DESKTOP = "KDE";
+      # Geen auto-login voor veiligheid
+      services.displayManager.autoLogin = {
+        enable = false;
+        user = null; # expliciet null maken via lib.mkForce is niet meer nodig hier
       };
-    })
 
-    # Hyprland XDG-variabelen
-    (lib.mkIf config.desktop.enableHyperland {
-      environment.sessionVariables = {
-        XDG_CURRENT_DESKTOP = "Hyprland";
-        XDG_SESSION_DESKTOP = "Hyprland";
-        XDG_SESSION_TYPE = "wayland";
-        XCURSOR_SIZE = "24";
-      };
+      # Zorg dat grafische ssh-wachtwoordvragen werken
+      programs.ssh.askPassword = "${pkgs.openssh}/libexec/ssh-askpass";
     })
   ];
 }
