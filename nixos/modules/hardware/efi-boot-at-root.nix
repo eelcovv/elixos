@@ -19,11 +19,16 @@
   pkgs,
   ...
 }: {
-  boot.loader = {
-    systemd-boot.enable = true;
-    systemd-boot.configurationLimit = 10;
-    systemd-boot.editor = false;
-    efi.canTouchEfiVariables = true;
-    efi.efiSysMountPoint = "/boot";
+  boot = {
+    plymouth.enable = true;
+    loader = {
+      timeout = 2;
+      systemd-boot.consoleMode = "max";
+      systemd-boot.enable = true;
+      systemd-boot.configurationLimit = 10;
+      systemd-boot.editor = false;
+      efi.canTouchEfiVariables = true;
+      efi.efiSysMountPoint = "/boot";
+    };
   };
 }
