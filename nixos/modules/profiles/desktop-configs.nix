@@ -31,7 +31,7 @@
       ]
     ))
 
-    # GDM + askpass alleen als een desktop actief is
+    # GDM + ssh-askpass indien een desktop actief is
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
       services.displayManager.gdm.enable = true;
       services.displayManager.autoLogin.enable = false;
@@ -40,24 +40,30 @@
       programs.ssh.askPassword = lib.mkForce "${pkgs.openssh}/libexec/ssh-askpass";
     })
 
-    # Zet XDG variabelen afhankelijk van actieve desktop
-    (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
-      environment.sessionVariables = lib.mkMerge [
-        (lib.mkIf config.desktop.enableGnome {
-          XDG_CURRENT_DESKTOP = "GNOME";
-          XDG_SESSION_DESKTOP = "GNOME";
-        })
-        (lib.mkIf config.desktop.enableKde {
-          XDG_CURRENT_DESKTOP = "KDE";
-          XDG_SESSION_DESKTOP = "KDE";
-        })
-        (lib.mkIf config.desktop.enableHyperland {
-          XDG_CURRENT_DESKTOP = "Hyprland";
-          XDG_SESSION_DESKTOP = "Hyprland";
-          XDG_SESSION_TYPE = "wayland";
-          XCURSOR_SIZE = "24";
-        })
-      ];
+    # GNOME XDG-variabelen
+    (lib.mkIf config.desktop.enableGnome {
+      environment.sessionVariables = {
+        XDG_CURRENT_DESKTOP = "GNOME";
+        XDG_SESSION_DESKTOP = "GNOME";
+      };
+    })
+
+    # KDE XDG-variabelen
+    (lib.mkIf config.desktop.enableKde {
+      environment.sessionVariables = {
+        XDG_CURRENT_DESKTOP = "KDE";
+        XDG_SESSION_DESKTOP = "KDE";
+      };
+    })
+
+    # Hyprland XDG-variabelen
+    (lib.mkIf config.desktop.enableHyperland {
+      environment.sessionVariables = {
+        XDG_CURRENT_DESKTOP = "Hyprland";
+        XDG_SESSION_DESKTOP = "Hyprland";
+        XDG_SESSION_TYPE = "wayland";
+        XCURSOR_SIZE = "24";
+      };
     })
   ];
 }
