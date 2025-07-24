@@ -31,6 +31,7 @@
     ++
     # 💻 Hardware and disk setup
     [
+      ../modules/hardware/bluetooth.nix
       ../hardware/singer/configuration.nix
       ../disks/singer.nix
     ]
