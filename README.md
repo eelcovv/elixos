@@ -6,7 +6,6 @@
 # elixos
 
 <!-- markdownlint-disable-next-line MD036 -->
-
 _The Declarative Cure for Your NixOS Headaches_
 
 ## 🌐 Introduction
@@ -289,6 +288,8 @@ Happy hacking with Elixos! 🧬
 
 ## Connectig with wifi
 
+### Method 1: using ip/iw and wpa_passphrase
+
 1. **Log in as root**
 
    ```shell
@@ -392,6 +393,16 @@ Also, check if you are connected to the internet with
 ```shell
 ping 1.1.1.1
 ```
+
+### Method 2: using nmtui
+
+Just start 
+
+```shell
+nmtui
+```
+
+And set you password to the network in the terminal interface.
 
 ## Starting sshd deamon
 
