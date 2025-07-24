@@ -39,5 +39,23 @@
 
       programs.ssh.askPassword = lib.mkForce "${pkgs.openssh}/libexec/ssh-askpass";
     })
+
+    # Zet XDG variabelen afhankelijk van actieve desktop
+    (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
+      environment.sessionVariables = lib.mkMerge [
+        (lib.mkIf config.desktop.enableGnome {
+          XDG_CURRENT_DESKTOP = "GNOME";
+          XDG_SESSION_DESKTOP = "GNOME";
+        })
+        (lib.mkIf config.desktop.enableKde {
+          XDG_CURRENT_DESKTOP = "KDE";
+          XDG_SESSION_DESKTOP = "KDE";
+        })
+        (lib.mkIf config.desktop.enableHyperland {
+          XDG_CURRENT_DESKTOP = "Hyprland";
+          XDG_SESSION_DESKTOP = "Hyprland";
+        })
+      ];
+    })
   ];
 }
