@@ -2,7 +2,7 @@
   disko.devices = {
     disk = {
       my-disk = {
-        device = "/dev/nvme0n1";
+        device = "/dev/disk/by-id/nvme-WDC_PC_SN530_SDBPMPZ-256G-1101_210893456004";
         type = "disk";
         content = {
           type = "gpt";
@@ -13,8 +13,8 @@
               content = {
                 type = "filesystem";
                 format = "vfat";
-                mountpoint = "/boot/efi";
-                mountOptions = [ "umask=0077" ];
+                mountpoint = "/boot";
+                mountOptions = ["umask=0077"];
               };
             };
 
@@ -63,4 +63,3 @@
     };
   };
 }
-
