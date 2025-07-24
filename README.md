@@ -396,7 +396,7 @@ ping 1.1.1.1
 
 ### Method 2: using nmtui
 
-Just start 
+Just start:
 
 ```shell
 nmtui
@@ -462,7 +462,7 @@ ssh-keygen -R "[192.168.2.3]:22"
 Alternatively, you can just open your `~/.ssh/known_hosts` file and look for the lines containing
 `192.168.2.3` and remove those lines.
 
-##### trouble shooting for logging in
+### trouble shooting for logging in
 
 In case logging in is not allowed at all, you may want to change your _/etc/ssh/sshd_config_ file.
 Since in nixos you cannot change settings files (even not as root), just copy the file to your home
