@@ -31,7 +31,7 @@
     ++
     # 💻 Hardware and disk setup
     [
-      ../hardware/singer.nix
+      ../hardware/singer/configuration.nix
       ../disks/singer.nix
     ]
     ++
