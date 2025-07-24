@@ -8,9 +8,12 @@
     services.xserver.enable = true;
     services.desktopManager.plasma6.enable = true;
 
-    environment.systemPackages = with pkgs; [
-      kdePackages.kwallet
-      kdePackages.kwallet-pam
+    environment.systemPackages = with pkgs.kdePackages; [
+      kwallet
+      kwallet-pam
+      bluedevil
+      plasma-workspace
+      plasma-browser-integration
     ];
 
     security.pam.services.kwallet = {
