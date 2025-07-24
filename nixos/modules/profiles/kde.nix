@@ -7,11 +7,17 @@
     services.xserver.enable = true;
     services.desktopManager.plasma6.enable = true;
 
-    # Enige juiste en werkende vorm:
+    environment.systemPackages = with pkgs; [
+      kdePackages.kwallet
+      kdePackages.kwallet-pam
+    ];
+
     security.pam.services.kwallet = {
       enable = true;
-      kwallet = true;
-      kwallet5 = true;
+      kwallet = {
+        enable = true;
+      };
+      # Let op: GEEN kwallet5 hier
     };
 
     environment.sessionVariables = {
