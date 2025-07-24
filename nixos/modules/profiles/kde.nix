@@ -1,15 +1,13 @@
 {
   lib,
   pkgs,
+  ...
 }: {
   config = {
     services.xserver.enable = true;
     services.desktopManager.plasma6.enable = true;
 
-    # Activeer KWallet
-    services.kwallet.enable = true;
-
-    # Zorg dat PAM-integratie werkt
+    # PAM-integratie voor KWallet
     security.pam.services.kwallet = {
       enable = true;
       kwallet = true;
