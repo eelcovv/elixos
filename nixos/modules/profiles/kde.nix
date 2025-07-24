@@ -7,11 +7,11 @@
     services.xserver.enable = true;
     services.desktopManager.plasma6.enable = true;
 
-    # PAM integration for Kwallet
+    # Enige juiste en werkende vorm:
     security.pam.services.kwallet = {
       enable = true;
-      kwallet.enable = true;
-      kwallet5.enable = true;
+      kwallet = true;
+      kwallet5 = true;
     };
 
     environment.sessionVariables = {
