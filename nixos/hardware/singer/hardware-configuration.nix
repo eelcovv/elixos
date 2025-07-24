@@ -18,8 +18,8 @@
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
   boot.initrd.luks.devices = {
-    cryptroot.device = "/dev/disk/by-partlabel/luks-root";
-    cryptswap.device = "/dev/disk/by-partlabel/luks-swap";
-    crypthome.device = "/dev/disk/by-partlabel/luks-home";
+    cryptroot.device = "/dev/disk/by-partlabel/disk-my-disk-luks-root";
+    cryptswap.device = "/dev/disk/by-partlabel/disk-my-disk-luks-swap";
+    crypthome.device = "/dev/disk/by-partlabel/disk-my-disk-luks-home";
   };
 }
