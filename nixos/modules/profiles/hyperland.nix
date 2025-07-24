@@ -24,6 +24,9 @@
       neofetch
       libnotify
       htop
+      blueman
     ];
   };
+
+  services.blueman.enable = true;
 }
