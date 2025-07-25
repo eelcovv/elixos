@@ -7,7 +7,8 @@
   # Choose one: "powerlevel10k", "ohmyposh", "robbyrussell", "agnoster", "af-magic", etc.
   #promptStyle = "powerlevel10k";
   #promptStyle = "ohmyposh";
-  promptStyle = "robbyrussell";
+  #promptStyle = "robbyrussell";
+  promptStyle = "af-magic";
 
   # Safeguard: only allow supported options
   validPromptStyles = ["powerlevel10k" "ohmyposh" "robbyrussell" "agnoster" "af-magic"];
