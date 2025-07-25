@@ -1,8 +1,14 @@
-{ config, pkgs, lib, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   programs.zsh = {
     enable = true;
 
     autosuggestion.enable = true;
+    enableCompletion = true;
     syntaxHighlighting.enable = true;
 
     # Themas available
@@ -17,12 +23,26 @@
     oh-my-zsh = {
       enable = true;
       theme = "bureau";
+      plugins = [
+        "git"
+        "z"
+        "sudo"
+        "fzf"
+        "colored-man-pages"
+      ];
     };
+
+    initExtra = ''
+      bindkey -v
+      export KEYTIMEOUT=1
+      if [ "$TERM" = "xterm-ghostty" ]; then
+        export TERM=xterm-256color
+      fi
+    '';
   };
 
   home.packages = with pkgs; [
     fzf
     zsh
-];
+  ];
 }
-
