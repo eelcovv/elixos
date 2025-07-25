@@ -33,18 +33,26 @@
     ...
   }: let
     # Reusable function to define a nixosSystem configuration
-    mkHost = hostFile: nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      specialArgs = {
-        inherit inputs self;
-        userModulesPath = ./home/users;  # Passed to Home Manager modules
+    mkHost = hostFile:
+      nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = {
+          inherit inputs self;
+          userModulesPath = ./home/users; # Passed to Home Manager modules
+        };
+        modules = [
+          hostFile
+          disko.nixosModules.disko
+          home-manager.nixosModules.home-manager
+          sops-nix.nixosModules.sops
+        ];
       };
-      modules = [
-        hostFile
-        disko.nixosModules.disko
-        home-manager.nixosModules.home-manager
-        sops-nix.nixosModules.sops
-      ];
+    homeUsers = {
+      singer = "eelco";
+      tongfang = "eelco";
+      ellie = "eelco";
+      alloy = "eelco";
+      # generic-vm = "root";  # of andere user als gewenst
     };
 
     # Map of host names to their NixOS configuration files
@@ -58,40 +66,54 @@
       # contabo = ./nixos/hosts/contabo.nix;  # Uncomment if needed
     };
   in
+    # Outputs contain two parts:
+    # - devShells: Development environments per system
+    # - nixosConfigurations: System definitions for each host
+    flake-utils.lib.eachDefaultSystem (system: {
+      devShells.default = (import nixpkgs {inherit system;}).mkShell {
+        packages = with (import nixpkgs {inherit system;}); [
+          pre-commit # Git hook runner
+          alejandra # Nix code formatter
+          rage # Age key management
+          sops # Secrets management
+          yq-go # YAML CLI processor
+          OVMF # UEFI firmware for VMs
+          qemu # Virtual machine tool
+          git
+          openssh
+          age # Age encryption tool
+          just # Task runner
+          prettier # JS/CSS/JSON formatter
+          nodejs # Required by prettier
+        ];
 
-  # Outputs contain two parts:
-  # - devShells: Development environments per system
-  # - nixosConfigurations: System definitions for each host
-  flake-utils.lib.eachDefaultSystem (system: {
-    devShells.default = (import nixpkgs { inherit system; }).mkShell {
-      packages = with (import nixpkgs { inherit system; }); [
-        pre-commit     # Git hook runner
-        alejandra      # Nix code formatter
-        rage           # Age key management
-        sops           # Secrets management
-        yq-go          # YAML CLI processor
-        OVMF           # UEFI firmware for VMs
-        qemu           # Virtual machine tool
-        git
-        openssh
-        age            # Age encryption tool
-        just           # Task runner
-        prettier       # JS/CSS/JSON formatter
-        nodejs         # Required by prettier
-      ];
+        shellHook = ''
+          echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
+        '';
+      };
+    })
+    // {
+      # System configuration per host
+      nixosConfigurations = builtins.mapAttrs (_name: mkHost) hostFiles;
 
-      shellHook = ''
-        echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
-      '';
+      homeConfigurations =
+        builtins.mapAttrs (
+          hostname: username:
+            home-manager.lib.homeManagerConfiguration {
+              system = "x86_64-linux";
+              pkgs = nixpkgs.legacyPackages.x86_64-linux;
+              modules = [./home/users/${username}.nix];
+              extraSpecialArgs = {
+                inherit inputs self;
+              };
+            }
+        )
+        homeUsers;
+
+      # Package outputs (e.g., used by nix build .#tongfang)
+      packages.x86_64-linux = builtins.mapAttrs (
+        _name: cfg:
+          cfg.config.system.build.toplevel
+      ) (builtins.removeAttrs (builtins.mapAttrs (_: mkHost) hostFiles) ["test-vm"]);
     };
-  }) // {
-    # System configuration per host
-    nixosConfigurations = builtins.mapAttrs (_name: mkHost) hostFiles;
-
-    # Package outputs (e.g., used by nix build .#tongfang)
-    packages.x86_64-linux = builtins.mapAttrs (_name: cfg:
-      cfg.config.system.build.toplevel
-    ) (builtins.removeAttrs (builtins.mapAttrs (_: mkHost) hostFiles) [ "test-vm" ]);
-  };
 }
-
