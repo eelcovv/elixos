@@ -6,10 +6,6 @@
 }: {
   programs.kitty = {
     enable = true;
-    font = {
-      name = "JetBrainsMono Nerd Font";
-      size = 12;
-    };
     settings = {
       remember_window_size = false;
       initial_window_width = 950;
@@ -34,11 +30,6 @@
       include ${config.xdg.configHome}/kitty/custom.conf
     '';
   };
-
-  # Installeer font als nog niet aanwezig
-  home.packages = with pkgs; [
-    (nerdfonts.override {fonts = ["JetBrainsMono"];})
-  ];
 
   # Declaratief meegekopieerde configuratiebestanden
   xdg.configFile."kitty/kitty.conf".source = ./kitty.conf;
