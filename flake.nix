@@ -92,7 +92,7 @@
           system = "x86_64-linux";
           specialArgs = {
             inherit inputs self;
-            userModulesPath = ./nixos/home/users;
+            userModulesPath = ./home/users;
           };
           modules = [
             ./nixos/hosts/tongfang.nix
@@ -106,7 +106,7 @@
           system = "x86_64-linux";
           specialArgs = {
             inherit inputs self;
-            userModulesPath = ./nixos/home/users;
+            userModulesPath = ./home/users;
           };
           modules = [
             ./nixos/hosts/generic-vm.nix
@@ -120,7 +120,7 @@
           system = "x86_64-linux";
           specialArgs = {
             inherit inputs self;
-            userModulesPath = ./nixos/home/users;
+            userModulesPath = ./home/users;
           };
           modules = [
             ./nixos/hosts/test-vm.nix
@@ -131,7 +131,7 @@
           system = "x86_64-linux";
           specialArgs = {
             inherit inputs self;
-            userModulesPath = ./nixos/home/users;
+            userModulesPath = ./home/users;
           };
           modules = [
             ./nixos/hosts/singer.nix
@@ -144,7 +144,7 @@
           system = "x86_64-linux";
           specialArgs = {
             inherit inputs self;
-            userModulesPath = ./nixos/home/users;
+            userModulesPath = ./home/users;
           };
           modules = [
             ./nixos/hosts/ellie.nix
@@ -157,7 +157,7 @@
           system = "x86_64-linux";
           specialArgs = {
             inherit inputs self;
-            userModulesPath = ./nixos/home/users;
+            userModulesPath = ./home/users;
           };
           modules = [
             ./nixos/hosts/alloy.nix
@@ -171,7 +171,7 @@
         #   system = "x86_64-linux";
         #   specialArgs = {
         #     inherit inputs self;
-        #     userModulesPath = ./nixos/home/users;
+        #     userModulesPath = ./home/users;
         #   };
         #   modules = [
         #     ./nixos/hosts/contabo.nix
