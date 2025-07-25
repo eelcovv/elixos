@@ -1,0 +1,16 @@
+[font]
+normal = { family = "JetBrainsMono Nerd Font", style = "Regular" }
+size = 12.0
+
+[window]
+dimensions = { columns = 100, lines = 30 }
+padding = { x = 10, y = 10 }
+opacity = 0.85
+decorations = "none"
+
+[scrolling]
+history = 2000
+
+[cursor]
+style = { shape = "Block", blinking = "On" }
+
