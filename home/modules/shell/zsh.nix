@@ -1,13 +1,10 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
+{ config, pkgs, lib, ... }: {
   programs.zsh = {
     enable = true;
-    enableAutosuggestions.enable;
-    enableSyntaxHighlighting.enable;
+
+    autosuggestion.enable = true;
+    syntaxHighlighting.enable = true;
+
     oh-my-zsh = {
       enable = true;
       theme = "agnoster";
@@ -17,5 +14,6 @@
   home.packages = with pkgs; [
     fzf
     zsh
-  ];
+];
 }
+
