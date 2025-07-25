@@ -227,6 +227,9 @@ install HOST:
 switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
 
+home USER HOST:
+	home-manager switch --flake .#{{USER}}{{HOST}}
+
 home USER:
 	home-manager switch --flake .#{{USER}}
 
