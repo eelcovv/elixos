@@ -48,11 +48,10 @@
         ];
       };
     homeUsers = {
-      singer = "eelco";
-      tongfang = "eelco";
-      ellie = "eelco";
-      alloy = "eelco";
-      # generic-vm = "root";  # of andere user als gewenst
+      "eelco@singer" = ./home/users/eelco.nix;
+      "eelco@tongfang" = ./home/users/eelco.nix;
+      "eelco@ellie" = ./home/users/eelco.nix;
+      "eelco@alloy" = ./home/users/eelco.nix;
     };
 
     # Map of host names to their NixOS configuration files
@@ -98,11 +97,10 @@
 
       homeConfigurations =
         builtins.mapAttrs (
-          hostname: username:
+          fullKey: moduleFile:
             home-manager.lib.homeManagerConfiguration {
-              system = "x86_64-linux";
               pkgs = nixpkgs.legacyPackages.x86_64-linux;
-              modules = [./home/users/${username}.nix];
+              modules = [moduleFile];
               extraSpecialArgs = {
                 inherit inputs self;
               };
