@@ -38,6 +38,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
     disko.url = "github:nix-community/disko";
     sops-nix.url = "github:Mic92/sops-nix";
     flake-utils.url = "github:numtide/flake-utils";
@@ -85,19 +86,6 @@
       }
     )
     // {
-      # Home Manager configuration
-      homeConfigurations = {
-        eelco = home-manager.lib.homeManagerConfiguration {
-          pkgs = nixpkgs.legacyPackages.x86_64-linux;
-          modules = [
-            ./nixos/home/users/eelco.nix
-          ];
-          extraSpecialArgs = {
-            inherit inputs;
-          };
-        };
-      };
-
       # NixOS system configurations
       nixosConfigurations = {
         tongfang = nixpkgs.lib.nixosSystem {

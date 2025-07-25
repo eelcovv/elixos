@@ -20,6 +20,7 @@
       ../modules/devel-packages.nix
       ../modules/maintainance-packages.nix
       ../modules/office-packages.nix
+      ../modules/shell/zsh.nix
 
       # Uitpakken van benchmarking lijst:
     ]
