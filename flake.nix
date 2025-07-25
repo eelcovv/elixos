@@ -1,196 +1,97 @@
-# This is a Nix flake configuration file for managing multiple NixOS configurations.
-#
-# ## Description
-# The flake defines a set of inputs and outputs to manage NixOS systems, packages,
-# and configurations. It uses various external repositories as inputs, such as
-# nixpkgs, nixos-hardware, home-manager, disko, and sops.
-#
-# ## Inputs
-# - `nixpkgs`: Points to the NixOS unstable channel for the latest packages and modules.
-# - `nixos-hardware`: Provides hardware-specific configurations for NixOS.
-# - `home-manager`: A module for managing user environments and dotfiles.
-# - `disko`: A tool for declarative disk partitioning and formatting.
-# - `sops-nix`: A tool for managing age-encrypted secrets.
-#
-# ## Outputs
-# - `nixosConfigurations`: Defines multiple NixOS configurations for different systems:
-#   - `tongfang`: Configuration for the "tongfang" host.
-#   - `generic-vm`: Configuration for a generic virtual machine, including the disko module.
-#   - `singer`: Configuration for the "singer" host.
-#   - `ellie`: Configuration for the "ellie" host.
-#   - `alloy`: Configuration for the "alloy" host.
-#   - `contabo`: Configuration for the "contabo" host.
-#
-# - `packages.x86_64-linux`: Provides the top-level system build outputs for each configuration:
-#   - `tongfang`: Build output for the "tongfang" host.
-#   - `generic-vm`: Build output for the generic virtual machine.
-#   - `alloy`: Build output for the "alloy" host.
-#   - `contabo`: Build output for the "contabo" host.
-#
-# ## Notes
-# - The `specialArgs` attribute is used to pass the flake inputs and self-reference to the NixOS configurations.
-# - The `modules` attribute specifies the NixOS modules to include for each configuration.
-# - The `disko.nixosModules.disko` module is included in the `generic-vm` configuration for disk management.
 {
-  description = "Eelco's NixOS Configuratie";
+  description = "Eelco's NixOS Configuration";
 
+  # Inputs: Define external sources for modules, tools and package sets
   inputs = {
+    # Official NixOS package set (unstable channel)
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    # Hardware-specific modules for various devices
     nixos-hardware.url = "github:NixOS/nixos-hardware";
+
+    # Home Manager for managing user environments and dotfiles
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Declarative disk partitioning and formatting
     disko.url = "github:nix-community/disko";
+
+    # Encrypted secret management using age/sops
     sops-nix.url = "github:Mic92/sops-nix";
+
+    # Utility flake to build per-system outputs (devShells, packages, etc.)
     flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs = inputs @ {
     self,
     nixpkgs,
-    nixos-hardware,
-    home-manager,
     disko,
+    home-manager,
     sops-nix,
     flake-utils,
     ...
-  }:
-    flake-utils.lib.eachDefaultSystem (
-      system: let
-        pkgs = import nixpkgs {
-          inherit system;
-        };
-      in {
-        # Development shell for tools like pre-commit, alejandra, rage, etc.
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            pre-commit
-            alejandra
-            rage
-            sops
-            yq-go
-            OVMF
-            qemu
-            git
-            openssh
-            age
-            just
-            prettier
-            pre-commit
-            nodejs # Needed for Prettier Cli
-          ];
-
-          shellHook = ''
-            echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
-          '';
-        };
-      }
-    )
-    // {
-      # NixOS system configurations
-      nixosConfigurations = {
-        tongfang = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = {
-            inherit inputs self;
-            userModulesPath = ./home/users;
-          };
-          modules = [
-            ./nixos/hosts/tongfang.nix
-            disko.nixosModules.disko
-            home-manager.nixosModules.home-manager
-            sops-nix.nixosModules.sops
-          ];
-        };
-
-        generic-vm = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = {
-            inherit inputs self;
-            userModulesPath = ./home/users;
-          };
-          modules = [
-            ./nixos/hosts/generic-vm.nix
-            disko.nixosModules.disko
-            home-manager.nixosModules.home-manager
-            sops-nix.nixosModules.sops
-          ];
-        };
-
-        test-vm = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = {
-            inherit inputs self;
-            userModulesPath = ./home/users;
-          };
-          modules = [
-            ./nixos/hosts/test-vm.nix
-          ];
-        };
-
-        singer = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = {
-            inherit inputs self;
-            userModulesPath = ./home/users;
-          };
-          modules = [
-            ./nixos/hosts/singer.nix
-            disko.nixosModules.disko
-            home-manager.nixosModules.home-manager
-            sops-nix.nixosModules.sops
-          ];
-        };
-        ellie = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = {
-            inherit inputs self;
-            userModulesPath = ./home/users;
-          };
-          modules = [
-            ./nixos/hosts/ellie.nix
-            disko.nixosModules.disko
-            home-manager.nixosModules.home-manager
-            sops-nix.nixosModules.sops
-          ];
-        };
-        alloy = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = {
-            inherit inputs self;
-            userModulesPath = ./home/users;
-          };
-          modules = [
-            ./nixos/hosts/alloy.nix
-            disko.nixosModules.disko
-            home-manager.nixosModules.home-manager
-            sops-nix.nixosModules.sops
-          ];
-        };
-
-        # contabo = nixpkgs.lib.nixosSystem {
-        #   system = "x86_64-linux";
-        #   specialArgs = {
-        #     inherit inputs self;
-        #     userModulesPath = ./home/users;
-        #   };
-        #   modules = [
-        #     ./nixos/hosts/contabo.nix
-        #     disko.nixosModules.disko
-        #     home-manager.nixosModules.home-manager
-        #     sops-nix.nixosModules.sops
-        #   ];
-        # };
+  }: let
+    # Reusable function to define a nixosSystem configuration
+    mkHost = hostFile: nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = {
+        inherit inputs self;
+        userModulesPath = ./home/users;  # Passed to Home Manager modules
       };
-
-      # Toplevel system packages per host
-      packages.x86_64-linux = rec {
-        tongfang = self.nixosConfigurations.tongfang.config.system.build.toplevel;
-        generic-vm = self.nixosConfigurations.generic-vm.config.system.build.toplevel;
-        test-vm = self.nixosConfigurations.test-vm.config.system.build.toplevel;
-        singer = self.nixosConfigurations.singer.config.system.build.toplevel;
-        ellie = self.nixosConfigurations.ellie.config.system.build.toplevel;
-        alloy = self.nixosConfigurations.alloy.config.system.build.toplevel;
-        # contabo = self.nixosConfigurations.contabo.config.system.build.toplevel;
-      };
+      modules = [
+        hostFile
+        disko.nixosModules.disko
+        home-manager.nixosModules.home-manager
+        sops-nix.nixosModules.sops
+      ];
     };
+
+    # Map of host names to their NixOS configuration files
+    hostFiles = {
+      tongfang = ./nixos/hosts/tongfang.nix;
+      generic-vm = ./nixos/hosts/generic-vm.nix;
+      test-vm = ./nixos/hosts/test-vm.nix;
+      singer = ./nixos/hosts/singer.nix;
+      ellie = ./nixos/hosts/ellie.nix;
+      alloy = ./nixos/hosts/alloy.nix;
+      # contabo = ./nixos/hosts/contabo.nix;  # Uncomment if needed
+    };
+  in
+
+  # Outputs contain two parts:
+  # - devShells: Development environments per system
+  # - nixosConfigurations: System definitions for each host
+  flake-utils.lib.eachDefaultSystem (system: {
+    devShells.default = (import nixpkgs { inherit system; }).mkShell {
+      packages = with (import nixpkgs { inherit system; }); [
+        pre-commit     # Git hook runner
+        alejandra      # Nix code formatter
+        rage           # Age key management
+        sops           # Secrets management
+        yq-go          # YAML CLI processor
+        OVMF           # UEFI firmware for VMs
+        qemu           # Virtual machine tool
+        git
+        openssh
+        age            # Age encryption tool
+        just           # Task runner
+        prettier       # JS/CSS/JSON formatter
+        nodejs         # Required by prettier
+      ];
+
+      shellHook = ''
+        echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
+      '';
+    };
+  }) // {
+    # System configuration per host
+    nixosConfigurations = builtins.mapAttrs (_name: mkHost) hostFiles;
+
+    # Package outputs (e.g., used by nix build .#tongfang)
+    packages.x86_64-linux = builtins.mapAttrs (_name: cfg:
+      cfg.config.system.build.toplevel
+    ) (builtins.removeAttrs (builtins.mapAttrs (_: mkHost) hostFiles) [ "test-vm" ]);
+  };
 }
+
