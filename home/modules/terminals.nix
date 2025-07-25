@@ -8,5 +8,6 @@
   imports = [
     ./terminals/kitty
     ./terminals/alacritty
+    ./terminals/foot
   ];
 }
