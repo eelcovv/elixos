@@ -8,33 +8,18 @@
     enable = true;
 
     ohMyZsh = {
-      enable = true;
-      theme = "agnoster"; # Of bv. "robbyrussell", "powerlevel10k" als je dat later toevoegt
-      #plugins = [
-      #  "git"
-      #  "z"
-      ##  "sudo"
-      #  "fzf"
-      #  "colored-man-pages"
-      #];
+      enable = true; # ✅ dit is verplicht!
+      theme = "agnoster";
     };
 
-    #enableCompletion = true;
-
-    # autosuggestions.enable = true;
-    #syntaxHighlighting.enable = true;
-
-    #initExtra = ''
-    #  bindkey -v
-    #  export KEYTIMEOUT=1
-    #  if [ "$TERM" = "xterm-ghostty" ]; then
-    #    export TERM=xterm-256color
-    #  fi
-    #'';
+    enableCompletion = true;
+    autosuggestions.enable = true;
+    syntaxHighlighting.enable = true;
   };
 
   home.packages = with pkgs; [
     fzf
     zsh
+    oh-my-zsh
   ];
 }

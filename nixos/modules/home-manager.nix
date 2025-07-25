@@ -6,7 +6,9 @@
   userModulesPath,
   ...
 }: let
-  userConfigs = lib.genAttrs config.configuredUsers (
+  users = config.configuredUsers or [];
+
+  userConfigs = lib.genAttrs users (
     user: let
       path = userModulesPath + "/${user}.nix";
     in
