@@ -19,11 +19,15 @@
       ../modules/hyperland
       ../modules/maintainance-packages.nix
       ../modules/office-packages.nix
-      ../modules/shell/zsh.nix
 
       # Uitpakken van benchmarking lijst:
     ]
     ++ (import ../modules/benchmarking {inherit lib;})
+    ++ [
+      (import ../modules/shell/zsh.nix {
+        inherit pkgs lib config;
+      })
+    ]
     ++ [
       (import ../modules/devel/git.nix {
         inherit config pkgs lib;
