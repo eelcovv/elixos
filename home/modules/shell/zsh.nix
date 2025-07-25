@@ -10,13 +10,13 @@
     ohMyZsh = {
       enable = true;
       theme = "agnoster"; # Of bv. "robbyrussell", "powerlevel10k" als je dat later toevoegt
-      plugins = [
-        "git"
-        "z"
-        "sudo"
-        "fzf"
-        "colored-man-pages"
-      ];
+      #plugins = [
+      #  "git"
+      #  "z"
+      ##  "sudo"
+      #  "fzf"
+      #  "colored-man-pages"
+      #];
     };
 
     #enableCompletion = true;
