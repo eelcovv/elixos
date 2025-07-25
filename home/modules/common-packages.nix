@@ -5,6 +5,7 @@
   ...
 }: {
   imports = [
+    ./fonts.nix
     ./devel/git-default.nix
     ./shell/bash.nix
     ./shell/inputrc.nix
