@@ -19,10 +19,11 @@
     # | `bureau`        | Zakelijk: pad, tijd, git-status                              |
     # | `af-magic`      | Compact, toont exitcode, tijd en git                         |
     # | `powerlevel10k` | Extreem configureerbaar, snel, icons, git, context (extern!) |
+    # note: for powerlevel10k you need to add the lines below to source the configuration file
 
     oh-my-zsh = {
       enable = true;
-      theme = "bureau";
+      theme = "";
       plugins = [
         "git"
         "z"
@@ -34,6 +35,8 @@
 
     # bindkey activates editing mode vi
     initContent = ''
+      source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
+      [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
       bindkey -v
       export KEYTIMEOUT=1
       if [ "$TERM" = "xterm-ghostty" ]; then
@@ -42,8 +45,13 @@
     '';
   };
 
-  home.packages = with pkgs; [
-    fzf
-    zsh
-  ];
+  home = {
+    file.".p10k.zsh".source = ./p10k.zsh;
+
+    packages = with pkgs; [
+      fzf
+      zsh
+      zsh-powerlevel10k
+    ];
+  };
 }
