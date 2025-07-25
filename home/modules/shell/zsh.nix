@@ -6,8 +6,8 @@
 }: {
   programs.zsh = {
     enable = true;
-    enableAutosuggestions.enable = true;
-    enableSyntaxHighlighting.enable = true;
+    enableAutosuggestions.enable;
+    enableSyntaxHighlighting.enable;
     oh-my-zsh = {
       enable = true;
       theme = "agnoster";
