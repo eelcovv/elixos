@@ -4,9 +4,10 @@
   lib,
   ...
 }: {
+  # note that we import zsh via users
   imports = [
-    ./devel/git-default.nix
-    ./devel/vscode.nix
+    ./shell/bash.nix
+    ./shell/inputrc.nix
   ];
 
   home.packages = with pkgs; [

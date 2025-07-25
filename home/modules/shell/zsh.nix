@@ -16,7 +16,7 @@
 
     oh-my-zsh = {
       enable = true;
-      theme = "powerlevel10k";
+      theme = "bureau";
     };
   };
 
