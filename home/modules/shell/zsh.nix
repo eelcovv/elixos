@@ -23,7 +23,7 @@
 
     oh-my-zsh = {
       enable = true;
-      theme = "robbyrussell";
+      theme = "";
       plugins = [
         "git"
         "z"
@@ -40,11 +40,11 @@
     # bindkey activates editing mode vi
     initContent = ''
       # uncomment for powerlevel10k
-      # source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
-      # [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+      source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
+      [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
-      # Enable oh-my-posh prompt
-      eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/zen.toml)"
+      # Enable oh-my-posh prompt,
+      # eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/zen.toml)"
 
       bindkey -v
       export KEYTIMEOUT=1
