@@ -228,7 +228,7 @@ switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
 
 home USER HOST:
-	home-manager switch --flake .#{{USER}}{{HOST}}
+	home-manager switch --flake .#{{USER}}@{{HOST}}
 
 # ========== NETWORK INSTALL HELPERS ==========
 ssh-copy-key:
