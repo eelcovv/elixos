@@ -62,6 +62,7 @@
     '';
   };
 
+  # needed for ohmyposh
   xdg.configFile."ohmyposh/zen.toml".source = ./ohmyposh/zen.toml;
 
   home = {
