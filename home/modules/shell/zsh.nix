@@ -32,7 +32,8 @@
       ];
     };
 
-    initExtra = ''
+    # bindkey activates editing mode vi
+    initContent = ''
       bindkey -v
       export KEYTIMEOUT=1
       if [ "$TERM" = "xterm-ghostty" ]; then
