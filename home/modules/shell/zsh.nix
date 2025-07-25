@@ -12,7 +12,7 @@
     # | `robbyrussell`  | Simpel, toont alleen Git-branch bij prompt                   |
     # | `bureau`        | Zakelijk: pad, tijd, git-status                              |
     # | `af-magic`      | Compact, toont exitcode, tijd en git                         |
-| `powerlevel10k` | Extreem configureerbaar, snel, icons, git, context (extern!) |
+    # | `powerlevel10k` | Extreem configureerbaar, snel, icons, git, context (extern!) |
 
     oh-my-zsh = {
       enable = true;
