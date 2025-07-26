@@ -32,3 +32,15 @@ hi Pmenu ctermbg=NONE ctermfg=NONE guibg=NONE
 hi FloatBorder ctermbg=NONE ctermfg=NONE guibg=NONE
 hi NormalFloat ctermbg=NONE ctermfg=NONE guibg=NONE
 hi TabLine ctermbg=None ctermfg=None guibg=None
+
+lua << EOF
+require'nvim-treesitter.configs'.setup {
+  ensure_installed = { "python", "latex", "nix", "lua" },
+  highlight = { enable = true },
+}
+
+local lspconfig = require('lspconfig')
+lspconfig.pyright.setup{}
+lspconfig.texlab.setup{}
+lspconfig.nil_ls.setup{}
+EOF
