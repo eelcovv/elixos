@@ -25,6 +25,7 @@
       cmp-buffer # buffer completion
       cmp-path # file path completion
       lspkind-nvim # nice icons in autocompletion
+      lualine-nvim # statusline
     ];
   };
 
@@ -32,6 +33,6 @@
 
   home.packages = with pkgs; [
     vim-spell-en
-    vim-spell-nl # optioneel, Nederlands
+    vim-spell-nl
   ];
 }

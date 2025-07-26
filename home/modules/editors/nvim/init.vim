@@ -19,9 +19,13 @@ set clipboard=unnamedplus   " using system clipboard
 filetype plugin on
 " set cursorline              " highlight current cursorline
 set ttyfast                 " Speed up scrolling in Vim
-set spell                 " enable spell check (may need to download language package)
 set noswapfile            " disable creating swap file
 " set backupdir=~/.cache/vim " Directory to store backup files.
+
+set spell                 " enable spell check (may need to download language package)
+set spelllang=en_us,nl
+set spell
+
 
 let mapleader = ","
 
@@ -30,6 +34,12 @@ nnoremap <leader>tg :colorscheme gruvbox<CR>
 nnoremap <leader>tt :colorscheme tokyonight<CR>
 nnoremap <leader>tc :colorscheme catppuccin<CR>
 nnoremap <leader>tn :colorscheme nord<CR>
+
+" Snel wisselen tussen NL en EN spelling
+nnoremap <leader>se :set spelllang=en_us<CR>
+nnoremap <leader>sn :set spelllang=nl<CR>
+nnoremap <leader>ss :set spell!<CR> " toggle spell on/off
+
 
 
 hi NonText ctermbg=none guibg=NONE
