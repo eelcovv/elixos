@@ -11,8 +11,4 @@
   };
 
   home.file.".vimrc".source = ./vimrc;
-
-  home.packages = with pkgs; [
-    vim
-  ];
 }
