@@ -55,10 +55,10 @@ input=$listNames2
 read -ra array <<<"$input"
 
 # -----------------------------------------------------
-# Set new theme by writing the theme information to ~/.config/ml4w/settings/waybar-theme.sh
+# Set new theme by writing the theme information to ~/.config/hypr/settings/waybar-theme.sh
 # -----------------------------------------------------
 if [ "$choice" ]; then
     echo "Loading waybar theme..."
-    echo "${listThemes[$choice + 1]}" >~/.config/ml4w/settings/waybar-theme.sh
+    echo "${listThemes[$choice + 1]}" >~/.config/hypr/settings/waybar-theme.sh
     ~/.config/waybar/launch.sh
 fi

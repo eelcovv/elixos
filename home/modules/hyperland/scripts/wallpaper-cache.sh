@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ml4w_cache_folder="$HOME/.cache/ml4w/hyprland-dotfiles"
+ml4w_cache_folder="$HOME/.cache/hyprlock-assets"
 
 generated_versions="$ml4w_cache_folder/wallpaper-generated"
 

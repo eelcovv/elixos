@@ -14,9 +14,9 @@
 # Set defaults
 # -----------------------------------------------------
 
-ml4w_cache_folder="$HOME/.cache/ml4w/hyprland-dotfiles"
+ml4w_cache_folder="$HOME/.cache/hyprlock-assets"
 
-defaultwallpaper="$HOME/.config/ml4w/wallpapers/default.jpg"
+defaultwallpaper="$HOME/.config/wallpapers/default.jpg"
 
 cachefile="$ml4w_cache_folder/current_wallpaper"
 

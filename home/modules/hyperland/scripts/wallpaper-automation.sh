@@ -6,9 +6,9 @@
 # /_/   \_\__,_|\__\___/     \_/\_/  |_|
 #
 
-ml4w_cache_folder="$HOME/.cache/ml4w/hyprland-dotfiles"
+ml4w_cache_folder="$HOME/.cache/hyprlock-assets"
 
-sec=$(cat ~/.config/ml4w/settings/wallpaper-automation.sh)
+sec=$(cat ~/.config/hypr/settings/wallpaper-automation.sh)
 _setWallpaperRandomly() {
     waypaper --random
     echo ":: Next wallpaper in 60 seconds..."

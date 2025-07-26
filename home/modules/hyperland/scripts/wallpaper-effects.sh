@@ -6,7 +6,7 @@
 #    \_/\_/  |_|     |_____|_| |_|  \___|\___|\__|___/
 #
 
-ml4w_cache_folder="$HOME/.cache/ml4w/hyprland-dotfiles"
+ml4w_cache_folder="$HOME/.cache/hyprlock-assets"
 
 # Get current wallpaper
 cache_file="$ml4w_cache_folder/current_wallpaper"
@@ -21,7 +21,7 @@ else
     # Open rofi
     choice=$(echo -e "$options" | rofi -dmenu -replace -config ~/.config/rofi/config-themes.rasi -i -no-show-icons -l 5 -width 30 -p "Hyprshade")
     if [ ! -z $choice ]; then
-        echo "$choice" >~/.config/ml4w/settings/wallpaper-effect.sh
+        echo "$choice" >~/.config/hypr/settings/wallpaper-effect.sh
         notify-send "Changing Wallpaper Effect to " "$choice"
         waypaper --wallpaper $(cat $cache_file)
     fi

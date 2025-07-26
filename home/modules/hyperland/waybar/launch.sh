@@ -26,13 +26,13 @@ sleep 0.5
 themestyle="/ml4w-modern;/ml4w-modern/light"
 
 # -----------------------------------------------------
-# Get current theme information from ~/.config/ml4w/settings/waybar-theme.sh
+# Get current theme information from ~/.config/hypr/settings/waybar-theme.sh
 # -----------------------------------------------------
-if [ -f ~/.config/ml4w/settings/waybar-theme.sh ]; then
-    themestyle=$(cat ~/.config/ml4w/settings/waybar-theme.sh)
+if [ -f ~/.config/hypr/settings/waybar-theme.sh ]; then
+    themestyle=$(cat ~/.config/hypr/settings/waybar-theme.sh)
 else
-    touch ~/.config/ml4w/settings/waybar-theme.sh
-    echo "$themestyle" >~/.config/ml4w/settings/waybar-theme.sh
+    touch ~/.config/hypr/settings/waybar-theme.sh
+    echo "$themestyle" >~/.config/hypr/settings/waybar-theme.sh
 fi
 
 IFS=';' read -ra arrThemes <<<"$themestyle"
@@ -57,7 +57,7 @@ if [ -f ~/.config/waybar/themes${arrThemes[1]}/style-custom.css ]; then
 fi
 
 # Check if waybar-disabled file exists
-if [ ! -f $HOME/.config/ml4w/settings/waybar-disabled ]; then
+if [ ! -f $HOME/.config/hypr/settings/waybar-disabled ]; then
     waybar -c ~/.config/waybar/themes${arrThemes[0]}/$config_file -s ~/.config/waybar/themes${arrThemes[1]}/$style_file &
 else
     echo ":: Waybar disabled"
