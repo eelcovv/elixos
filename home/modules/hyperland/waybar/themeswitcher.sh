@@ -4,61 +4,65 @@
 #   | | | '_ \ / _ \ '_ ` _ \ / _ \/ __\ \ /\ / / | __/ __| '_ \ / _ \ '__|
 #   | | | | | |  __/ | | | | |  __/\__ \\ V  V /| | || (__| | | |  __/ |
 #   |_| |_| |_|\___|_| |_| |_|\___||___/ \_/\_/ |_|\__\___|_| |_|\___|_|
-#
+
 # by Stephan Raabe (2024)
 # -----------------------------------------------------
 
-# -----------------------------------------------------
+set -euo pipefail
+
 # Default theme folder
-# -----------------------------------------------------
 themes_path="$HOME/.config/waybar/themes"
+settings_file="$HOME/.config/hypr/settings/waybar-theme.sh"
 
-# -----------------------------------------------------
+# Create settings dir if missing
+mkdir -p "$(dirname "$settings_file")"
+
 # Initialize arrays
-# -----------------------------------------------------
-listThemes=""
-listNames=""
-listNames2=""
+declare -a listThemes
+declare -a listNames
 
-# -----------------------------------------------------
-# Read theme folder
-# -----------------------------------------------------
-sleep 0.2
-options=$(find $themes_path -maxdepth 2 -type d)
-for value in $options; do
-    if [ ! $value == "$HOME/.config/waybar/themes/assets" ]; then
-        if [ ! $value == "$themes_path" ]; then
-            if [ $(find $value -maxdepth 1 -type d | wc -l) = 1 ]; then
-                result=$(echo $value | sed "s#$HOME/.config/waybar/themes/#/#g")
-                IFS='/' read -ra arrThemes <<<"$result"
-                listThemes[${#listThemes[@]}]="/${arrThemes[1]};$result"
-                if [ -f $themes_path$result/config.sh ]; then
-                    source $themes_path$result/config.sh
-                    listNames+="$theme_name\n"
-                    listNames2+="$theme_name~"
-                else
-                    listNames+="/${arrThemes[1]};$result\n"
-                    listNames2+="/${arrThemes[1]};$result~"
-                fi
-            fi
+# Read theme folders
+while IFS= read -r -d '' theme_dir; do
+    # Skip "assets" and root
+    [[ "$theme_dir" == "$themes_path" || "$theme_dir" == "$themes_path/assets" ]] && continue
+
+    # Only include leaf directories (no subfolders)
+    if [[ "$(find "$theme_dir" -mindepth 1 -type d | wc -l)" == "0" ]]; then
+        rel_path="${theme_dir#$themes_path}"
+        theme_id="${rel_path#/}" # remove leading slash
+
+        theme_entry="/$theme_id;$rel_path"
+        config_file="$theme_dir/config.sh"
+
+        if [[ -f "$config_file" ]]; then
+            # shellcheck disable=SC1090
+            source "$config_file"
+            listNames+=("$theme_name")
+        else
+            listNames+=("$theme_id;$rel_path")
         fi
+
+        listThemes+=("$theme_entry")
     fi
-done
+done < <(find "$themes_path" -mindepth 1 -maxdepth 1 -type d -print0)
 
-# -----------------------------------------------------
-# Show rofi dialog
-# -----------------------------------------------------
-listNames=${listNames::-2}
-choice=$(echo -e "$listNames" | rofi -dmenu -replace -i -config ~/.config/rofi/config-themes.rasi -no-show-icons -width 30 -p "Themes" -format i)
-IFS="~"
-input=$listNames2
-read -ra array <<<"$input"
-
-# -----------------------------------------------------
-# Set new theme by writing the theme information to ~/.config/hypr/settings/waybar-theme.sh
-# -----------------------------------------------------
-if [ "$choice" ]; then
-    echo "Loading waybar theme..."
-    echo "${listThemes[$choice + 1]}" >~/.config/hypr/settings/waybar-theme.sh
-    ~/.config/waybar/launch.sh
+# Exit if no themes found
+if [[ "${#listThemes[@]}" -eq 0 ]]; then
+    notify-send "No themes found" "No Waybar themes detected in $themes_path"
+    exit 1
 fi
+
+# Show rofi menu
+menu=$(printf "%s\n" "${listNames[@]}")
+choice=$(echo -e "$menu" | rofi -dmenu -i -no-show-icons -width 30 -p "Themes" -format i -config ~/.config/rofi/config-themes.rasi)
+
+# Apply theme
+if [[ -n "$choice" && "$choice" =~ ^[0-9]+$ ]]; then
+    selected="${listThemes[$choice]}"
+    echo "$selected" > "$settings_file"
+    echo ":: Selected theme: $selected"
+    "$HOME/.config/waybar/launch.sh"
+else
+    echo ":: No theme selected"
+fi
+
