@@ -5,45 +5,46 @@
 #  \ V  V / (_| | | | |_) | (_| | |_) |  __/ |
 #   \_/\_/ \__,_|_|_| .__/ \__,_| .__/ \___|_|
 #                   |_|         |_|
-#
+
+set -euo pipefail
+
 # -----------------------------------------------------
 # Restore last wallpaper
 # -----------------------------------------------------
 
-# -----------------------------------------------------
-# Set defaults
-# -----------------------------------------------------
-
-ml4w_cache_folder="$HOME/.cache/hyprlock-assets"
-
-defaultwallpaper="$HOME/.config/wallpapers/default.jpg"
-
-cachefile="$ml4w_cache_folder/current_wallpaper"
+# Config paths
+hypr_cache_folder="$HOME/.cache/hyprlock-assets"
+default_wallpaper="$HOME/.config/wallpapers/default.jpg"
+cache_file="$hypr_cache_folder/current_wallpaper"
 
 # -----------------------------------------------------
-# Get current wallpaper
+# Determine wallpaper to use
 # -----------------------------------------------------
 
-if [ -f "$cachefile" ]; then
-    sed -i "s|~|$HOME|g" "$cachefile"
-    wallpaper=$(cat $cachefile)
-    if [ -f $wallpaper ]; then
-        echo ":: Wallpaper $wallpaper exists"
-    else
+if [[ -f "$cache_file" ]]; then
+    sed -i "s|~|$HOME|g" "$cache_file"
+    wallpaper=$(<"$cache_file")
+    if [[ ! -f "$wallpaper" ]]; then
         echo ":: Wallpaper $wallpaper does not exist. Using default."
-        wallpaper=$defaultwallpaper
+        wallpaper="$default_wallpaper"
+    else
+        echo ":: Wallpaper $wallpaper exists"
     fi
 else
-    echo ":: $cachefile does not exist. Using default wallpaper."
-    wallpaper=$defaultwallpaper
+    echo ":: $cache_file does not exist. Using default wallpaper."
+    wallpaper="$default_wallpaper"
 fi
 
 # -----------------------------------------------------
 # Set wallpaper
 # -----------------------------------------------------
 
-echo ":: Setting wallpaper with source image $wallpaper"
-if [ -f ~/.local/bin/waypaper ]; then
-    export PATH=$PATH:~/.local/bin/
+echo ":: Setting wallpaper with source image: $wallpaper"
+
+# Add local waypaper if present
+if [[ -x "$HOME/.local/bin/waypaper" ]]; then
+    export PATH="$PATH:$HOME/.local/bin"
 fi
+
 waypaper --wallpaper "$wallpaper"
+

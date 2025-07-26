@@ -6,23 +6,35 @@
 #    \_/\_/  |_|     |_____|_| |_|  \___|\___|\__|___/
 #
 
-ml4w_cache_folder="$HOME/.cache/hyprlock-assets"
+set -euo pipefail
 
-# Get current wallpaper
-cache_file="$ml4w_cache_folder/current_wallpaper"
+hypr_cache_folder="$HOME/.cache/hyprlock-assets"
+cache_file="$hypr_cache_folder/current_wallpaper"
+effect_file="$HOME/.config/hypr/settings/wallpaper-effect.sh"
+effects_dir="$HOME/.config/hypr/effects/wallpaper"
+rofi_config="$HOME/.config/rofi/config-themes.rasi"
 
-if [ $1 == "reload" ]; then
-    # Releod wallpaper with current effect
-    waypaper --wallpaper $(cat $cache_file)
+if [[ "${1:-}" == "reload" ]]; then
+    if [[ -f "$cache_file" ]]; then
+        waypaper --wallpaper "$(cat "$cache_file")"
+    else
+        notify-send "Wallpaper Effect" "No cached wallpaper found."
+        exit 1
+    fi
 else
-    # Open rofi to select the Hyprshade filter for toggle
-    options="$(ls ~/.config/hypr/effects/wallpaper/)\noff"
+    options="$(ls "$effects_dir")"$'\n'"off"
+    choice=$(echo -e "$options" | rofi -dmenu -replace -config "$rofi_config" -i -no-show-icons -l 5 -width 30 -p "Hyprshade")
 
-    # Open rofi
-    choice=$(echo -e "$options" | rofi -dmenu -replace -config ~/.config/rofi/config-themes.rasi -i -no-show-icons -l 5 -width 30 -p "Hyprshade")
-    if [ ! -z $choice ]; then
-        echo "$choice" >~/.config/hypr/settings/wallpaper-effect.sh
-        notify-send "Changing Wallpaper Effect to " "$choice"
-        waypaper --wallpaper $(cat $cache_file)
+    if [[ -n "${choice:-}" ]]; then
+        echo "$choice" > "$effect_file"
+        notify-send "Changing Wallpaper Effect" "$choice"
+
+        if [[ -f "$cache_file" ]]; then
+            waypaper --wallpaper "$(cat "$cache_file")"
+        else
+            notify-send "Wallpaper Effect" "No cached wallpaper found."
+            exit 1
+        fi
     fi
 fi
+
