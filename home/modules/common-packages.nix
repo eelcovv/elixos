@@ -15,5 +15,8 @@
     nautilus
     keeweb
     gnome-keyring
+    pyright
+    texlab
+    nil
   ];
 }
