@@ -29,7 +29,7 @@
     ];
   };
 
-  home.file.".config/nvim/init.vim".source = ./init.vim;
+  xdg.configFile."nvim/init.lua".source = ./init.lua;
 
   home.packages = with pkgs; [
     vim-spell-en
