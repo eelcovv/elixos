@@ -1,4 +1,4 @@
--- BASISINSTELLINGEN (equivalent aan :set ...)
+-- Basic settings (equivalent to :set ...)
 vim.opt.compatible = false
 vim.opt.showmatch = true
 vim.opt.ignorecase = true
@@ -21,21 +21,21 @@ vim.opt.swapfile = false
 vim.opt.spell = true
 vim.opt.spelllang = { "en_us", "nl" }
 
--- LEADER
+-- Leader
 vim.g.mapleader = ","
 
--- KLEURENSCHEMA-MAPPINGS
+-- colorscheme-mappings
 vim.keymap.set("n", "<leader>tg", "<cmd>colorscheme gruvbox<CR>")
 vim.keymap.set("n", "<leader>tt", "<cmd>colorscheme tokyonight<CR>")
 vim.keymap.set("n", "<leader>tc", "<cmd>colorscheme catppuccin<CR>")
 vim.keymap.set("n", "<leader>tn", "<cmd>colorscheme nord<CR>")
 
--- SPELLINGSWITCH
+-- spelling
 vim.keymap.set("n", "<leader>se", "<cmd>set spelllang=en_us<CR>")
 vim.keymap.set("n", "<leader>sn", "<cmd>set spelllang=nl<CR>")
 vim.keymap.set("n", "<leader>ss", "<cmd>set spell!<CR>")
 
--- TRANSPARANTE UI-KLEUREN
+-- Transparent UI colors
 vim.cmd [[
   hi NonText ctermbg=none guibg=NONE
   hi Normal guibg=NONE ctermbg=NONE
@@ -47,13 +47,13 @@ vim.cmd [[
   hi TabLine ctermbg=None ctermfg=None guibg=None
 ]]
 
--- TREESITTER
+-- treesitter
 require('nvim-treesitter.configs').setup {
   ensure_installed = {},
   highlight = { enable = true },
 }
 
--- LSP
+-- lsp
 local lspconfig = require('lspconfig')
 lspconfig.pyright.setup {}
 lspconfig.texlab.setup {}
@@ -66,6 +66,7 @@ cmp.setup({
     { name = 'nvim_lsp' },
     { name = 'buffer' },
     { name = 'path' },
+    { name = 'spell' },
   },
   mapping = {
     ['<Tab>'] = cmp.mapping.select_next_item(),

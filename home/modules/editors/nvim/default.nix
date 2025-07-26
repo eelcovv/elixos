@@ -24,15 +24,11 @@
       cmp-nvim-lsp # LSP source for nvim-cmp
       cmp-buffer # buffer completion
       cmp-path # file path completion
+      cmp-spell # spelling 
       lspkind-nvim # nice icons in autocompletion
       lualine-nvim # statusline
     ];
   };
 
   xdg.configFile."nvim/init.lua".source = ./init.lua;
-
-  home.packages = with pkgs; [
-    vim-spell-en
-    vim-spell-nl
-  ];
 }
