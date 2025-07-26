@@ -6,8 +6,8 @@
 }: {
   # note that we import zsh via users
   imports = [
-    ./shell/bash.nix
-    ./shell/inputrc.nix
+    ./shells/bash.nix
+    ./shells/inputrc.nix
   ];
 
   home.packages = with pkgs; [

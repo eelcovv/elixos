@@ -22,6 +22,7 @@
       ../modules/office-packages.nix
       ../modules/shells.nix
       ../modules/terminals.nix
+      ../modules/editors.nix
 
       # Uitpakken van benchmarking lijst:
     ]
