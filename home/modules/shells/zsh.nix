@@ -23,6 +23,9 @@ in {
 
   programs.zsh = {
     enable = true;
+    shellAliases = {
+      vi = "nvim";
+    };
 
     autosuggestion.enable = true;
     enableCompletion = true;
