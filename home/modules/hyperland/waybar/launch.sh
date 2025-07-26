@@ -4,7 +4,8 @@
 # | |/|/ / _ `/ // / _ \/ _ `/ __/
 # |__,__/\_,_/\_, /_.__/\_,_/_/
 #            /___/
-#
+
+set -euo pipefail
 
 # -----------------------------------------------------
 # Prevent duplicate launches: only the first parallel
@@ -14,55 +15,66 @@ exec 200>/tmp/waybar-launch.lock
 flock -n 200 || exit 0
 
 # -----------------------------------------------------
-# Quit all running waybar instances
+# Kill existing waybar instances
 # -----------------------------------------------------
-killall waybar || true
-pkill waybar || true
+pkill -x waybar || true
 sleep 0.5
 
 # -----------------------------------------------------
-# Default theme: /THEMEFOLDER;/VARIATION
+# Default theme if nothing is defined
 # -----------------------------------------------------
-themestyle="/ml4w-modern;/ml4w-modern/light"
+default_theme_folder="/modern"
+default_theme_variant="/modern/light"
+themestyle="${default_theme_folder};${default_theme_variant}"
 
 # -----------------------------------------------------
-# Get current theme information from ~/.config/hypr/settings/waybar-theme.sh
+# Determine current theme from theme config file
 # -----------------------------------------------------
-if [ -f ~/.config/hypr/settings/waybar-theme.sh ]; then
-    themestyle=$(cat ~/.config/hypr/settings/waybar-theme.sh)
+theme_config_file="$HOME/.config/hypr/settings/waybar-theme.sh"
+if [[ -f "$theme_config_file" ]]; then
+    themestyle="$(<"$theme_config_file")"
 else
-    touch ~/.config/hypr/settings/waybar-theme.sh
-    echo "$themestyle" >~/.config/hypr/settings/waybar-theme.sh
+    echo "$themestyle" > "$theme_config_file"
 fi
 
-IFS=';' read -ra arrThemes <<<"$themestyle"
-echo ":: Theme: ${arrThemes[0]}"
+IFS=';' read -ra arrThemes <<< "$themestyle"
+theme_folder="${arrThemes[0]}"
+theme_variant="${arrThemes[1]}"
 
-if [ ! -f ~/.config/waybar/themes${arrThemes[1]}/style.css ]; then
-    themestyle="/ml4w;/ml4w/light"
+echo ":: Theme: $theme_folder"
+
+# -----------------------------------------------------
+# Check if required theme files exist
+# -----------------------------------------------------
+theme_base="$HOME/.config/waybar/themes"
+if [[ ! -f "$theme_base${theme_variant}/style.css" ]]; then
+    theme_folder="/fallback"
+    theme_variant="/fallback/light"
 fi
 
 # -----------------------------------------------------
-# Loading the configuration
+# Determine config and style files
 # -----------------------------------------------------
 config_file="config"
 style_file="style.css"
 
-# Standard files can be overwritten with an existing config-custom or style-custom.css
-if [ -f ~/.config/waybar/themes${arrThemes[0]}/config-custom ]; then
+if [[ -f "$theme_base${theme_folder}/config-custom" ]]; then
     config_file="config-custom"
 fi
-if [ -f ~/.config/waybar/themes${arrThemes[1]}/style-custom.css ]; then
+
+if [[ -f "$theme_base${theme_variant}/style-custom.css" ]]; then
     style_file="style-custom.css"
 fi
 
-# Check if waybar-disabled file exists
-if [ ! -f $HOME/.config/hypr/settings/waybar-disabled ]; then
-    waybar -c ~/.config/waybar/themes${arrThemes[0]}/$config_file -s ~/.config/waybar/themes${arrThemes[1]}/$style_file &
+# -----------------------------------------------------
+# Start waybar unless explicitly disabled
+# -----------------------------------------------------
+if [[ ! -f "$HOME/.config/hypr/settings/waybar-disabled" ]]; then
+    waybar -c "$theme_base${theme_folder}/$config_file" \
+           -s "$theme_base${theme_variant}/$style_file" &
 else
     echo ":: Waybar disabled"
 fi
 
-# Explicitly release the lock (optional) -> flock releases on exit
-flock -u 200
-exec 200>&-
+# flock wordt automatisch vrijgegeven bij exit
+
