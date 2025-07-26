@@ -8,18 +8,15 @@
     viAlias = true;
     vimAlias = true;
     withPython3 = true;
-    extraConfig = ''
-      set number
-      set relativenumber
-      set tabstop=2
-      set shiftwidth=2
-      set expandtab
-      syntax on
-    '';
     plugins = with pkgs.vimPlugins; [
       vim-nix
       telescope-nvim
       plenary-nvim
     ];
   };
+  home.file.".config/nvim/init.vim".source = ./init.vim;
+
+  home.packages = with pkgs; [
+    neovim
+  ];
 }

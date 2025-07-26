@@ -6,5 +6,6 @@
 }: {
   imports = [
     ./editors/vim
+    ./editors/nvim
   ];
 }
