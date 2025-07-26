@@ -35,12 +35,27 @@ hi TabLine ctermbg=None ctermfg=None guibg=None
 
 lua << EOF
 require'nvim-treesitter.configs'.setup {
-  ensure_installed = { "python", "latex", "nix", "lua" },
+  ensure_installed = {}, 
   highlight = { enable = true },
 }
+
 
 local lspconfig = require('lspconfig')
 lspconfig.pyright.setup{}
 lspconfig.texlab.setup{}
 lspconfig.nil_ls.setup{}
+
+local cmp = require'cmp'
+cmp.setup({
+  sources = {
+    { name = 'nvim_lsp' },
+    { name = 'buffer' },
+    { name = 'path' }
+  },
+  mapping = {
+    ['<Tab>'] = cmp.mapping.select_next_item(),
+    ['<S-Tab>'] = cmp.mapping.select_prev_item(),
+    ['<CR>'] = cmp.mapping.confirm({ select = true })
+  }
+})
 EOF
