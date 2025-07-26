@@ -3,8 +3,9 @@
   pkgs,
   ...
 }: let
-  wallpaperPath = ./wallpapers/nixos.png;
   hyprDir = ./.;
+  wallpaperDir = ./wallpapers;
+  waypaperIni = ./waypaper.ini;
 in {
   xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
   xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
@@ -20,8 +21,8 @@ in {
   xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
   xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
-  # Zorg dat de wallpaper beschikbaar is
-  home.file."Pictures/wallpapers/nixos.png".source = wallpaperPath;
+  xdg.configFile."hypr/wallpapers/default.jpg".source = ./wallpapers/nixos.png;
+  xdg.configFile."waypaper/config.ini".source = "${hyprDir}/waypaper.ini";
 
   home.sessionVariables = {
     SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";

@@ -1,30 +1,29 @@
 #!/usr/bin/env bash
-#     _         _         __        ______
-#    / \  _   _| |_ ___   \ \      / /  _ \
-#   / _ \| | | | __/ _ \   \ \ /\ / /| |_) |
-#  / ___ \ |_| | || (_) |   \ V  V / |  __/
-# /_/   \_\__,_|\__\___/     \_/\_/  |_|
-#
 
-ml4w_cache_folder="$HOME/.cache/hyprlock-assets"
+wallpaper_dir="$HOME/.config/hypr/wallpapers"
+automation_flag="$HOME/.cache/hyprlock-assets/wallpaper-automation"
+interval_file="$HOME/.config/hypr/settings/wallpaper-automation.sh"
 
-sec=$(cat ~/.config/hypr/settings/wallpaper-automation.sh)
+if [ ! -f "$interval_file" ]; then
+    echo "60" > "$interval_file"
+fi
+
+sec=$(cat "$interval_file")
+
 _setWallpaperRandomly() {
     waypaper --random
-    echo ":: Next wallpaper in 60 seconds..."
-    sleep $sec
+    echo ":: Next wallpaper in $sec seconds..."
+    sleep "$sec"
     _setWallpaperRandomly
 }
 
-if [ ! -f $ml4w_cache_folder/wallpaper-automation ]; then
-    touch $ml4w_cache_folder/wallpaper-automation
-    echo ":: Start wallpaper automation script"
-    notify-send "Wallpaper automation process started" "Wallpaper will be changed every $sec seconds."
+if [ ! -f "$automation_flag" ]; then
+    touch "$automation_flag"
+    notify-send "Wallpaper automation started" "Wallpaper will change every $sec seconds."
     _setWallpaperRandomly
 else
-    rm $ml4w_cache_folder/wallpaper-automation
-    notify-send "Wallpaper automation process stopped."
-    echo ":: Wallpaper automation script process $wp stopped"
-    wp=$(pgrep -f wallpaper-automation.sh)
-    kill -KILL $wp
+    rm "$automation_flag"
+    notify-send "Wallpaper automation stopped."
+    pkill -f wallpaper-automation.sh
 fi
+
