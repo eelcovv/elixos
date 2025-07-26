@@ -18,5 +18,6 @@
     pyright
     texlab
     nil
+    polkit_gnome
   ];
 }

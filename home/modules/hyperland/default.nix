@@ -43,6 +43,8 @@ in {
     hyprlock
     hypridle
     wofi
+    rofi
+    rofimoji
     waybar
     swaynotificationcenter
     dunst
