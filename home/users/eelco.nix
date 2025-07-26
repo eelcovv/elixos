@@ -28,7 +28,7 @@
     ]
     ++ (import ../modules/benchmarking {inherit lib;})
     ++ [
-      (import ../modules/shell/zsh.nix {
+      (import ../modules/shells/zsh.nix {
         inherit pkgs lib config;
       })
     ]
