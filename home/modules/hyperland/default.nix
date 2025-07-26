@@ -4,13 +4,21 @@
   ...
 }: let
   wallpaperPath = ./wallpapers/nixos.png;
+  hyprDir = ./.;
 in {
-  xdg.configFile."hypr/hyprland.conf".source = ./hyprland.conf;
-  xdg.configFile."hypr/hyprlock.conf".source = ./hyprlock.conf;
-  xdg.configFile."hypr/hypridle.conf".source = ./hypridle.conf;
-  xdg.configFile."hypr/hyprpaper.conf".source = ./hyprpaper.conf;
-  xdg.configFile."waybar/config.jsonc".source = ./waybar.jsonc;
-  xdg.configFile."waybar/style.css".source = ./waybar.css;
+  xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
+  xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
+  xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
+  xdg.configFile."hypr/hyprpaper.conf".source = "${hyprDir}/hyprpaper.conf";
+  xdg.configFile."waybar/config.jsonc".source = "${hyprDir}/waybar.jsonc";
+  xdg.configFile."waybar/style.css".source = "${hyprDir}/waybar.css";
+
+  xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
+
+  xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
+
+  xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
+  xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
   # Zorg dat de wallpaper beschikbaar is
   home.file."Pictures/wallpapers/nixos.png".source = wallpaperPath;
