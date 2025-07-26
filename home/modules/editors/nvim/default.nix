@@ -11,6 +11,10 @@
     plugins = with pkgs.vimPlugins; [
       vim-nix # Nix syntax
       (nvim-treesitter.withPlugins (p: with p; [python latex nix lua]))
+      gruvbox
+      catppuccin-nvim
+      tokyonight-nvim
+      nord-vim
       telescope-nvim
       plenary-nvim
       nvim-treesitter # moderne syntax highlighting
@@ -25,4 +29,9 @@
   };
 
   home.file.".config/nvim/init.vim".source = ./init.vim;
+
+  home.packages = with pkgs; [
+    vim-spell-en
+    vim-spell-nl # optioneel, Nederlands
+  ];
 }
