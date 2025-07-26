@@ -10,8 +10,7 @@
     withPython3 = true;
     plugins = with pkgs.vimPlugins; [
       vim-nix # Nix syntax
-      nvim-treesitter.withPlugins
-      (p: with p; [python latex nix lua])
+      (nvim-treesitter.withPlugins (p: with p; [python latex nix lua]))
       telescope-nvim
       plenary-nvim
       nvim-treesitter # moderne syntax highlighting
