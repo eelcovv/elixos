@@ -67,6 +67,8 @@ This NixOS configuration module defines common system settings:
       sops
       yq # needed for extracting your sops key
       rage
+      zsh
+      bashInteractive
     ];
 
     system.stateVersion = "24.11";
