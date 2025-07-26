@@ -11,7 +11,6 @@
 
   home.packages = with pkgs; [
     alejandra
-    neovim
     htop
     wget
     tree
