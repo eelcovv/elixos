@@ -9,10 +9,19 @@
     vimAlias = true;
     withPython3 = true;
     plugins = with pkgs.vimPlugins; [
-      vim-nix
+      vim-nix # Nix syntax
       telescope-nvim
       plenary-nvim
+      nvim-treesitter # moderne syntax highlighting
+      vimtex # LaTeX editing
+      nvim-lspconfig # LSP client
+      nvim-cmp # autocompletion framework
+      cmp-nvim-lsp # LSP source for nvim-cmp
+      cmp-buffer # buffer completion
+      cmp-path # file path completion
+      lspkind-nvim # nice icons in autocompletion
     ];
   };
+
   home.file.".config/nvim/init.vim".source = ./init.vim;
 }
