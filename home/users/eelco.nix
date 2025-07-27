@@ -8,6 +8,42 @@
   home.homeDirectory = "/home/eelco";
   home.stateVersion = "24.05";
 
+  programs.thunderbird = {
+    enable = true;
+    profiles.default.isDefault = true;
+  };
+
+  accounts.email.accounts.eelco = {
+    primary = true;
+    address = "eelco@davelab.nl";
+    userName = "eelco@davelab.nl";
+    flavor = "imap";
+    imap = {
+      host = "mail.davelab.nl";
+      port = 993;
+      tls = true;
+    };
+    smtp = {
+      host = "mail.davelab.nl";
+      port = 587;
+      tls = true;
+    };
+    thunderbird.enable = true;
+  };
+
+  programs.nextcloud-client = {
+    enable = true;
+    package = pkgs.nextcloud-client;
+    settings = {
+      startInBackground = true;
+      launchOnSystemStartup = true;
+    };
+  };
+
+  home.sessionVariables = {
+    NEXTCLOUD_URL = "https://nx64056.your-storageshare.de/";
+  };
+
   # pick your default choise of desktop here.
   home.file.".dmrc".text = ''
     [Desktop]

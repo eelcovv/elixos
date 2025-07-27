@@ -7,11 +7,12 @@
   cfg = config.programs.nextcloud-extra;
 in {
   options.programs.nextcloud-extra = {
-    enable = lib.mkEnableOption "Extra Nextcloud configuration";
+    enable = lib.mkEnableOption "Enable extra Nextcloud configuration";
+
     url = lib.mkOption {
       type = lib.types.str;
       default = "";
-      description = "Optional Nextcloud URL";
+      description = "Optional Nextcloud server URL (used in env var)";
     };
   };
 
@@ -22,12 +23,14 @@ in {
       settings = {
         startInBackground = true;
         launchOnSystemStartup = true;
-        syncFolders = [];
+        # syncFolders is optioneel, kun je toevoegen als nodig
       };
     };
 
-    home.sessionVariables = lib.mkIf (cfg.url != "") {
-      NEXTCLOUD_URL = cfg.url;
-    };
+    home.sessionVariables = lib.mkMerge [
+      (lib.mkIf (cfg.url != "") {
+        NEXTCLOUD_URL = cfg.url;
+      })
+    ];
   };
 }
