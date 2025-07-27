@@ -80,5 +80,6 @@ in {
     brightnessctl
     pavucontrol
     wl-clipboard
+    cliphist
   ];
 }
