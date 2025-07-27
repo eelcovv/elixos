@@ -3,14 +3,13 @@
   pkgs,
   ...
 }: let
-
   # Determine the selected theme from the environment variable or default to "default"
   selectedTheme = let
-    envTheme = builtins.getEnv "HOME_THEME"; 
-  in 
-  {
-      if envTheme == "" then "default" else envTheme;
-  }
+    envTheme = builtins.getEnv "HOME_THEME";
+  in
+    if envTheme == ""
+    then "default"
+    else envTheme;
 
   hyprDir = ./.;
   rofiDir = ./rofi;
@@ -29,7 +28,7 @@ in {
   xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
   xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
 
-  xdg.configFile."waybar/config.jsonc".source = "${waybarThemePath}/config";
+  xdg.configFile."waybar/config.jsonc".source = "${waybarThemePath}/config.jsonc";
   xdg.configFile."waybar/style.css".source = "${waybarThemePath}/style.css";
 
   xdg.configFile."waybar/modules.jsonc".source = sharedModules;

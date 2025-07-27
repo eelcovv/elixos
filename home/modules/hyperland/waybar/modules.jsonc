@@ -74,19 +74,6 @@
     "tooltip-format": "Left: Open clipboard Manager\nRight: Delete an entry\nMiddle: Clear list"
   },
 
-  // Updates Count
-  "custom/updates": {
-    "format": "  {}",
-    "escape": true,
-    "return-type": "json",
-    "exec": "~/.config/ml4w/scripts/updates.sh",
-    "interval": 1800,
-    "signal": 1,
-    "hide-empty-text": true,
-    "on-click": "~/.config/ml4w/settings/installupdates.sh",
-    "on-click-right": "~/.config/ml4w/settings/software.sh"
-  },
-
   // Wallpaper
   "custom/wallpaper": {
     "format": "",
@@ -100,34 +87,6 @@
     "format": "",
     "on-click": "~/.config/waybar/themeswitcher.sh",
     "tooltip-format": "Select a waybar theme"
-  },
-
-  // Settings
-  "custom/settings": {
-    "format": "",
-    "on-click": "sleep 0.1 && com.ml4w.dotfilessettings",
-    "tooltip-format": "ML4W Dotfiles Settings"
-  },
-
-  // Keybindings
-  "custom/keybindings": {
-    "format": "",
-    "on-click": "~/.config/hypr/scripts/keybindings.sh",
-    "tooltip": false
-  },
-
-  // Calculator
-  "custom/calculator": {
-    "format": "",
-    "on-click": "qalculate-gtk",
-    "tooltip-format": "Open calculator"
-  },
-
-  // Windows VM
-  "custom/windowsvm": {
-    "format": "",
-    "on-click": "~/.config/ml4w/scripts/launchvm.sh",
-    "tooltip": false
   },
 
   // Rofi Application Launcher

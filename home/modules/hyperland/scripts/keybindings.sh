@@ -7,32 +7,40 @@
 #           |___/                             |___/
 #
 # -----------------------------------------------------
-# Get keybindings location based on variation
+# Show Hyprland keybindings with Rofi
 # -----------------------------------------------------
-config_file=$(<~/.config/hypr/conf/keybinding.conf)
-config_file=${config_file//source = ~//home/$USER}
 
-# -----------------------------------------------------
-# Path to keybindings config file
-# -----------------------------------------------------
+# Resolve the path to the active keybinding file
+conf_ref="$HOME/.config/hypr/conf/keybinding.conf"
+if [[ ! -f "$conf_ref" ]]; then
+  echo "⚠️  Keybinding config reference not found: $conf_ref"
+  exit 1
+fi
+
+config_file=$(<"$conf_ref")
+config_file="${config_file//source = ~//home/$USER}"
+
+if [[ ! -f "$config_file" ]]; then
+  echo "⚠️  Actual keybinding file not found: $config_file"
+  exit 1
+fi
+
 echo "Reading from: $config_file"
 
+# Extract keybindings in a readable format
 keybinds=$(awk -F'[=#]' '
-    $1 ~ /^bind/ {
-        # Replace the string "$mainMod" with "SUPER" (for the super key)
-        gsub(/\$mainMod/, "SUPER", $0)
-
-        # Remove "bind" and extra spaces, if any, at the beginning of the line
-        gsub(/^bind[[:space:]]*=+[[:space:]]*/, "", $0)
-
-        # Split the keybinding part (e.g., "Mod1,Return") using a comma
-        split($1, kbarr, ",")
-
-        # Format the keybinding and associated command and prepare for output:
-        # Concatenate the two keybinding keys (e.g., "Mod1" + "Return") and append the command
-        print kbarr[1] "  + " kbarr[2] "\r" $2
-    }
+  $1 ~ /^bind/ {
+    gsub(/\$mainMod/, "SUPER", $0)
+    gsub(/^bind[[:space:]]*=+[[:space:]]*/, "", $0)
+    split($1, kbarr, ",")
+    printf "%-15s → %s\n", kbarr[1] " + " kbarr[2], $2
+  }
 ' "$config_file")
 
+# Pick rofi theme from environment or fallback
+rofi_theme="${ROFI_THEME:-$HOME/.config/rofi/themes/default/config.rasi}"
+
+# Display menu
 sleep 0.2
-rofi -dmenu -i -markup -eh 2 -replace -p "Keybinds" -config ~/.config/rofi/config-compact.rasi <<<"$keybinds"
+rofi -dmenu -i -markup -eh 2 -replace -p "Keybinds" -config "$rofi_theme" <<<"$keybinds"
+
