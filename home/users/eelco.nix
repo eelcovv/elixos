@@ -31,14 +31,9 @@
     thunderbird.enable = true;
   };
 
-  programs.nextcloud-client = {
-    enable = true;
-    package = pkgs.nextcloud-client;
-    settings = {
-      startInBackground = true;
-      launchOnSystemStartup = true;
-    };
-  };
+  home.packages = with pkgs; [
+    nextcloud-client
+  ];
 
   home.sessionVariables = {
     NEXTCLOUD_URL = "https://nx64056.your-storageshare.de/";
