@@ -43,14 +43,16 @@ in {
   xdg.configFile."rofi/config.rasi".source = "${rofiThemePath}/config.rasi";
   xdg.configFile."rofi/colors.rasi".source = "${rofiThemePath}/colors.rasi";
 
-  # Copy the actual wallpaper to the right location
   xdg.configFile."hypr/hyprpaper.conf".text = ''
-    preload = ${wallpaperTargetDir}/default.jpg
-    wallpaper = ,${wallpaperTargetDir}/default.jpg
+    preload = ${wallpaperTargetDir}/default.png
+    wallpaper = ,${wallpaperTargetDir}/default.png
     splash = false
   '';
-  xdg.configFile."wallpapers/default.jpg".source = "${wallpaperDir}/nixos.png";
-  xdg.configFile."waypaper/config.ini".source = "${hyprDir}/waypaper.ini";
+
+  # Copy the actual wallpaper to the right location
+  xdg.configFile."wallpapers/default.png".source = "${wallpaperDir}/nixos.png";
+
+  xdg.configFile."waypaper".source = "${hyprDir}/waypaper";
 
   home.sessionVariables = {
     SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
@@ -80,5 +82,8 @@ in {
     pavucontrol
     wl-clipboard
     cliphist
+    matugen
+    wallust
+    waypaper
   ];
 }
