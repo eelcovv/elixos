@@ -3,11 +3,23 @@
   pkgs,
   ...
 }: let
+
+  # Determine the selected theme from the environment variable or default to "default"
+  selectedTheme = let
+    envTheme = builtins.getEnv "HOME_THEME"; 
+  in 
+  {
+      if envTheme == "" then "default" else envTheme;
+  }
+
   hyprDir = ./.;
+  rofiDir = ./rofi;
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
-  selectedTheme = "default";
-  themePath = ./waybar/themes/${selectedTheme};
+
+  rofiThemePath = ./rofi/themes/${selectedTheme};
+  waybarThemePath = ./waybar/themes/${selectedTheme};
+
   sharedModules = ./waybar/modules.jsonc;
 in {
   # Set environment variable so scripts can use it
@@ -17,8 +29,9 @@ in {
   xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
   xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
 
-  xdg.configFile."waybar/config.jsonc".source = "${themePath}/config";
-  xdg.configFile."waybar/style.css".source = "${themePath}/style.css";
+  xdg.configFile."waybar/config.jsonc".source = "${waybarThemePath}/config";
+  xdg.configFile."waybar/style.css".source = "${waybarThemePath}/style.css";
+
   xdg.configFile."waybar/modules.jsonc".source = sharedModules;
 
   xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
@@ -27,6 +40,9 @@ in {
 
   xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
   xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
+
+  xdg.configFile."rofi/config.rasi".source = "${rofiThemePath}/config.rasi";
+  xdg.configFile."rofi/colors.rasi".source = "${rofiThemePath}/colors.rasi";
 
   # Copy the actual wallpaper to the right location
   xdg.configFile."hypr/hyprpaper.conf".text = ''
