@@ -17,17 +17,27 @@
     primary = true;
     address = "eelco@davelab.nl";
     userName = "eelco@davelab.nl";
+    realName = "Eelco van Vliet";
     flavor = "plain";
+
     imap = {
       host = "mail.davelab.nl";
       port = 993;
-      tls = true;
+      tls = {
+        enable = true;
+        type = "ssl"; # voor IMAP over 993
+      };
     };
+
     smtp = {
       host = "mail.davelab.nl";
       port = 587;
-      tls = true;
+      tls = {
+        enable = true;
+        type = "starttls"; # voor SMTP over 587
+      };
     };
+
     thunderbird.enable = true;
   };
 
