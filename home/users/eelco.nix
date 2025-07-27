@@ -17,7 +17,7 @@
     primary = true;
     address = "eelco@davelab.nl";
     userName = "eelco@davelab.nl";
-    flavor = "imap";
+    flavor = "plain";
     imap = {
       host = "mail.davelab.nl";
       port = 993;
