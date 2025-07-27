@@ -23,19 +23,13 @@
     imap = {
       host = "mail.davelab.nl";
       port = 993;
-      tls = {
-        enable = true;
-        type = "ssl"; # voor IMAP over 993
-      };
+      tls.enable = true; # ← GEEN type
     };
 
     smtp = {
       host = "mail.davelab.nl";
       port = 587;
-      tls = {
-        enable = true;
-        type = "starttls"; # voor SMTP over 587
-      };
+      tls.enable = true; # ← GEEN type
     };
 
     thunderbird.enable = true;
@@ -48,6 +42,17 @@
   home.sessionVariables = {
     NEXTCLOUD_URL = "https://nx64056.your-storageshare.de/";
   };
+
+  xdg.desktopEntries.nextcloud = {
+    name = "Nextcloud";
+    exec = "nextcloud";
+    icon = "nextcloud";
+    terminal = false;
+    comment = "Access and synchronize files with Nextcloud";
+    categories = ["Network" "FileTransfer"];
+  };
+
+  xdg.enable = true;
 
   # pick your default choise of desktop here.
   home.file.".dmrc".text = ''
