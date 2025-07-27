@@ -348,3 +348,13 @@ check-install HOST USER:
 load-env HOST:
 	@echo "🔄 Loading environment for {{HOST}}..." && \
 	test -f .env.{{HOST}} && export $(cat .env.{{HOST}} | grep '^export ' | cut -d' ' -f2- | xargs) || echo "⚠️ .env.{{HOST}} not found."
+
+# -- hyperland
+
+reload-waybar:
+    pkill waybar && waybar &
+
+switch-theme theme:
+    HOME_THEME={{theme}} home-manager switch --flake ".#eelco@$(hostname)"
+    pkill waybar && waybar &
+

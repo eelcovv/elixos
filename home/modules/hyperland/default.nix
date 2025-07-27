@@ -5,14 +5,21 @@
 }: let
   hyprDir = ./.;
   wallpaperDir = ./wallpapers;
-  waypaperIni = ./waypaper.ini;
+  wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
+  selectedTheme = "default";
+  themePath = ./waybar/themes/${selectedTheme};
+  sharedModules = ./waybar/modules.jsonc;
 in {
+  # Set environment variable so scripts can use it
+  home.sessionVariables.WALLPAPER_DIR = wallpaperTargetDir;
+
   xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
   xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
   xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
-  xdg.configFile."hypr/hyprpaper.conf".source = "${hyprDir}/hyprpaper.conf";
-  xdg.configFile."waybar/config.jsonc".source = "${hyprDir}/waybar.jsonc";
-  xdg.configFile."waybar/style.css".source = "${hyprDir}/waybar.css";
+
+  xdg.configFile."waybar/config.jsonc".source = "${themePath}/config";
+  xdg.configFile."waybar/style.css".source = "${themePath}/style.css";
+  xdg.configFile."waybar/modules.jsonc".source = sharedModules;
 
   xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
 
@@ -21,7 +28,13 @@ in {
   xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
   xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
-  xdg.configFile."hypr/wallpapers/default.jpg".source = ./wallpapers/nixos.png;
+  # Copy the actual wallpaper to the right location
+  xdg.configFile."hypr/hyprpaper.conf".text = ''
+    preload = ${wallpaperTargetDir}/default.jpg
+    wallpaper = ,${wallpaperTargetDir}/default.jpg
+    splash = false
+  '';
+  xdg.configFile."wallpapers/default.jpg".source = "${wallpaperDir}/nixos.png";
   xdg.configFile."waypaper/config.ini".source = "${hyprDir}/waypaper.ini";
 
   home.sessionVariables = {

@@ -26,7 +26,7 @@
 
     // Load Modules
     "include": [
-        "~/.config/waybar/themes/starter/modules.json"
+        "~/.config/waybar/themes/starter/modules.jsonc"
     ],
 
     // Modules Left

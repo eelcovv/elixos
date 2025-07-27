@@ -11,7 +11,7 @@ set -euo pipefail
 # Source shared logging functions
 # -----------------------------------------------------
 
-source "$HOME/.config/hypr/library.sh"
+source "./library.sh"
 
 # -----------------------------------------------------
 # Wallpaper cache control
