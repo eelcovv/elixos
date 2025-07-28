@@ -21,7 +21,7 @@
     ++
     # 🔐 Secrets
     [
-      ../modules/secrets/singer-eelco.nix
+      ../modules/secrets/contabo-eelco.nix
     ]
     ++
     # 🛠️ Services
@@ -31,15 +31,12 @@
     ++
     # 💻 Hardware and disk setup
     [
-      ../modules/hardware/bluetooth.nix
-      ../hardware/singer/configuration.nix
-      ../disks/singer.nix
+      ../hardware/contabo/configuration.nix
     ]
     ++
     # 👤 Users
     [
       ../users/eelco.nix
-      ../users/por.nix
     ]
     ++
     # 🧩 External modules
