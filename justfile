@@ -199,6 +199,10 @@ encrypt SECRET:
 
 
 # ========== LIVE INSTALLATION ==========
+partition_server HOST:
+	sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --flake .#${HOST} --mode zap_create_mount
+	@echo "✅ Partitioning server for {{HOST}}."
+
 partition HOST:
 	sudo -i nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/{{HOST}}.nix
 	@echo "✅ Partitioning done for {{HOST}}."
