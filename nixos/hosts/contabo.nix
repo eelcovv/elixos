@@ -32,6 +32,7 @@
     # 💻 Hardware and disk setup
     [
       ../hardware/contabo/configuration.nix
+      ../disks/contabo.nix
     ]
     ++
     # 👤 Users
