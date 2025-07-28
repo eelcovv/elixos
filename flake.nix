@@ -119,4 +119,8 @@
           cfg.config.system.build.toplevel
       ) (builtins.removeAttrs (builtins.mapAttrs (_: mkHost) hostFiles) ["test-vm"]);
     };
+  apps.x86_64-linux.disko-install = {
+    type = "app";
+    program = "${disko.packages.x86_64-linux.disko}/bin/disko";
+  };
 }
