@@ -16,7 +16,7 @@ default:
 
 # Run any just target remotely on the live VM
 vm_just *ARGS:
-	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' run nixpkgs#just -- {{ARGS}}"
+	ssh -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} "bash -l -c 'cd {{REPO_DIR}} && nix --extra-experimental-features \"nix-command flakes\" run nixpkgs#just -- {{ARGS}}'"
 
 # Open interactive shell on VM with flake features and repo loaded
 vm_just_shell:
