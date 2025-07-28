@@ -6,6 +6,7 @@
       type = "gpt";
       partitions = {
         boot = {
+          name = "boot";
           size = "512M";
           type = "EF00";
           content = {
@@ -15,6 +16,7 @@
           };
         };
         root = {
+          name = "root";
           size = "70G";
           content = {
             type = "filesystem";
@@ -23,12 +25,14 @@
           };
         };
         swap = {
+          name = "swap";
           size = "4G";
           content = {
             type = "swap";
           };
         };
         home = {
+          name = "home";
           size = "100%";
           content = {
             type = "filesystem";
