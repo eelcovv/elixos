@@ -52,6 +52,7 @@
       "eelco@tongfang" = ./home/users/eelco.nix;
       "eelco@ellie" = ./home/users/eelco.nix;
       "eelco@alloy" = ./home/users/eelco.nix;
+      "eelco@contabo" = ./home/users/eelco.nix;
     };
 
     # Map of host names to their NixOS configuration files
@@ -62,6 +63,7 @@
       singer = ./nixos/hosts/singer.nix;
       ellie = ./nixos/hosts/ellie.nix;
       alloy = ./nixos/hosts/alloy.nix;
+      contabo = ./nixos/hosts/contabo.nix;
       # contabo = ./nixos/hosts/contabo.nix;  # Uncomment if needed
     };
   in
