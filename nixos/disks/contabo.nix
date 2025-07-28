@@ -30,11 +30,11 @@
         };
         home = {
           size = "100%";
+          resizeable = true;
           content = {
             type = "filesystem";
             format = "ext4";
             mountpoint = "/home";
-            resizeable = true;
           };
         };
       };
