@@ -66,11 +66,11 @@
       contabo = ./nixos/hosts/contabo.nix;
       # contabo = ./nixos/hosts/contabo.nix;  # Uncomment if needed
     };
-  in
+  in {
     # Outputs contain two parts:
     # - devShells: Development environments per system
     # - nixosConfigurations: System definitions for each host
-    flake-utils.lib.eachDefaultSystem (system: {
+    devShells = flake-utils.lib.eachDefaultSystem (system: {
       devShells.default = (import nixpkgs {inherit system;}).mkShell {
         packages = with (import nixpkgs {inherit system;}); [
           pre-commit # Git hook runner
@@ -92,35 +92,37 @@
           echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
         '';
       };
-    })
-    // {
-      # System configuration per host
-      nixosConfigurations = builtins.mapAttrs (_name: mkHost) hostFiles;
+    });
 
-      homeConfigurations =
-        builtins.mapAttrs (
-          fullKey: moduleFile:
-            home-manager.lib.homeManagerConfiguration {
-              pkgs = import nixpkgs {
-                system = "x86_64-linux";
-                config.allowUnfree = true;
-              };
-              modules = [moduleFile];
-              extraSpecialArgs = {
-                inherit inputs self;
-              };
-            }
-        )
-        homeUsers;
+    # System configuration per host
+    nixosConfigurations = builtins.mapAttrs (_name: mkHost) hostFiles;
 
-      # Package outputs (e.g., used by nix build .#tongfang)
-      packages.x86_64-linux = builtins.mapAttrs (
-        _name: cfg:
-          cfg.config.system.build.toplevel
-      ) (builtins.removeAttrs (builtins.mapAttrs (_: mkHost) hostFiles) ["test-vm"]);
+    homeConfigurations =
+      builtins.mapAttrs (
+        fullKey: moduleFile:
+          home-manager.lib.homeManagerConfiguration {
+            pkgs = import nixpkgs {
+              system = "x86_64-linux";
+              config.allowUnfree = true;
+            };
+            modules = [moduleFile];
+            extraSpecialArgs = {
+              inherit inputs self;
+            };
+          }
+      )
+      homeUsers;
+
+    # Package outputs (e.g., used by nix build .#tongfang)
+    packages.x86_64-linux = builtins.mapAttrs (
+      _name: cfg:
+        cfg.config.system.build.toplevel
+    ) (builtins.removeAttrs (builtins.mapAttrs (_: mkHost) hostFiles) ["test-vm"]);
+
+    # Disko runner app
+    apps.x86_64-linux.disko-install = {
+      type = "app";
+      program = "${disko.packages.x86_64-linux.disko}/bin/disko";
     };
-  apps.x86_64-linux.disko-install = {
-    type = "app";
-    program = "${disko.packages.x86_64-linux.disko}/bin/disko";
   };
 }
