@@ -62,7 +62,7 @@ vm_run_installer:
 
 # Partition disk on live installer
 vm_partition:
-	sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
+	sudo -i nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/modules/disk-layouts/generic-vm.nix
 	@echo "✅ Partitioning done."
 
 
@@ -200,7 +200,7 @@ encrypt SECRET:
 
 # ========== LIVE INSTALLATION ==========
 partition HOST:
-	sudo nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/{{HOST}}.nix
+	sudo -i nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode zap_create_mount ./nixos/disks/{{HOST}}.nix
 	@echo "✅ Partitioning done for {{HOST}}."
 
 partition-dry HOST:
