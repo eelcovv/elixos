@@ -113,6 +113,10 @@
       )
       homeUsers;
 
+    diskoConfigurations = {
+      contabo = import ./nixos/disks/contabo.nix;
+    };
+
     # Package outputs (e.g., used by nix build .#tongfang)
     packages.x86_64-linux = builtins.mapAttrs (
       _name: cfg:
