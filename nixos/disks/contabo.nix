@@ -8,24 +8,34 @@
         boot = {
           size = "512M";
           type = "EF00";
-          format = "vfat";
-          mountpoint = "/boot";
+          content = {
+            type = "filesystem";
+            format = "vfat";
+            mountpoint = "/boot";
+          };
         };
         root = {
           size = "70G";
-          format = "ext4";
-          mountpoint = "/";
+          content = {
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/";
+          };
         };
         swap = {
           size = "4G";
-          format = "swap";
-          swap = true;
+          content = {
+            type = "swap";
+          };
         };
         home = {
           size = "100%";
-          format = "ext4";
-          mountpoint = "/home";
-          resizeable = true;
+          content = {
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/home";
+            resizeable = true;
+          };
         };
       };
     };
