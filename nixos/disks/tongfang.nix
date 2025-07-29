@@ -1,5 +1,5 @@
-# run this with: sudo nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --flake .#singer --mode zap_create_mount
-{
+{lib, ...}: {
+  # Disk layout voor Tongfang-laptop.
   disko.devices = {
     disk = {
       # with multiple drives, it is not safe to use
@@ -11,8 +11,8 @@
       # do not use the backslash
       "nvme0n1" = {
         type = "disk";
-        # Note! This device should be the real name corresponding to nvme0n1!
         device = "/dev/disk/by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929";
+
         content = {
           type = "gpt";
           partitions = {
@@ -55,7 +55,7 @@
             };
 
             home = {
-              size = "100%"; # rest van de schijf
+              size = "100%"; # Gebruik de rest van de schijf
               content = {
                 type = "luks";
                 name = "crypthome";
