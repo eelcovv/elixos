@@ -48,16 +48,20 @@ vm_prepare:
 	@echo "✅ VM disk prepared. Run 'just vm_run_installer'."
 
 prepare-rescue-env:
-  nix profile add \
-    --extra-experimental-features 'nix-command flakes' \
-    nixpkgs#git \
-    nixpkgs#just \
-    nixpkgs#e2fsprogs \
-    nixpkgs#nixos-install-tools
+	nix profile add --extra-experimental-features 'nix-command flakes' \
+	nixpkgs#git \
+	nixpkgs#just \
+	nixpkgs#e2fsprogs \
+	nixpkgs#util-linux \
+	nixpkgs#coreutils \
+	nixpkgs#openssh \
+	nixpkgs#nixos-install-tools \
+	nixpkgs#shadow \
+	nixpkgs#inetutils \
+	nixpkgs#procps \
+	nixpkgs#iproute2
   echo "✅ Tools geïnstalleerd:"
-  git --version
-  just --version
-  which nixos-install
+
 
 # Start live installer VM
 vm_run_installer:
