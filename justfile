@@ -47,6 +47,18 @@ vm_prepare:
 	qemu-img create -f qcow2 $HOME/vms/nixos/nixos-vm.qcow2 30G
 	@echo "✅ VM disk prepared. Run 'just vm_run_installer'."
 
+prepare-rescue-env:
+  nix profile add \
+    --extra-experimental-features 'nix-command flakes' \
+    nixpkgs#git \
+    nixpkgs#just \
+    nixpkgs#e2fsprogs \
+    nixpkgs#nixos-install-tools
+  echo "✅ Tools geïnstalleerd:"
+  git --version
+  just --version
+  which nixos-install
+
 # Start live installer VM
 vm_run_installer:
 	qemu-system-x86_64 \
