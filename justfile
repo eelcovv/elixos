@@ -49,18 +49,18 @@ vm_prepare:
 
 prepare-rescue-env:
 	nix profile add --extra-experimental-features 'nix-command flakes' \
-	nixpkgs#git \
-	nixpkgs#just \
-	nixpkgs#e2fsprogs \
-	nixpkgs#util-linux \
-	nixpkgs#coreutils \
-	nixpkgs#openssh \
-	nixpkgs#nixos-install-tools \
-	nixpkgs#shadow \
-	nixpkgs#inetutils \
-	nixpkgs#procps \
-	nixpkgs#iproute2
-  echo "✅ Tools geïnstalleerd:"
+		nixpkgs#git \
+		nixpkgs#just \
+		nixpkgs#e2fsprogs \
+		nixpkgs#util-linux \
+		nixpkgs#coreutils \
+		nixpkgs#openssh \
+		nixpkgs#nixos-install-tools \
+		nixpkgs#shadow \
+		nixpkgs#inetutils \
+		nixpkgs#procps \
+		nixpkgs#iproute2
+	echo "✅ Tools geïnstalleerd:"
 
 
 # Start live installer VM
