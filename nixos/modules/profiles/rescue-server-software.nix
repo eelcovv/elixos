@@ -9,5 +9,6 @@
     iproute2
     openssh
     shadow
+    bashInteractive
   ];
 }
