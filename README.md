@@ -699,13 +699,5 @@ Activate the nix environment
 and install git and just, such that we can run our remote install
 
 ```shell
-nix-env -iA git just -f https://nixos.org/channels/nixos-24.05/nixexprs.tar.xz
-```
-
-Alternatively, first add the channel and install the packges
-
-```shell
-nix-channel --add https://nixos.org/channels/nixos-24.05 nixpkgs
-nix-channel --update
-nix-env -iA nixpkgs.git nixpkgs.just
+nix profile add nixpkgs#git nixpkgs#just --extra-experimental-features 'nix-command flakes'
 ```
