@@ -13,6 +13,7 @@
     # 🧱 Basic modules
     [
       ../modules/common.nix
+      ../modules/profiles/rescue-server-software.nix
       ../modules/profiles/desktop-options.nix
       ../modules/profiles/desktop-configs.nix
       ../modules/profiles/desktop-software.nix
