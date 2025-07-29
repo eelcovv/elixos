@@ -701,3 +701,9 @@ and install git and just, such that we can run our remote install
 ```shell
 nix profile add nixpkgs#git nixpkgs#just --extra-experimental-features 'nix-command flakes'
 ```
+
+In the rescue shell, add the line to your `.bashrc`
+
+```bash
+export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+```

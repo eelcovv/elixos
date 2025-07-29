@@ -1,5 +1,5 @@
-{
-  disko.devices.disk.sda = {
+{config, ...}: {
+  config.disko.devices.disk.sda = {
     type = "disk";
     device = "/dev/sda";
     content = {

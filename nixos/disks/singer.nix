@@ -1,5 +1,5 @@
-{
-  disko.devices = {
+{config, ...}: {
+  config.disko.devices = {
     disk = {
       my-disk = {
         device = "/dev/disk/by-id/nvme-WDC_PC_SN530_SDBPMPZ-256G-1101_210893456004";
