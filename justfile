@@ -51,9 +51,9 @@ prepare-rescue-env:
 	nix profile add --extra-experimental-features 'nix-command flakes' \
 		nixpkgs#git \
 		nixpkgs#just \
-		nixpkgs#e2fsprogs \
-		nixpkgs#util-linux \
 		nixpkgs#coreutils \
+		nixpkgs#util-linux \
+		nixpkgs#e2fsprogs \
 		nixpkgs#openssh \
 		nixpkgs#nixos-install-tools \
 		nixpkgs#shadow \
