@@ -696,10 +696,11 @@ Activate the nix environment
 . /root/.nix-profile/etc/profile.d/nix.sh
 ```
 
-and install git and just, such that we can run our remote install
+and install git, just, and the other install tools such that we can run our remote install
 
 ```shell
-nix profile add nixpkgs#git nixpkgs#just --extra-experimental-features 'nix-command flakes'
+nix profile add --extra-experimental-features 'nix-command flakes' \
+    nixpkgs#git nixpkgs#just nixpkgs#just nixpkgs#e2fsprogs nixpkgs#nixos-install-tools
 ```
 
 In the rescue shell, add the line to your `.bashrc`
