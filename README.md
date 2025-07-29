@@ -662,3 +662,50 @@ And try to rebuild your system with
 ```shell
 sudo nixos-rebuild switch --flake .#singer
 ```
+
+# Steps server installation
+
+In this section it is described how you can setup your elixos operating system on a server. For the example, contabo is used. It is
+assumed that a account with a server is already available.
+
+## Preparation of the server
+
+1. Reboot the server into rescue mode.
+2. Login to the server using ssh
+3. Download the nix installer
+
+```shell
+curl -L -o nix-installer https://install.determinate.systems/nix/tag/v3.8.2/nix-installer-x86_64-linux
+```
+
+and make it executable
+
+```shell
+chmod +x nix-installer
+```
+
+and run it
+
+```shell
+./nix-installer install
+```
+
+Activate the nix environment
+
+```shell
+. /root/.nix-profile/etc/profile.d/nix.sh
+```
+
+and install git and just, such that we can run our remote install
+
+```shell
+nix-env -iA git just -f https://nixos.org/channels/nixos-24.05/nixexprs.tar.xz
+```
+
+Alternatively, first add the channel and install the packges
+
+```shell
+nix-channel --add https://nixos.org/channels/nixos-24.05 nixpkgs
+nix-channel --update
+nix-env -iA nixpkgs.git nixpkgs.just
+```
