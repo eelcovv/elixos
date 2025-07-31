@@ -19,6 +19,12 @@ This NixOS configuration module defines common system settings:
     inputs.home-manager.nixosModules.home-manager
   ];
 
+  nix.gc = {
+    automatic = true;
+    dates = "daily";
+    options = "--delete-older-than +3"; # remove old generations, keep last 3
+  };
+
   options = {
     globalSshClientUsers = lib.mkOption {
       type = lib.types.listOf lib.types.str;

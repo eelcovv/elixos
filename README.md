@@ -700,7 +700,51 @@ and install git, just, and the other install tools such that we can run our remo
 
 ```shell
 nix profile add --extra-experimental-features 'nix-command flakes' \
-    nixpkgs#git nixpkgs#just nixpkgs#just nixpkgs#e2fsprogs nixpkgs#nixos-install-tools
+    nixpkgs#git \
+    nixpkgs#just \
+    nixpkgs#coreutils \
+    nixpkgs#util-linux \
+    nixpkgs#e2fsprogs \
+    nixpkgs#openssh \
+    nixpkgs#nixos-install-tools \
+    nixpkgs#shadow \
+    nixpkgs#inetutils \
+    nixpkgs#procps \
+    nixpkgs#iproute2 \
+    nixpkgs.tmux
+```
+
+Now you can run parition on the rescue server
+
+```shell
+just partition contabo
+```
+
+Mount the drives
+
+```shell
+mount /dev/sda2 /mnt
+mount /dev/sda1 /mnt/boot
+mount /dev/sda4 /mnt/home
+```
+
+To prevent that the rescue disk is full during installing nix, we need to move the repo to the mnt. First
+Create the directories:
+
+```shell
+mkdir -p /mnt/nix
+mkdir -p /mnt/nix/store
+mkdir -p /mnt/nix/var/nix
+mkdir -p /mnt/nix/var/log/nix
+```
+
+Set the following environment variables
+
+```shell
+export NIX_STORE_DIR=/mnt/nix/store
+export NIX_STATE_DIR=/mnt/nix/var/nix
+export NIX_LOG_DIR=/mnt/nix/var/log/nix
+export NIX_CONF_DIR=/mnt/etc/nix  # Optioneel, alleen als je eigen nix.conf wilt
 ```
 
 In the rescue shell, add the line to your `.bashrc`
@@ -708,3 +752,4 @@ In the rescue shell, add the line to your `.bashrc`
 ```bash
 export PATH="/nix/var/nix/profiles/default/bin:$PATH"
 ```
+
