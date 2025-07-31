@@ -663,148 +663,119 @@ And try to rebuild your system with
 sudo nixos-rebuild switch --flake .#singer
 ```
 
+
 # Steps server installation
 
-In this section it is described how you can setup your elixos operating system on a server. For the example, contabo is used. It is
-assumed that a account with a server is already available.
+This guide describes how to install the Elixos operating system on a server. In this example, we use a Contabo server.
+It is assumed you already have an account and a server available.
 
-## Preparation of the server
+## 🚀 Preparation in rescue mode
 
-1. Reboot the server into rescue mode.
-2. Login to the server using ssh
-3. Download the nix installer
+1. Reboot the server into **rescue mode**.
+2. Login via SSH.
+3. Download the Determinate Nix installer:
 
-```shell
+```sh
 curl -L -o nix-installer https://install.determinate.systems/nix/tag/v3.8.2/nix-installer-x86_64-linux
-```
-
-and make it executable
-
-```shell
 chmod +x nix-installer
-```
-
-and run it
-
-```shell
 ./nix-installer install
 ```
 
-Activate the nix environment
+4. Activate the Nix environment:
 
-```shell
+```sh
 . /root/.nix-profile/etc/profile.d/nix.sh
 ```
 
-and install git, just, and the other install tools such that we can run our remote install
+5. Install required tools:
 
-```shell
+```sh
 nix profile add --extra-experimental-features 'nix-command flakes' \
-    nixpkgs#git \
-    nixpkgs#just \
-    nixpkgs#coreutils \
-    nixpkgs#util-linux \
-    nixpkgs#e2fsprogs \
-    nixpkgs#openssh \
-    nixpkgs#nixos-install-tools \
-    nixpkgs#shadow \
-    nixpkgs#inetutils \
-    nixpkgs#procps \
-    nixpkgs#iproute2 \
-    nixpkgs#tmux \
-    nixpkgs#ncursus
+  nixpkgs#git \
+  nixpkgs#just \
+  nixpkgs#coreutils \
+  nixpkgs#util-linux \
+  nixpkgs#e2fsprogs \
+  nixpkgs#openssh \
+  nixpkgs#nixos-install-tools \
+  nixpkgs#shadow \
+  nixpkgs#inetutils \
+  nixpkgs#procps \
+  nixpkgs#iproute2 \
+  nixpkgs#tmux \
+  nixpkgs#ncurses
 ```
 
-Now you can run parition on the rescue server
+## 💽 Partitioning and mounting
 
-```shell
-just partition contabo
-```
+Partition the disk (e.g. using `just partition contabo` if defined).
 
-Mount the drives
+Then mount:
 
-```shell
+```sh
 mount /dev/sda2 /mnt
 mount /dev/sda1 /mnt/boot
 mount /dev/sda4 /mnt/home
 ```
 
-To prevent that the rescue disk is full during installing nix, we need to move the repo to the mnt. First
-Create the directories:
+## 📦 Nix store relocation
 
-```shell
+To avoid filling up the rescue disk, move the Nix store to the mounted target disk:
+
+```sh
 mkdir -p /mnt/nix
-mkdir -p /mnt/nix/store
-mkdir -p /mnt/nix/var/nix
-mkdir -p /mnt/nix/var/log/nix
+rsync -aXS /nix/ /mnt/nix/
+mv /nix /nix.bak
+ln -s /mnt/nix /nix
 ```
 
-Set the following environment variables
+## ⚙️ Configure Nix to avoid local builds
 
-```shell
-export NIX_STORE_DIR=/mnt/nix/store
-export NIX_STATE_DIR=/mnt/nix/var/nix
-export NIX_LOG_DIR=/mnt/nix/var/log/nix
-export NIX_CONF_DIR=/mnt/etc/nix  # Optioneel, alleen als je eigen nix.conf wilt
-```
+Edit `/etc/nix/nix.custom.conf`:
 
-In the rescue shell, add the line to your `.bashrc`
-
-```bash
-export PATH="/nix/var/nix/profiles/default/bin:$PATH"
-```
-
-To prevent that we are going to compile in stead of downloading the cache, add this to `/etc/nix/nix.custom.conf`
-
-```text
+```ini
 fallback = false
 builders =
 substituters = https://cache.nixos.org https://install.determinate.systems
 trusted-public-keys = cache.nixos.org-1:JcQoKEDN96pw8Tz5U0cV3z3WcLTX3L2zGp7qOE4EZoE=
 ```
 
-and run:
+Restart the Nix daemon (if applicable):
 
-```shell
+```sh
 sudo systemctl restart nix-daemon
 ```
 
+## 🧰 Tmux & terminal setup
 
-Now we also need to run in tmux, otherwise the shell will logout during building. 
-To open tmux we must first fix our terminal by adding a file .tmux.conf:
+Avoid disconnects during long builds by using tmux. First, ensure terminal compatibility.
+
+Add to `~/.tmux.conf`:
 
 ```text
 set -g default-terminal "xterm-256color"
 ```
 
+Add to `~/.bashrc`:
 
-and  add to your `.bashrc`
-
-```bash
+```sh
 export TERM=xterm-256color
 ```
 
-Now make sure that the cache is written to mnt
+Then start:
 
-```shell
-sudo systemctl stop nix-daemon
+```sh
+tmux
 ```
 
-do
+## ✅ Next steps
 
-```shell
-mkdir -p /mnt/nix
-rsync -aXS /nix/ /mnt/nix/
+You are now ready to clone your flake and run the actual installation:
+
+```sh
+git clone <your-flake-repo> /mnt/root/elixos
+cp /root/keys.txt /mnt/etc/sops/age/keys.txt
+chmod 400 /mnt/etc/sops/age/keys.txt
+
+nixos-install --flake /mnt/root/elixos#contabo
 ```
-
-rename
-
-```shell
-mv /nix /nix.bak
-```
-
-and create symbolic link
-
-```shell
-```
-
