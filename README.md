@@ -711,7 +711,8 @@ nix profile add --extra-experimental-features 'nix-command flakes' \
     nixpkgs#inetutils \
     nixpkgs#procps \
     nixpkgs#iproute2 \
-    nixpkgs.tmux
+    nixpkgs#tmux \
+    nixpkgs#ncursus
 ```
 
 Now you can run parition on the rescue server
@@ -751,5 +752,59 @@ In the rescue shell, add the line to your `.bashrc`
 
 ```bash
 export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+```
+
+To prevent that we are going to compile in stead of downloading the cache, add this to `/etc/nix/nix.custom.conf`
+
+```text
+fallback = false
+builders =
+substituters = https://cache.nixos.org https://install.determinate.systems
+trusted-public-keys = cache.nixos.org-1:JcQoKEDN96pw8Tz5U0cV3z3WcLTX3L2zGp7qOE4EZoE=
+```
+
+and run:
+
+```shell
+sudo systemctl restart nix-daemon
+```
+
+
+Now we also need to run in tmux, otherwise the shell will logout during building. 
+To open tmux we must first fix our terminal by adding a file .tmux.conf:
+
+```text
+set -g default-terminal "xterm-256color"
+```
+
+
+and  add to your `.bashrc`
+
+```bash
+export TERM=xterm-256color
+```
+
+Now make sure that the cache is written to mnt
+
+```shell
+sudo systemctl stop nix-daemon
+```
+
+do
+
+```shell
+mkdir -p /mnt/nix
+rsync -aXS /nix/ /mnt/nix/
+```
+
+rename
+
+```shell
+mv /nix /nix.bak
+```
+
+and create symbolic link
+
+```shell
 ```
 
