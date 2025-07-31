@@ -59,7 +59,8 @@ prepare-rescue-env:
 		nixpkgs#shadow \
 		nixpkgs#inetutils \
 		nixpkgs#procps \
-		nixpkgs#iproute2
+		nixpkgs#iproute2 \
+		nixpkgs.ncurses
 	echo "✅ Tools geïnstalleerd:"
 
 
