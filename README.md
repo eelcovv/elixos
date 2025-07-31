@@ -505,7 +505,7 @@ Also check your firewall if it is not running
 
 To transer your git repo, either bundle or just add your publish key to your git hub account
 
-## Transfering the installation repoo to you laptop
+## Transfering the installation reoo to your laptop
 
 From now on, you can use the justfile entries to install the laptop
 
@@ -662,7 +662,6 @@ And try to rebuild your system with
 ```shell
 sudo nixos-rebuild switch --flake .#singer
 ```
-
 
 # Steps server installation
 
