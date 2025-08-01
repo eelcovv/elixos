@@ -24,7 +24,9 @@
 
     validUsers = builtins.filter hasSecretFile existingUsers;
 
-    tracedValidUsers = builtins.trace "validUsers: ${builtins.toString validUsers}" validUsers;
+    nonEmptyValidUsers = builtins.filter (u: u != "") validUsers;
+
+    tracedValidUsers = builtins.trace "validUsers: ${builtins.toString nonEmptyValidUsers}" nonEmptyValidUsers;
 
     userSecret = user: {
       "id_ed25519_${user}" = {
