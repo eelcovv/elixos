@@ -239,13 +239,22 @@ install HOST:
 	cp /root/keys.txt /mnt/etc/sops/age/keys.txt
 	chmod 400 /mnt/etc/sops/age/keys.txt
 	@echo "🚀 Building system for {{HOST}}..."
-	NIX_OUT_LINK={{default(NIX_OUT_LINK, "result-{{HOST}}")}} nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link "$NIX_OUT_LINK"
+	nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result-{{HOST}}
 	@echo "🚀 Running nixos-install for {{HOST}}..."
-	nixos-install --system "$NIX_OUT_LINK" --no-root-passwd
+	nixos-install --system result-{{HOST}} --no-root-passwd
 	@echo "✅ {{HOST}} is now installed!"
 
 install_on_rescue HOST:
-	NIX_OUT_LINK=/mnt/home/result-{{HOST}} just install {{HOST}}
+	@echo "🔐 Copying age key to target..."
+	mkdir -p /mnt/etc/sops/age
+	cp /root/keys.txt /mnt/etc/sops/age/keys.txt
+	chmod 400 /mnt/etc/sops/age/keys.txt
+	@echo "🚀 Building system for {{HOST}} to /mnt/home..."
+	nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link /mnt/home/result-{{HOST}}
+	@echo "🚀 Running nixos-install for {{HOST}}..."
+	nixos-install --system /mnt/home/result-{{HOST}} --no-root-passwd
+	@echo "✅ {{HOST}} is now installed (rescue mode)!"
+
 
 switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
