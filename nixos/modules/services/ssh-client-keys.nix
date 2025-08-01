@@ -11,7 +11,11 @@
   };
 
   config = let
-    sshUsers = config.sshUsers or [];
+    # Alleen gebruikers opnemen die al een home-directory hebben (werkt in rescue én normale modus)
+    sshUsers =
+      builtins.filter
+      (user: builtins.pathExists "/mnt/home/${user}" || builtins.pathExists "/home/${user}")
+      (config.sshUsers or []);
 
     hasSecretFile = user:
       builtins.pathExists (../../secrets + "/${config.networking.hostName}-${user}-secrets.yaml");
