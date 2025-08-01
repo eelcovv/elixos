@@ -4,3 +4,5 @@
 *.qcow2
 /result*
 elixos.bundle
+.tmux.conf
+install.log
