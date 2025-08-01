@@ -11,16 +11,18 @@
   };
 
   config = let
-    # Alleen gebruikers opnemen die al een home-directory hebben (werkt in rescue én normale modus)
-    sshUsers =
+    sshUsersRaw = config.sshUsers or [];
+
+    # Filter gebruikers waarvoor het home-pad al bestaat op /home of /mnt/home
+    existingUsers =
       builtins.filter
       (user: builtins.pathExists "/mnt/home/${user}" || builtins.pathExists "/home/${user}")
-      (config.sshUsers or []);
+      sshUsersRaw;
 
     hasSecretFile = user:
       builtins.pathExists (../../secrets + "/${config.networking.hostName}-${user}-secrets.yaml");
 
-    validUsers = builtins.filter hasSecretFile sshUsers;
+    validUsers = builtins.filter hasSecretFile existingUsers;
 
     tracedValidUsers = builtins.trace "validUsers: ${builtins.toString validUsers}" validUsers;
 
@@ -73,13 +75,7 @@
       };
     };
   in
-    if tracedValidUsers == []
-    then {
-      sops.secrets = {};
-      systemd.services = {};
-      systemd.tmpfiles.rules = [];
-    }
-    else {
+    lib.mkIf (tracedValidUsers != []) {
       sops.secrets = lib.mkMerge (map userSecret tracedValidUsers);
 
       systemd.services = lib.mkMerge (map userService tracedValidUsers);
