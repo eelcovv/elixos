@@ -18,6 +18,8 @@
 
     validUsers = builtins.filter hasSecretFile sshUsers;
 
+    _ = builtins.trace "validUsers: ${builtins.toString validUsers}" null;
+
     userSecret = user: {
       "id_ed25519_${user}" = {
         sopsFile = ../../secrets/${config.networking.hostName}-${user}-secrets.yaml;
