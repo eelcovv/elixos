@@ -68,16 +68,23 @@
         };
       };
     };
-  in {
-    sops.secrets = lib.mkMerge (map userSecret tracedValidUsers);
+  in
+    if tracedValidUsers == []
+    then {
+      sops.secrets = {};
+      systemd.services = {};
+      systemd.tmpfiles.rules = [];
+    }
+    else {
+      sops.secrets = lib.mkMerge (map userSecret tracedValidUsers);
 
-    systemd.services = lib.mkMerge (map userService tracedValidUsers);
+      systemd.services = lib.mkMerge (map userService tracedValidUsers);
 
-    systemd.tmpfiles.rules = lib.flatten (map
-      (user: [
-        "d /home/${user}/.ssh 0700 ${user} users -"
-        "f /home/${user}/.ssh/id_ed25519.pub 0644 ${user} users -"
-      ])
-      tracedValidUsers);
-  };
+      systemd.tmpfiles.rules = lib.flatten (map
+        (user: [
+          "d /home/${user}/.ssh 0700 ${user} users -"
+          "f /home/${user}/.ssh/id_ed25519.pub 0644 ${user} users -"
+        ])
+        tracedValidUsers);
+    };
 }
