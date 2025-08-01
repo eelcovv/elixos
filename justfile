@@ -239,11 +239,10 @@ install HOST:
 	cp /root/keys.txt /mnt/etc/sops/age/keys.txt
 	chmod 400 /mnt/etc/sops/age/keys.txt
 	@echo "🚀 Building system for {{HOST}}..."
-	NIX_OUT_LINK=${NIX_OUT_LINK:-result-{{HOST}}} nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link "$NIX_OUT_LINK"
+	NIX_OUT_LINK={{default(NIX_OUT_LINK, "result-{{HOST}}")}} nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link "$NIX_OUT_LINK"
 	@echo "🚀 Running nixos-install for {{HOST}}..."
 	nixos-install --system "$NIX_OUT_LINK" --no-root-passwd
 	@echo "✅ {{HOST}} is now installed!"
-
 
 install_on_rescue HOST:
 	NIX_OUT_LINK=/mnt/home/result-{{HOST}} just install {{HOST}}
