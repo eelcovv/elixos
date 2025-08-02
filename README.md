@@ -663,16 +663,20 @@ And try to rebuild your system with
 sudo nixos-rebuild switch --flake .#singer
 ```
 
-# Steps server installation
+# 🖥️ Elixos Server Installation Guide (Contabo Example)
 
-This guide describes how to install the Elixos operating system on a server. In this example, we use a Contabo server.
-It is assumed you already have an account and a server available.
+This guide describes how to install the Elixos operating system on a remote server. The example below assumes a Contabo server, but works for any x86_64 Linux machine in rescue mode.
 
-## 🚀 Preparation in rescue mode
+---
 
-1. Reboot the server into **rescue mode**.
-2. Login via SSH.
-3. Download the Determinate Nix installer:
+## 🚧 1. Boot into Rescue Mode
+
+1. Reboot the server into **rescue mode** via your provider dashboard.
+2. SSH into the server using the credentials provided.
+
+---
+
+## 🧪 2. Install Nix
 
 ```sh
 curl -L -o nix-installer https://install.determinate.systems/nix/tag/v3.8.2/nix-installer-x86_64-linux
@@ -680,13 +684,15 @@ chmod +x nix-installer
 ./nix-installer install
 ```
 
-4. Activate the Nix environment:
+Activate Nix:
 
 ```sh
 . /root/.nix-profile/etc/profile.d/nix.sh
 ```
 
-5. Install required tools:
+---
+
+## 🔧 3. Install Required Tools
 
 ```sh
 nix profile add --extra-experimental-features 'nix-command flakes' \
@@ -705,76 +711,76 @@ nix profile add --extra-experimental-features 'nix-command flakes' \
   nixpkgs#ncurses
 ```
 
-## 💽 Partitioning and mounting
+---
 
-Partition the disk (e.g. using `just partition contabo` if defined).
+## 💽 4. Partition the Disk (with disko)
 
-Then mount:
-
-```sh
-mount /dev/sda2 /mnt
-mount /dev/sda1 /mnt/boot
-mount /dev/sda4 /mnt/home
-```
-
-## 📦 Nix store relocation
-
-To avoid filling up the rescue disk, move the Nix store to the mounted target disk:
+Assuming your flake defines a `disko` layout, run:
 
 ```sh
-mkdir -p /mnt/nix
-rsync -aXS /nix/ /mnt/nix/
-mv /nix /nix.bak
-ln -s /mnt/nix /nix
+git clone https://github.com/eelcovv/elixos /mnt/root/elixos
+cd /mnt/root/elixos
+nix run .#disko-install -- --flake .#contabo
 ```
 
-## ⚙️ Configure Nix to avoid local builds
+---
 
-Edit `/etc/nix/nix.custom.conf`:
+## 📂 5. Bind the Nix store correctly
 
-```ini
-fallback = false
-builders =
-substituters = https://cache.nixos.org https://install.determinate.systems
-trusted-public-keys = cache.nixos.org-1:JcQoKEDN96pw8Tz5U0cV3z3WcLTX3L2zGp7qOE4EZoE=
-```
-
-Restart the Nix daemon (if applicable):
+To avoid corrupt builds or missing caches:
 
 ```sh
-sudo systemctl restart nix-daemon
+umount /nix || true
+mount --bind /mnt/nix /nix
 ```
 
-## 🧰 Tmux & terminal setup
-
-Avoid disconnects during long builds by using tmux. First, ensure terminal compatibility.
-
-Add to `~/.tmux.conf`:
-
-```text
-set -g default-terminal "xterm-256color"
-```
-
-Add to `~/.bashrc`:
+Double-check:
 
 ```sh
-export TERM=xterm-256color
+mount | grep /nix
 ```
 
-Then start:
+Should show: `/mnt/nix` is bind-mounted on `/nix`.
+
+---
+
+## 🔐 6. Provide the age decryption key
 
 ```sh
-tmux
-```
-
-## ✅ Next steps
-
-You are now ready to clone your flake and run the actual installation:
-
-```sh
-git clone <your-flake-repo> /mnt/root/elixos
+mkdir -p /mnt/etc/sops/age
 cp /root/keys.txt /mnt/etc/sops/age/keys.txt
 chmod 400 /mnt/etc/sops/age/keys.txt
-
-nixos-install --flake /mnt/root/elixos#contabo
 ```
+
+---
+
+## 🧱 7. Build and install the system (remotely via SSH-safe Just target)
+
+From within `/mnt/root/elixos`:
+
+Instead of using tmux or staying logged in, run the following in the rescue shell:
+
+```sh
+just install_on_rescue contabo
+```
+
+---
+
+## 📌 8. Post-install steps
+
+After reboot, log in as `eelco` with your configured password or SSH key.
+
+Optionally run:
+
+```sh
+just switch contabo
+```
+
+to apply latest flake updates.
+
+---
+
+## 💡 Tips
+
+- The `just install_on_rescue` command uses `nohup` to survive disconnects.
+- You can inspect progress later via `journalctl` or check `/mnt/home/result-contabo` for the build result.
