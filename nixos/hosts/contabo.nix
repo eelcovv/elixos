@@ -20,11 +20,6 @@
       ../modules/home-manager.nix
     ]
     ++
-    # 🔐 Secrets
-    [
-      ../modules/secrets/contabo-eelco.nix
-    ]
-    ++
     # 🛠️ Services
     [
       ../modules/services/ssh-client-keys.nix
