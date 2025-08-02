@@ -1,15 +1,19 @@
 {
   config,
   lib,
+  options,
   ...
 }: let
-  inherit (lib) mapAttrs filterAttrs trace;
+  inherit (lib) filterAttrs trace;
+
+  # De originele (niet-gefilterde) secrets zoals gedefinieerd in modules
+  allSecrets = options.sops.secrets.default;
 
   # Helper: check of een gebruiker bestaat
   hasUser = user:
-    user != null && config.users.users ? "${user}";
+    user != null && config.users.users ? user;
 
-  # Filter secrets en log welke overgeslagen worden
+  # Filter secrets met trace bij ontbrekende gebruikers
   filteredSecrets =
     filterAttrs (
       name: val: let
@@ -19,7 +23,7 @@
         then true
         else trace "🔒 Skipping secret `${name}` because user `${toString user}` does not exist at evaluation time." false
     )
-    config.sops.secrets;
+    allSecrets;
 in {
   config.sops.secrets = filteredSecrets;
 }
