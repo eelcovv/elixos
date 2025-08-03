@@ -252,6 +252,18 @@ install HOST:
 	nixos-install --system result-{{HOST}} --no-root-passwd
 	@echo "✅ {{HOST}} is now installed!"
 
+bootstrap-nix-conf HOST:
+	@echo "⚙️  Writing /mnt/etc/nix/nix.conf on {{HOST}}..."
+	ssh root@{{SSH_HOST}} "mkdir -p /mnt/etc/nix && cat <<'EOF' > /mnt/etc/nix/nix.conf
+store = /mnt/nix/store
+state-dir = /mnt/nix/var/nix
+log-dir = /mnt/nix/var/log/nix
+build-users-group =
+experimental-features = nix-command flakes
+EOF"
+	@echo "✅ nix.conf is now set up on {{HOST}}"
+
+
 
 install_on_rescue HOST:
 	@echo "📁 Creating required cache directory on {{HOST}}..."
