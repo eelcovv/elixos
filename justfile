@@ -257,7 +257,7 @@ install HOST:
 bootstrap-nix-conf HOST:
 	@echo "Writing /mnt/etc/nix/nix.conf on {{HOST}}..."
 	ssh root@{{SSH_HOST}} 'mkdir -p /mnt/etc/nix && \
-	  echo -e "store = /mnt/nix/store\nstate-dir = /mnt/nix/var/nix\nlog-dir = /mnt/nix/var/log/nix\nbuild-users-group =\nexperimental-features = nix-command flakes" \
+	  echo -e "store = /mnt/nix/store\nbuild-users-group =\nexperimental-features = nix-command flakes" \
 	    > /mnt/etc/nix/nix.conf'
 	@echo "📁 Creating required cache directory on {{HOST}}..."
 	ssh root@{{SSH_HOST}} 'mkdir -p /mnt/root/.cache'
