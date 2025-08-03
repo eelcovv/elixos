@@ -254,16 +254,16 @@ install HOST:
 
 install_on_rescue HOST:
 	@echo "📁 Creating required cache directory on {{HOST}}..."
-	ssh root@{{HOST}} 'mkdir -p /mnt/root/.cache'
+	ssh root@{{SSH_HOST}} 'mkdir -p /mnt/root/.cache'
 	@echo "🚀 Building system for {{HOST}} using /mnt as store/cache..."
-	ssh root@{{HOST}} 'bash -l -c ". /etc/profile.d/nix.sh && \
+	ssh root@{{SSH_HOST}} 'bash -l -c ". /etc/profile.d/nix.sh && \
 	  nix --extra-experimental-features '\''nix-command flakes'\'' \
 	      --store file:///mnt/nix \
 	      --option build-users-group root \
 	      build ~/elixos#nixosConfigurations.{{HOST}}.config.system.build.toplevel \
 	      --out-link /mnt/result-{{HOST}}"'
 	@echo "🚀 Running nixos-install for {{HOST}}..."
-	ssh root@{{HOST}} 'nixos-install --system /mnt/result-{{HOST}} --no-root-passwd'
+	ssh root@{{SSH_HOST}} 'nixos-install --system /mnt/result-{{HOST}} --no-root-passwd'
 	@echo "✅ {{HOST}} is now installed (rescue mode)!"
 
 
