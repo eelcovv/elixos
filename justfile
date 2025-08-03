@@ -231,7 +231,7 @@ encrypt SECRET:
 
 # ========== LIVE INSTALLATION ==========
 partition HOST:
-	ssh root@{{SSH_HOST}} 'bash -c ". /etc/profile.d/nix.sh && cd ~/elixos && nix --extra-experimental-features '\''nix-command flakes'\'' run github:nix-community/disko -- --flake .#{{HOST}} --mode zap_create_mount"'
+	sudo -i nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --flake ~/elixos#{{HOST}} --mode zap_create_mount
 	@echo "✅ Partitioning for {{HOST}}."
 
 partition-dry HOST:
