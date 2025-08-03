@@ -164,15 +164,9 @@ bootstrap-rescue HOST:
 	just bootstrap-base
 	@echo "💥 Partitioneren van disks voor {{HOST}}..."
 	just vm_just partition {{HOST}}
-	@echo "📦 Mounten van drives voor {{HOST}}..."
-	just mount-drives {{HOST}}
 	@echo "🔐 Installeren van age-key in /mnt..."
 	just install-age-key-mnt
 	@echo "✅ Rescue bootstrap voor {{HOST}} voltooid!"
-
-mount-drives HOST:
-	ssh root@{{HOST}} 'bash -l -c "mount /dev/disk/by-label/ESP /mnt/boot && mount /dev/disk/by-label/NIXOS /mnt && mount /dev/disk/by-label/HOME /mnt/home"'
-	@echo "📦 Drives mounted on /mnt."
 
 
 # Run nixos-install from live installer
@@ -259,10 +253,6 @@ install HOST:
 	@echo "✅ {{HOST}} is now installed!"
 
 install_on_rescue HOST:
-	@echo "🔐 Copying age key to target..."
-	mkdir -p /mnt/etc/sops/age
-	cp /root/keys.txt /mnt/etc/sops/age/keys.txt
-	chmod 400 /mnt/etc/sops/age/keys.txt
 	@echo "🚀 Building system for {{HOST}} to /mnt/home..."
 	nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link /mnt/home/result-{{HOST}}
 	@echo "🚀 Running nixos-install for {{HOST}}..."
