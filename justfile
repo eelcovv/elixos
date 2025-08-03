@@ -262,10 +262,10 @@ install_on_rescue HOST:
 	  NIX_CONF_DIR=/mnt/etc/nix \
 	  NIX_DATA_DIR=/mnt/nix/share \
 	  NIX_REMOTE=daemon \
-	  nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link /mnt/result-{{HOST}}
+	  nix --extra-experimental-features 'nix-command flakes' build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link /mnt/result-{{HOST}}
 	@echo "🚀 Running nixos-install for {{HOST}}..."
-	nixos-install --system
-
+	nixos-install --system /mnt/result-{{HOST}} --no-root-passwd
+	@echo "✅ {{HOST}} is now installed (rescue mode)!"
 
 
 switch HOST:
