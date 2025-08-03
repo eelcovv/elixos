@@ -1,7 +1,7 @@
 {inputs, ...}: {
   networking.hostName = "contabo";
 
-  desktop.enableGnome = true;
+  desktop.enableGnome = false;
   desktop.enableKde = true;
   desktop.enableHyperland = true;
 
