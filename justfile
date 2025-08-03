@@ -262,20 +262,18 @@ bootstrap-nix-conf HOST:
 	@echo "✅ {{HOST}} is ready to installed with just install_on_rescue {{HOST}}"
 
 install_on_rescue HOST:
-    @echo "📁 Creating required cache directory on {{HOST}}..."
-    ssh root@{{SSH_HOST}} 'mkdir -p /mnt/root/.cache'
-    @echo "🚀 Building system for {{HOST}} using /mnt as store/cache..."
-    ssh root@{{SSH_HOST}} 'bash -l -c ". /etc/profile.d/nix.sh && \
-        env \
-          XDG_CACHE_HOME=/mnt/root/.cache \
-          NIX_CONF_DIR=/mnt/etc/nix \
-          NIX_REMOTE=daemon \
-          nix build ~/elixos#nixosConfigurations.{{HOST}}.config.system.build.toplevel \
-          --out-link /mnt/result-{{HOST}}"'
-    @echo "🚀 Running nixos-install for {{HOST}}..."
-    ssh root@{{SSH_HOST}} 'nixos-install --system /mnt/result-{{HOST}} --no-root-passwd'
-    @echo "✅ {{HOST}} is now installed (rescue mode)!"
-
+	@echo "📁 Creating required cache directory on {{HOST}}..."
+	ssh root@{{SSH_HOST}} 'mkdir -p /mnt/root/.cache'
+	@echo "🚀 Building system for {{HOST}} using /mnt as store/cache..."
+	ssh root@{{SSH_HOST}} 'bash -l -c ". /etc/profile.d/nix.sh && \
+	  env \
+	    XDG_CACHE_HOME=/mnt/root/.cache \
+	    NIX_CONF_DIR=/mnt/etc/nix \
+	    NIX_REMOTE=local \
+	    nix build ~/elixos#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link /mnt/result-{{HOST}}"'
+	@echo "🚀 Running nixos-install for {{HOST}}..."
+	ssh root@{{SSH_HOST}} 'nixos-install --system /mnt/result-{{HOST}} --no-root-passwd'
+	@echo "✅ {{HOST}} is now installed (rescue mode)!"
 
 switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
