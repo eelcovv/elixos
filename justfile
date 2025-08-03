@@ -160,6 +160,7 @@ bootstrap-laptop HOST:
 # Legacy shortcut
 bootstrap-vm: bootstrap-generic-vm
 
+# Bootstrap a rescue environment for a physical machine.
 bootstrap-rescue HOST:
 	just bootstrap-base
 	@echo "💥 Partitioneren van disks voor {{HOST}}..."
@@ -252,6 +253,7 @@ install HOST:
 	nixos-install --system result-{{HOST}} --no-root-passwd
 	@echo "✅ {{HOST}} is now installed!"
 
+# bootstrap de nix.conf op de rescue machine
 bootstrap-nix-conf HOST:
 	@echo "Writing /mnt/etc/nix/nix.conf on {{HOST}}..."
 	ssh root@{{SSH_HOST}} 'mkdir -p /mnt/etc/nix && \
@@ -261,6 +263,7 @@ bootstrap-nix-conf HOST:
 	ssh root@{{SSH_HOST}} 'mkdir -p /mnt/root/.cache'
 	@echo "✅ {{HOST}} is ready to installed with just install_on_rescue {{HOST}}"
 
+# Install nixos on a rescue machine
 install_on_rescue HOST:
 	@echo "📁 Creating required cache directory on {{HOST}}..."
 	ssh root@{{SSH_HOST}} 'mkdir -p /mnt/root/.cache'
