@@ -253,6 +253,8 @@ install HOST:
 	@echo "✅ {{HOST}} is now installed!"
 
 install_on_rescue HOST:
+	@echo "📁 Creating required cache directory..."
+	mkdir -p /mnt/root/.cache
 	@echo "🚀 Building system for {{HOST}} using /mnt as store/cache..."
 	env \
 	  NIX_STORE_DIR=/mnt/nix/store \
@@ -266,7 +268,6 @@ install_on_rescue HOST:
 	@echo "🚀 Running nixos-install for {{HOST}}..."
 	nixos-install --system /mnt/result-{{HOST}} --no-root-passwd
 	@echo "✅ {{HOST}} is now installed (rescue mode)!"
-
 
 switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
