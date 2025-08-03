@@ -160,6 +160,20 @@ bootstrap-laptop HOST:
 # Legacy shortcut
 bootstrap-vm: bootstrap-generic-vm
 
+bootstrap-rescue HOST:
+	just bootstrap-base
+	@echo "💥 Partitioneren van disks voor {{HOST}}..."
+	just vm_just partition {{HOST}}
+	@echo "📦 Mounten van drives voor {{HOST}}..."
+	just mount-drives {{HOST}}
+	@echo "🔐 Installeren van age-key in /mnt..."
+	just install-age-key-mnt
+	@echo "✅ Rescue bootstrap voor {{HOST}} voltooid!"
+
+mount-drives HOST:
+	ssh root@{{HOST}} 'bash -l -c "mount /dev/disk/by-label/ESP /mnt/boot && mount /dev/disk/by-label/NIXOS /mnt && mount /dev/disk/by-label/HOME /mnt/home"'
+	@echo "📦 Drives mounted on /mnt."
+
 
 # Run nixos-install from live installer
 vm_install:
@@ -217,7 +231,7 @@ encrypt SECRET:
 
 # ========== LIVE INSTALLATION ==========
 partition HOST:
-	ssh root@{{HOST}} 'bash -c ". /etc/profile.d/nix.sh && cd ~/elixos && nix --extra-experimental-features '\''nix-command flakes'\'' run github:nix-community/disko -- --flake .#{{HOST}} --mode zap_create_mount"'
+	ssh root@{{SSH_HOST}} 'bash -c ". /etc/profile.d/nix.sh && cd ~/elixos && nix --extra-experimental-features '\''nix-command flakes'\'' run github:nix-community/disko -- --flake .#{{HOST}} --mode zap_create_mount"'
 	@echo "✅ Partitioning for {{HOST}}."
 
 partition-dry HOST:

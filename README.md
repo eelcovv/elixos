@@ -682,7 +682,7 @@ This guide describes how to install the Elixos operating system on a remote serv
 Install required package first:
 
 ```sh
-apt update && apt install xz-utils
+apt update && apt install xz-utils git
 ```
 
 and then download and install nix
