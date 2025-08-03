@@ -253,11 +253,19 @@ install HOST:
 	@echo "✅ {{HOST}} is now installed!"
 
 install_on_rescue HOST:
-	@echo "🚀 Building system for {{HOST}} to /mnt/home..."
-	nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link /mnt/home/result-{{HOST}}
+	@echo "🚀 Building system for {{HOST}} using /mnt as store/cache..."
+	env \
+	  NIX_STORE_DIR=/mnt/nix/store \
+	  NIX_STATE_DIR=/mnt/nix/var/nix \
+	  XDG_CACHE_HOME=/mnt/root/.cache \
+	  NIX_LOG_DIR=/mnt/nix/var/log/nix \
+	  NIX_CONF_DIR=/mnt/etc/nix \
+	  NIX_DATA_DIR=/mnt/nix/share \
+	  NIX_REMOTE=daemon \
+	  nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link /mnt/result-{{HOST}}
 	@echo "🚀 Running nixos-install for {{HOST}}..."
-	nixos-install --system /mnt/home/result-{{HOST}} --no-root-passwd
-	@echo "✅ {{HOST}} is now installed (rescue mode)!"
+	nixos-install --system
+
 
 
 switch HOST:
