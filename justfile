@@ -259,14 +259,18 @@ install_on_rescue HOST:
 	ssh root@{{SSH_HOST}} 'bash -l -c "\
 	  . /etc/profile.d/nix.sh && \
 	  export PATH=/root/.nix-profile/bin:\$$PATH && \
-	  mkdir -p /mnt/nix/store && \
+	  mkdir -p /mnt/store && \
 	  nix \
-	    --store /mnt/nix/store \
+	    --store /mnt/store \
 	    --option build-users-group \"\" \
 	    --option experimental-features \"nix-command flakes\" \
+	    --option substituters https://cache.nixos.org/ \
+	    --option trusted-substituters https://cache.nixos.org/ \
 	    build /root/elixos#nixosConfigurations.{{HOST}}.config.system.build.toplevel \
 	    --out-link /mnt/result-{{HOST}} "'
 	@echo "✅ Build done (if no errors above)"
+
+
 
 
 switch HOST:
