@@ -678,21 +678,47 @@ This guide describes how to install the Elixos operating system on a remote serv
 
 ## 🧪 2. Install Nix
 
+
+Install required package first:
+
 ```sh
-curl -L -o nix-installer https://install.determinate.systems/nix/tag/v3.8.2/nix-installer-x86_64-linux
-chmod +x nix-installer
-./nix-installer install
+apt update && apt install xz-utils
 ```
 
-Activate Nix:
+and then download and install nix
 
 ```sh
-. /root/.nix-profile/etc/profile.d/nix.sh
+curl -L -o install-nix.sh https://nixos.org/nix/install
+chmod +x install-nix.sh
+./install-nix.sh --daemon --yes
+```
+
+Activate nix by:
+
+```sh
+. /etc/profile.d/nix.sh
+```
+
+and test it is working
+
+```sh
+nix --version
 ```
 
 ---
 
 ## 🔧 3. Install Required Tools
+
+Also, make sure Nix is automatically loaded in future SSH sessions by adding to your `.bashrc`:
+
+```bash
+if [ -e . /etc/profile.d/nix.sh ]; then
+    . /etc/profile.d/nix.sh
+fi
+```
+
+Now install the required packages to complete the full installation: 
+
 
 ```sh
 nix profile add --extra-experimental-features 'nix-command flakes' \
@@ -708,18 +734,46 @@ nix profile add --extra-experimental-features 'nix-command flakes' \
   nixpkgs#procps \
   nixpkgs#iproute2 \
   nixpkgs#tmux \
-  nixpkgs#ncurses
+  nixpkgs#ncurses \
+  nixpkgs#rsync \
+  nixpkgs#xz
 ```
 
 ---
 
 ## 💽 4. Partition the Disk (with disko)
 
-Assuming your flake defines a `disko` layout, run:
+From the host, load the contabo env environment
+
+```shell
+. ./.env.contabo
+```
+
+which set the environment variables:
+
+```shell
+export HOST=contabo
+export SSH_USER=root
+export SSH_PORT=22
+export SSH_HOST=194.146.13.222
+export REPO_DIR=/tmp/elixos
+```
+
+where the SSH_HOST must be the ip address of your server.
+
+Then you can run 
+
+```shell
+just bootstrap-laptop contabo
+```
+
+This deletes your whole harddrive of the contabo server and creates a new partion based on your disko under disks.
+
+The same could have been acchieved with:
 
 ```sh
-git clone https://github.com/eelcovv/elixos /mnt/root/elixos
-cd /mnt/root/elixos
+git clone https://github.com/eelcovv/elixos /root/elixos
+cd /root/elixos
 nix run .#disko-install -- --flake .#contabo
 ```
 
@@ -730,6 +784,7 @@ nix run .#disko-install -- --flake .#contabo
 To avoid corrupt builds or missing caches:
 
 ```sh
+mkdir -p /mnt/nix
 umount /nix || true
 mount --bind /mnt/nix /nix
 ```
