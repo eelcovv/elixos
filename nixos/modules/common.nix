@@ -86,6 +86,10 @@ This NixOS configuration module defines common system settings:
       util-linux
     ];
 
+    environment.extraInit = ''
+      export PATH=$PATH:${pkgs.util-linux}/bin
+    '';
+
     system.stateVersion = "24.11";
   };
 }
