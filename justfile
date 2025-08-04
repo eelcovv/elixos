@@ -169,6 +169,18 @@ bootstrap-rescue HOST:
 	just install-age-key-mnt
 	@echo "✅ Rescue bootstrap voor {{HOST}} voltooid!"
 
+# Bootstrap NixOS install over existing Linux (e.g. Ubuntu)
+bootstrap-ubuntu HOST:
+	@echo "📤 Pushing age key to {{HOST}}..."
+	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{SSH_HOST}}:~/keys.txt
+	@echo "⚙️  Installing Nix on {{HOST}}..."
+	ssh root@{{SSH_HOST}} 'bash -l -c "\
+	  set -e && \
+	  if ! command -v nix >/dev/null; then \
+	    curl -L https://nixos.org/nix/install | sh; \
+	    . ~/.nix-profile/etc/profile.d/nix.sh; \
+	  fi"'
+	@echo "✅ Base bootstrap on {{HOST}} complete."
 
 # Run nixos-install from live installer
 vm_install:
@@ -270,6 +282,7 @@ install_on_rescue HOST:
 	    --out-link /mnt/result-{{HOST}} "'
 	@echo "✅ Build done (if no errors above)"
 
+# Install NixOS over existing Linux system
 install_over_ubuntu HOST:
 	@echo "📦 Installing NixOS over existing Linux system on {{HOST}}..."
 	ssh root@{{SSH_HOST}} 'bash -l -c "\
