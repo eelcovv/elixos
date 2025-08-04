@@ -5,7 +5,6 @@
 }: {
   boot.loader = {
     grub.enable = true;
-    grub.version = 2;
     efi.canTouchEfiVariables = false;
   };
 
