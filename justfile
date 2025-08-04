@@ -171,8 +171,7 @@ bootstrap-rescue HOST:
 
 # Bootstrap NixOS install over existing Linux (e.g. Ubuntu)
 bootstrap-ubuntu HOST:
-	@echo "📤 Pushing age key to {{HOST}}..."
-	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{SSH_HOST}}:~/keys.txt
+	just bootstrap-base
 	@echo "⚙️  Installing Nix on {{HOST}} via Determinate installer..."
 	ssh root@{{SSH_HOST}} 'bash -l -c "\
 	  set -e && \
@@ -182,8 +181,7 @@ bootstrap-ubuntu HOST:
 	    ./nix-installer install && \
 	    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh; \
 	  fi"'
-	@echo "✅ Nix installed and key pushed on {{HOST}}."
-
+	@echo "✅ Ubuntu system is now ready for NixOS installation."
 
 # Run nixos-install from live installer
 vm_install:
