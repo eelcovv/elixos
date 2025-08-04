@@ -75,6 +75,8 @@ This NixOS configuration module defines common system settings:
       rage
       zsh
       bashInteractive
+      coreutils
+      util-linux
     ];
 
     system.stateVersion = "24.11";
