@@ -293,10 +293,13 @@ install_over_ubuntu HOST:
 	  cp ~/keys.txt /etc/sops/age/keys.txt && \
 	  chmod 400 /etc/sops/age/keys.txt && \
 	  echo 🚀 Building system for {{HOST}}... && \
-	  nix build ~/elixos#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result-{{HOST}} && \
+	  cd /root/elixos && \
+	  nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result && \
 	  echo 🚀 Running nixos-install... && \
-	  nix run github:NixOS/nixpkgs/25.05#nixos-install -- --system result-{{HOST}} --no-root-passwd && \
+	  nix run github:NixOS/nixpkgs/25.05#nixos-install -- --system ./result --no-root-passwd && \
 	  echo ✅ NixOS installed successfully on {{HOST}}."'
+
+
 
 
 switch HOST:
