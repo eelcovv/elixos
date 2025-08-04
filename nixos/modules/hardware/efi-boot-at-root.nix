@@ -16,19 +16,18 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: {
   boot = {
-    plymouth.enable = true;
     loader = {
-      timeout = 2;
-      systemd-boot.consoleMode = "max";
       systemd-boot.enable = true;
+      systemd-boot.consoleMode = "max";
       systemd-boot.configurationLimit = 10;
       systemd-boot.editor = false;
       efi.canTouchEfiVariables = true;
-      efi.efiSysMountPoint = "/boot";
+      efi.efiSysMountPoint = "/boot"; # EFI direct op /boot
     };
+    plymouth.enable = true;
+    loader.timeout = 2;
   };
 }

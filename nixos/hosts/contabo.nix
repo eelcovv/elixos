@@ -13,7 +13,6 @@
     # 🧱 Basic modules
     [
       ../modules/common.nix
-      ../modules/profiles/rescue-server-software.nix
       ../modules/profiles/desktop-options.nix
       ../modules/profiles/desktop-configs.nix
       ../modules/profiles/desktop-software.nix
@@ -28,7 +27,6 @@
     # 💻 Hardware and disk setup
     [
       ../hardware/contabo/configuration.nix
-      ../disks/contabo.nix
     ]
     ++
     # 👤 Users
@@ -38,7 +36,6 @@
     ++
     # 🧩 External modules
     [
-      inputs.disko.nixosModules.disko
       inputs.home-manager.nixosModules.home-manager
     ];
 }

@@ -16,7 +16,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: {
   boot.loader = {
