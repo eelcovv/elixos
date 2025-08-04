@@ -270,7 +270,19 @@ install_on_rescue HOST:
 	    --out-link /mnt/result-{{HOST}} "'
 	@echo "✅ Build done (if no errors above)"
 
-
+install_over_ubuntu HOST:
+	@echo "📦 Installing NixOS over existing Linux system on {{HOST}}..."
+	ssh root@{{SSH_HOST}} 'bash -l -c "\
+	  set -e && \
+	  echo 🔐 Installing age key... && \
+	  mkdir -p /etc/sops/age && \
+	  cp /root/keys.txt /etc/sops/age/keys.txt && \
+	  chmod 400 /etc/sops/age/keys.txt && \
+	  echo 🚀 Building system for {{HOST}}... && \
+	  nix build ~/elixos#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result-{{HOST}} && \
+	  echo 🚀 Running nixos-install... && \
+	  nixos-install --system result-{{HOST}} --no-root-passwd && \
+	  echo ✅ Done."'
 
 
 switch HOST:
