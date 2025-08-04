@@ -292,14 +292,13 @@ install_over_ubuntu HOST:
 	  set -e && \
 	  echo 🔐 Installing age key... && \
 	  mkdir -p /etc/sops/age && \
-	  cp /root/keys.txt /etc/sops/age/keys.txt && \
+	  cp ~/keys.txt /etc/sops/age/keys.txt && \
 	  chmod 400 /etc/sops/age/keys.txt && \
 	  echo 🚀 Building system for {{HOST}}... && \
 	  nix build ~/elixos#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result-{{HOST}} && \
 	  echo 🚀 Running nixos-install... && \
 	  nixos-install --system result-{{HOST}} --no-root-passwd && \
-	  echo ✅ Done."'
-
+	  echo ✅ NixOS installed successfully on {{HOST}}."'
 
 switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
