@@ -62,6 +62,13 @@ This NixOS configuration module defines common system settings:
     i18n.defaultLocale = "en_US.UTF-8";
     time.timeZone = "Europe/Amsterdam";
 
+    system.activationScripts.ensureMount = {
+      text = ''
+        echo "✔ Ensuring mount is available..."
+        ${pkgs.util-linux}/bin/mount --version > /dev/null
+      '';
+    };
+
     environment.systemPackages = with pkgs; let
       inherit (config.system) build;
     in [
