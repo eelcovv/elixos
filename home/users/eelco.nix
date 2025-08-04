@@ -70,6 +70,7 @@
       ../modules/shells.nix
       ../modules/terminals.nix
       ../modules/editors.nix
+      ../modules/internet/remote-access.nix
 
       # Uitpakken van benchmarking lijst:
     ]
