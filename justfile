@@ -173,14 +173,17 @@ bootstrap-rescue HOST:
 bootstrap-ubuntu HOST:
 	@echo "📤 Pushing age key to {{HOST}}..."
 	scp -P {{SSH_PORT}} ~/.config/sops/age/keys.txt {{SSH_USER}}@{{SSH_HOST}}:~/keys.txt
-	@echo "⚙️  Installing Nix on {{HOST}}..."
+	@echo "⚙️  Installing Nix on {{HOST}} via Determinate installer..."
 	ssh root@{{SSH_HOST}} 'bash -l -c "\
 	  set -e && \
 	  if ! command -v nix >/dev/null; then \
-	    curl -L https://nixos.org/nix/install | sh; \
-	    . ~/.nix-profile/etc/profile.d/nix.sh; \
+	    curl -L -o nix-installer https://install.determinate.systems/nix/tag/v3.8.2/nix-installer-x86_64-linux && \
+	    chmod +x nix-installer && \
+	    ./nix-installer install && \
+	    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh; \
 	  fi"'
-	@echo "✅ Base bootstrap on {{HOST}} complete."
+	@echo "✅ Nix installed and key pushed on {{HOST}}."
+
 
 # Run nixos-install from live installer
 vm_install:
