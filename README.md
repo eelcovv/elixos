@@ -665,14 +665,15 @@ sudo nixos-rebuild switch --flake .#singer
 
 # 🖥️ Elixos Server Installation Guide (Contabo Example)
 
-This guide describes how to install the Elixos operating system on a remote server. The example below assumes a Contabo server, but works for any x86_64 Linux machine in rescue mode.
+This guide describes how to install the Elixos operating system on a remote server. The example below assumes a Contabo server
+but works for any x86_64 Linux machine in rescue mode.
 
 ---
 
 ## 🚧 1. Boot into Rescue Mode
 
-1. Reboot the server into **rescue mode** via your provider dashboard.
-2. SSH into the server using the credentials provided.
+1. Install Ubuntu LTS 22.05 with a root user
+2. SSH into the using the ssh key provided during setup
 
 ---
 
