@@ -30,18 +30,17 @@
         (import ./start-keyring-daemon.nix {inherit lib pkgs config;})
       ]
     ))
-
     # GDM + SSH prompt
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
       services.displayManager.gdm = {
         enable = true;
-        wayland = lib.mkForce false; # ✅ Zorgt dat GDM X11 *en* Wayland toestaat
+        wayland = lib.mkForce false;
       };
 
-      services.xserver.displayManager.defaultSession = "plasma"; # ✅ Laat Plasma als X11 sessie zien
+      services.xserver.displayManager.defaultSession = "plasma";
 
       services.xserver.displayManager.sessionPackages = [
-        pkgs.plasma-workspace
+        pkgs.kdePackages.plasma-workspace
       ];
 
       services.displayManager.autoLogin = {
