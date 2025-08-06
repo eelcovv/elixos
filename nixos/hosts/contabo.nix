@@ -1,9 +1,9 @@
 {inputs, ...}: {
   networking.hostName = "contabo";
 
-  desktop.enableGnome = false;
-  desktop.enableKde = true;
-  desktop.enableHyperland = true;
+  desktop.enableGnome = true;
+  desktop.enableKde = false;
+  desktop.enableHyperland = false;
 
   # Definine host-specifi sshUsers
   sshUsers = ["eelco"];
