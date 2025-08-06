@@ -66,7 +66,10 @@ This NixOS configuration module defines common system settings:
     system.activationScripts.ensureMount = {
       text = ''
         echo "✔ Ensuring mount is available..."
-        ${pkgs.util-linux}/bin/mount --version > /dev/null
+        if ! command -v mount >/dev/null; then
+          echo "❌ 'mount' not found in PATH. Trying fallback..."
+          ${pkgs.util-linux}/bin/mount --version > /dev/null
+        fi
       '';
     };
 
