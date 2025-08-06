@@ -10,10 +10,7 @@
     exec ${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
   '';
 in {
-  config = lib.mkIf config.desktop.enableKde {
-    services.xserver.enable = true;
-    services.desktopManager.plasma6.enable = true;
-
+  config = {
     services.xserver.displayManager.session = [
       {
         name = "plasma-x11";
