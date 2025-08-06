@@ -9,11 +9,14 @@
     services.desktopManager.plasma6.enable = true;
 
     environment.systemPackages = with pkgs.kdePackages; [
+      plasma-desktop
+      plasma-workspace
+      konsole
+      dolphin
+      plasma-browser-integration
       kwallet
       kwallet-pam
       bluedevil
-      plasma-workspace
-      plasma-browser-integration
     ];
 
     security.pam.services.kwallet = {
