@@ -14,11 +14,9 @@ else
 fi
 
 echo "🚀 Installing system..."
-/root/result/bin/switch-to-configuration boot
-
-echo "💾 Installing GRUB..."
 # Alleen nodig bij BIOS-boot (zoals jij nu hebt):
-nixos-install --system $HOME/result --no-root-passwd
+nix --extra-experimental-features 'nix-command flakes' run github:NixOS/nixpkgs/25.05#nixos-install -- --system "$HOME/result" --no-root-passwd
+
 
 echo "✅ System installed"
 echo "📌 You can now reboot into your new NixOS system."
