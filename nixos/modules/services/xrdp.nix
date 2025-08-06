@@ -11,8 +11,5 @@
     };
 
     networking.firewall.allowedTCPPorts = [3389];
-
-    # PulseAudio is nodig voor audio over RDP
-    hardware.pulseaudio.enable = true;
   };
 }
