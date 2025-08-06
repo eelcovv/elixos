@@ -6,5 +6,5 @@ echo "📦 Building system for $HOST..."
 
 nix --extra-experimental-features "nix-command flakes" \
   build ".#nixosConfigurations.${HOST}.config.system.build.toplevel" \
-  --out-link "${HOME}/esult"
+  --out-link "${HOME}/result"
 
