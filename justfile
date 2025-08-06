@@ -302,8 +302,7 @@ install_over_ubuntu HOST:
 	  echo ✅ NixOS installed successfully on {{HOST}}."'
 
 # Install the nix installer on a server with ubuntu installed
-install_nix_installer_on_ubuntu:
-	|
+install_nix_installer_on_ubuntu: |
 	echo "📁 Creating /nix directory..."
 	mkdir -m 0755 -p /nix && chown root /nix
 
