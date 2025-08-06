@@ -16,13 +16,13 @@
       ../modules/profiles/desktop-options.nix
       ../modules/profiles/desktop-configs.nix
       ../modules/profiles/desktop-software.nix
-      ../modules/profiles/gnome-rdp.nix
       ../modules/home-manager.nix
     ]
     ++
     # 🛠️ Services
     [
       ../modules/services/ssh-client-keys.nix
+      ../modules/services/xrdp.nix
     ]
     ++
     # 💻 Hardware and disk setup
