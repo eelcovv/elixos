@@ -12,18 +12,15 @@ else
   echo "    → Secrets may fail to decrypt if needed by this configuration."
 fi
 
-echo "📥 Registering result as system profile..."
-nix --extra-experimental-features 'nix-command flakes' profile install "$HOME/result"
-
-echo "🚀 Installing system..."
-nix --extra-experimental-features 'nix-command flakes' run github:NixOS/nixpkgs/25.05#nixos-install -- --system "$HOME/result" --no-root-passwd
-
 echo "📥 Sourcing nix profile to fix \$PATH..."
 if [[ -f /nix/var/nix/profiles/system/etc/profile.d/nix.sh ]]; then
   source /nix/var/nix/profiles/system/etc/profile.d/nix.sh
 else
   echo "⚠️  Could not source system profile — PATH may be incomplete."
 fi
+
+echo "🚀 Installing system..."
+nix --extra-experimental-features 'nix-command flakes' run github:NixOS/nixpkgs/25.05#nixos-install -- --system "$HOME/result" --no-root-passwd
 
 echo "🚀 Running switch-to-configuration boot..."
 /nix/var/nix/profiles/system/bin/switch-to-configuration boot
