@@ -7,9 +7,10 @@
   config = {
     services.xrdp = {
       enable = true;
-      #defaultWindowManager = "gnome-session";
       defaultWindowManager = "gnome-session --session=gnome-classic";
     };
+
+    security.pam.services.xrdp-sesman.enable = true;
 
     networking.firewall.allowedTCPPorts = [3389];
   };
