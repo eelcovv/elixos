@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-HOST="$1"
 
 echo "🔐 Checking for age key..."
 if [[ -f /root/keys.txt ]]; then
@@ -19,9 +18,9 @@ echo "🚀 Installing system..."
 
 echo "💾 Installing GRUB..."
 # Alleen nodig bij BIOS-boot (zoals jij nu hebt):
-nixos-install --system /root/result --no-root-passwd
+nixos-install --system $HOME/result --no-root-passwd
 
-echo "✅ System installed for $HOST"
+echo "✅ System installed"
 echo "📌 You can now reboot into your new NixOS system."
 echo "🔄 After reboot, run 'nixos-rebuild switch' if you want to reapply config or update."
 
