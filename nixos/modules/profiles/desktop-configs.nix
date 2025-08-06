@@ -19,6 +19,14 @@
         (import ./kde.nix {inherit lib pkgs config;}).config
         (import ./wayland-session.nix {inherit lib pkgs config;})
         (import ./start-keyring-daemon.nix {inherit lib pkgs config;})
+        {
+          services.xserver.displayManager.session = [
+            {
+              name = "plasma-x11";
+              start = "exec startplasma-x11";
+            }
+          ];
+        }
       ]
     ))
 
