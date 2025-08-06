@@ -283,21 +283,16 @@ install_on_rescue HOST:
 	    --out-link /mnt/result-{{HOST}} "'
 	@echo "✅ Build done (if no errors above)"
 
-# Install NixOS over existing Linux system
-install_over_ubuntu HOST:
-	@echo "📦 Installing NixOS over existing Linux system on {{HOST}}..."
-	ssh root@{{SSH_HOST}} 'bash -l -c "\
-	  set -e && \
-	  echo 🔐 Installing age key... && \
-	  mkdir -p /etc/sops/age && \
-	  cp ~/keys.txt /etc/sops/age/keys.txt && \
-	  chmod 400 /etc/sops/age/keys.txt && \
-	  echo 🚀 Building system for {{HOST}}... && \
-	  cd /root/elixos && \
-	  nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result && \
-	  echo 🚀 Running nixos-install... && \
-	  nix run github:NixOS/nixpkgs/25.05#nixos-install -- --system ./result --no-root-passwd && \
-	  echo ✅ NixOS installed successfully on {{HOST}}."'
+
+# 🔨 Local build (within Ubuntu on the currrent machine)
+build_local_on_ubuntu HOST:
+	@echo "🔨 Locally building system for {{HOST}} on Ubuntu..."
+	bash scripts/bootstrap/build-on-ubuntu.sh {{HOST}}
+
+# 💾 Lcal install (within Ubuntu on the current machine)
+install_local_on_ubuntu HOST:
+	@echo "💾 Locally installing system for {{HOST}} on Ubuntu..."
+	bash scripts/install/install-over-ubuntu.sh {{HOST}}
 
 # Install the nix installer on a server with ubuntu installed
 install_nix_installer_on_ubuntu: 
