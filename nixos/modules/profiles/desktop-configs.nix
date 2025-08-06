@@ -34,14 +34,8 @@
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
       services.displayManager.gdm = {
         enable = true;
-        wayland = lib.mkForce false;
+        wayland = true;
       };
-
-      services.displayManager.defaultSession = "plasma";
-
-      services.displayManager.sessionPackages = [
-        pkgs.kdePackages.plasma-workspace
-      ];
 
       services.displayManager.autoLogin = {
         enable = false;
