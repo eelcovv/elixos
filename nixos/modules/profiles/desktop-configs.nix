@@ -19,11 +19,14 @@
         (import ./kde.nix {inherit lib pkgs config;}).config
         (import ./wayland-session.nix {inherit lib pkgs config;})
         (import ./start-keyring-daemon.nix {inherit lib pkgs config;})
+
+        # ✅ Toevoegen van Plasma X11 sessie met correct 'manage' veld
         {
           services.xserver.displayManager.session = [
             {
               name = "plasma-x11";
               start = "exec startplasma-x11";
+              manage = "desktop";
             }
           ];
         }
@@ -42,16 +45,14 @@
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
       services.displayManager.gdm = {
         enable = true;
-        wayland = true; # standaard true, maar expliciet is goed als je Wayland-sessies draait
+        wayland = true;
       };
 
-      # Geen auto-login voor veiligheid
       services.displayManager.autoLogin = {
         enable = false;
-        user = null; # expliciet null maken via lib.mkForce is niet meer nodig hier
+        user = null;
       };
 
-      # Zorg dat grafische ssh-wachtwoordvragen werken
       programs.ssh.askPassword = "${pkgs.openssh}/libexec/ssh-askpass";
     })
   ];
