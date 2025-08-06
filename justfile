@@ -1,3 +1,5 @@
+set shell := ["bash", "-cu"]
+
 # ========== DEFAULT CONFIGURATION ========== 
 HOST := env("HOST", "localhost")
 INSTALL_USER := env("INSTALL_USER", "root")

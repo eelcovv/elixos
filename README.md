@@ -686,24 +686,43 @@ Install required package first:
 apt update && apt install xz-utils git
 ```
 
-and then download and install nix
+and to install just do 
 
 ```sh
-curl -L -o install-nix.sh https://nixos.org/nix/install
-chmod +x install-nix.sh
-./install-nix.sh --daemon --yes
+snap install just --classic
 ```
 
-Activate nix by:
+From the host, load the contabo env environment
 
-```sh
-. /etc/profile.d/nix.sh
+```shell
+. ./.env.contabo
 ```
 
-and test it is working
+which set the environment variables:
+
+```shell
+export HOST=contabo
+export SSH_USER=root
+export SSH_PORT=22
+export SSH_HOST=194.146.13.222
+export REPO_DIR=/tmp/elixos
+```
+
+where the SSH_HOST must be the ip address of your server.
+
+Now you can run from the host
 
 ```sh
-nix --version
+just bootstrap-base
+```
+
+This clones this repository to the server.
+
+
+The login to the server and go to the repository in `/root/elixos` and run
+
+```sh
+just install_nix_installer_on_ubuntu
 ```
 
 ---
@@ -744,23 +763,6 @@ nix profile add --extra-experimental-features 'nix-command flakes' \
 
 ## 💽 4. Partition the Disk (with disko)
 
-From the host, load the contabo env environment
-
-```shell
-. ./.env.contabo
-```
-
-which set the environment variables:
-
-```shell
-export HOST=contabo
-export SSH_USER=root
-export SSH_PORT=22
-export SSH_HOST=194.146.13.222
-export REPO_DIR=/tmp/elixos
-```
-
-where the SSH_HOST must be the ip address of your server.
 
 Then you can run 
 
