@@ -2,7 +2,9 @@
 set -euo pipefail
 
 HOST="$1"
-
 echo "📦 Building system for $HOST..."
-cd /root/elixos
-nix build .#nixosConfigurations."$HOST".config.system.build.toplevel --out-link /root/result
+
+nix --extra-experimental-features "nix-command flakes" \
+  build ".#nixosConfigurations.${HOST}.config.system.build.toplevel" \
+  --out-link "result-${HOST}"
+
