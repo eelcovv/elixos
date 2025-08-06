@@ -6,7 +6,8 @@
 }: {
   services.xrdp = {
     enable = true;
-    defaultWindowManager = "gnome-session"; # of "startplasma-x11" voor KDE
+    defaultWindowManager = "gnome-session"; # uncomment for GNOME
+    # defaultWindowManager = "startplasma-x11"  # uncomment for KDE
   };
 
   # Open poort voor RDP

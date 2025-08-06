@@ -2,7 +2,7 @@
   networking.hostName = "contabo";
 
   desktop.enableGnome = true;
-  desktop.enableKde = false;
+  desktop.enableKde = true;
   desktop.enableHyperland = false;
 
   # Definine host-specifi sshUsers
