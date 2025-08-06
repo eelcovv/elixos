@@ -10,7 +10,7 @@
 
     environment.systemPackages = with pkgs.kdePackages; [
       plasma-desktop
-      plasma-workspace
+      pkgs.kdePackages.plasma-workspace
       konsole
       dolphin
       plasma-browser-integration
