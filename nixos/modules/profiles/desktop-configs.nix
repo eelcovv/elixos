@@ -19,7 +19,6 @@
         (import ./kde.nix {inherit lib pkgs config;}).config
         (import ./wayland-session.nix {inherit lib pkgs config;})
         (import ./start-keyring-daemon.nix {inherit lib pkgs config;})
-        (import ./plasma-x11-wrapper.nix {inherit lib pkgs config;}).config
       ]
     ))
 
