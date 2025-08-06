@@ -1,4 +1,9 @@
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   plasmaX11Wrapped = pkgs.writeShellScript "startplasma-x11-wrapped" ''
     export XDG_SESSION_TYPE=x11
     export QT_QPA_PLATFORM=xcb
