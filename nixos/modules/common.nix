@@ -87,8 +87,6 @@ This NixOS configuration module defines common system settings:
       util-linux
     ];
 
-    environment.etc."mount".source = "${pkgs.util-linux}/bin/mount";
-
     environment.extraInit = ''
       export PATH=$PATH:${pkgs.util-linux}/bin
     '';
