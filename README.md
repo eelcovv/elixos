@@ -663,44 +663,46 @@ And try to rebuild your system with
 sudo nixos-rebuild switch --flake .#singer
 ```
 
-# 🖥️ Elixos Server Installation Guide (Contabo Example)
+# 💽 Elixos Server Installation Guide (Contabo Example)
 
-This guide describes how to install the Elixos operating system on a remote server. The example below assumes a Contabo server
-but works for any x86_64 Linux machine in rescue mode.
+This guide describes how to install the **Elixos** operating system on a remote server. The example below assumes a **Contabo server**, but the process works for **any x86\_64 Linux machine in rescue mode or with Ubuntu pre-installed**.
 
 ---
 
-## 🚧 1. Boot into Rescue Mode
+## 🚧 1. Boot into Rescue Mode or Install Ubuntu
 
-1. Install Ubuntu LTS 22.05 with a root user
-2. SSH into the using the ssh key provided during setup
+1. Install **Ubuntu LTS 22.04** (or later) on your server with a root user.
+2. SSH into the machine using the SSH key you provided during setup.
 
 ---
 
 ## 🧪 2. Install Nix
 
-
-Install required package first:
+First, install required packages:
 
 ```sh
-apt update && apt install xz-utils git
+apt update && apt install -y xz-utils git
 ```
 
-and to install just do 
+Install [`just`](https://github.com/casey/just):
 
 ```sh
 snap install just --classic
 ```
 
-From the host, load the contabo env environment
+---
 
-```shell
+## 📦 3. Set Up Your Host Environment
+
+On your **local machine (not the server)**, source the environment file:
+
+```sh
 . ./.env.contabo
 ```
 
-which set the environment variables:
+This sets the following environment variables:
 
-```shell
+```sh
 export HOST=contabo
 export SSH_USER=root
 export SSH_PORT=22
@@ -708,53 +710,64 @@ export SSH_HOST=194.146.13.222
 export REPO_DIR=/tmp/elixos
 ```
 
-where the SSH_HOST must be the ip address of your server.
+Make sure `SSH_HOST` points to the **public IP of your server**.
 
-Now you can run from the host
+---
+
+## 🚀 4. Bootstrap and Install Elixos
+
+From your **local machine**, run:
 
 ```sh
 just bootstrap-base
 ```
 
-This clones this repository to the server.
+This clones the Elixos repository to the remote server.
 
+Then SSH into the server:
 
-The login to the server and go to the repository in `/root/elixos` and run
+```sh
+ssh root@$SSH_HOST
+cd /root/elixos
+```
+
+Now run the following steps to install Elixos:
 
 ```sh
 just install_nix_installer_on_ubuntu
+just build_on_ubuntu contabo
+just install_on_ubuntu contabo
 ```
 
-
-then run 
+Alternatively, you can do everything in one go:
 
 ```sh
-	build_on_ubuntu contabo
+just install_server contabo
 ```
 
-and finally
+---
 
-```sh
-install_on_ubuntu contabo
-```
+## 🔁 5. Reboot and Finalize
 
-The whole sequence can be started with one single command as well:
+After installation, **reboot the server** into your new NixOS system.
 
-```sh
-install_server contabo
-```
-
-After this is finished, reboot your machine. 
-You can make your repository available again by running again:
+Once it boots, run the following to re-clone your repository (if needed):
 
 ```sh
 just bootstrap-base
 ```
 
-Now you can login and go to the local elixos repo and run
+Then log in again and go to the cloned repo:
+
+```sh
+cd ~/elixos
+```
+
+Finalize the configuration:
 
 ```sh
 just switch contabo
 ```
 
-to finalise the installation.
+You're done! 🎉
+
