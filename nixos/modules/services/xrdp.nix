@@ -4,15 +4,14 @@
   pkgs,
   ...
 }: {
-  services.xrdp = {
-    enable = true;
-    defaultWindowManager = "gnome-session"; # uncomment for GNOME
-    # defaultWindowManager = "startplasma-x11"  # uncomment for KDE
+  config = {
+    services.xrdp = {
+      enable = true;
+      defaultWindowManager = "gnome-session"; # of plasma
+    };
+
+    networking.firewall.allowedTCPPorts = [3389];
+
+    hardware.pulseaudio.enable = lib.mkDefault true;
   };
-
-  # Open poort voor RDP
-  networking.firewall.allowedTCPPorts = [3389];
-
-  # Extra (optioneel): als PulseAudio nodig is voor geluid
-  hardware.pulseaudio.enable = lib.mkDefault true;
 }
