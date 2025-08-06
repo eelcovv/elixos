@@ -27,14 +27,12 @@ else
   echo "⚠️  Could not source /etc/profile.d/nix.sh — PATH may be incomplete"
 fi
 
-echo "🎛️  Running switch-to-configuration boot inside new system..."
-"$HOME/result/sw/bin/bash" "$HOME/result/bin/switch-to-configuration" boot
-
 echo "🚀 Installing system..."
 nix --extra-experimental-features 'nix-command flakes' \
   run github:NixOS/nixpkgs/25.05#nixos-install -- \
   --system "$HOME/result" --no-root-passwd
 
-echo "✅ System installed and activated"
+echo "✅ System installed"
 echo "📌 You can now reboot into your new NixOS system."
+echo "🔄 After reboot, run 'nixos-rebuild switch' to reapply or update the config."
 
