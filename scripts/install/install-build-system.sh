@@ -10,8 +10,7 @@ if [[ -f /root/keys.txt ]]; then
   cp /root/keys.txt /etc/sops/age/keys.txt
   chmod 400 /mnt/etc/sops/age/keys.txt
 else
-  echo "⚠️  Warning: /root/keys.txt not found. Skipping age key installation."
-  echo "    → Secrets may fail to decrypt if needed by this configuration."
+  echo "⚠️  /root/keys.txt not found — skipping age key install"
 fi
 
 echo "👥 Ensuring nixbld users exist..."
@@ -21,22 +20,20 @@ for i in {1..10}; do
     -M -N -r -s "$(which nologin)" "nixbld$i" 2>/dev/null || true
 done
 
+echo "📥 Sourcing /etc/profile.d/nix.sh to fix \$PATH..."
+if [[ -f /etc/profile.d/nix.sh ]]; then
+  source /etc/profile.d/nix.sh
+else
+  echo "⚠️  Could not source /etc/profile.d/nix.sh — PATH may be incomplete"
+fi
+
+echo "🎛️  Running switch-to-configuration boot..."
+"$HOME/result/bin/switch-to-configuration" boot
+
 echo "🚀 Installing system..."
 nix --extra-experimental-features 'nix-command flakes' \
   run github:NixOS/nixpkgs/25.05#nixos-install -- \
   --system "$HOME/result" --no-root-passwd
 
-echo "📥 Sourcing /etc/profile.d/nix.sh to fix \$PATH..."
-if [[ -f /etc/profile.d/nix.sh ]]; then
-  source /etc/profile.d/nix.sh
-else
-  echo "⚠️  Could not source /etc/profile.d/nix.sh — PATH may be incomplete."
-fi
-
-echo "🎛️  Running switch-to-configuration boot..."
-/nix/var/nix/profiles/system/bin/switch-to-configuration boot
-
 echo "✅ System installed and activated"
-echo "📌 You can now reboot into your new NixOS system."
-echo "🔄 After reboot, run 'nixos-rebuild switch' to reapply or update the config."
-
+echo "📌 Reboot into your new NixOS system."
