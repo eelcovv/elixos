@@ -13,11 +13,20 @@ else
 fi
 
 echo "📥 Registering result as system profile..."
-nix-env --profile /nix/var/nix/profiles/system --set "$HOME/result"
+nix --extra-experimental-features 'nix-command flakes' profile install "$HOME/result"
 
 echo "🚀 Installing system..."
-nix --extra-experimental-features 'nix-command flakes' run github:NixOS/nixpkgs/25.05#nixos-install \
-  -- --system /nix/var/nix/profiles/system --no-root-passwd
+nix --extra-experimental-features 'nix-command flakes' run github:NixOS/nixpkgs/25.05#nixos-install -- --system "$HOME/result" --no-root-passwd
+
+echo "📥 Sourcing nix profile to fix \$PATH..."
+if [[ -f /nix/var/nix/profiles/system/etc/profile.d/nix.sh ]]; then
+  source /nix/var/nix/profiles/system/etc/profile.d/nix.sh
+else
+  echo "⚠️  Could not source system profile — PATH may be incomplete."
+fi
+
+echo "🚀 Running switch-to-configuration boot..."
+/nix/var/nix/profiles/system/bin/switch-to-configuration boot
 
 echo "✅ System installed"
 echo "📌 You can now reboot into your new NixOS system."
