@@ -735,13 +735,13 @@ then run
 and finally
 
 ```sh
-	install_on_ubuntu contabo
+install_on_ubuntu contabo
 ```
 
 The whole sequence can be started with one single command as well:
 
 ```sh
-	install_server contabo
+install_server contabo
 ```
 
 After this is finished, reboot your machine. 
