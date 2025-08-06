@@ -8,8 +8,8 @@
     services.xrdp = {
       enable = true;
 
-      # Forceer X11 sessie voor GNOME, anders crasht het
-      defaultWindowManager = "gnome-session --session=gnome-xorg";
+      #defaultWindowManager = "gnome-session --session=gnome-xorg";
+      defaultWindowManager = "startplasma-x11";
     };
 
     security.pam.services.xrdp-sesman.enable = true;
