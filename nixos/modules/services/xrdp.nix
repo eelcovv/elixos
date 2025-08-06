@@ -7,7 +7,9 @@
   config = {
     services.xrdp = {
       enable = true;
-      defaultWindowManager = "gnome-session --session=gnome-classic";
+
+      # Forceer X11 sessie voor GNOME, anders crasht het
+      defaultWindowManager = "gnome-session --session=gnome-xorg";
     };
 
     security.pam.services.xrdp-sesman.enable = true;
