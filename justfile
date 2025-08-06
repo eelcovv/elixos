@@ -299,7 +299,27 @@ install_over_ubuntu HOST:
 	  nix run github:NixOS/nixpkgs/25.05#nixos-install -- --system ./result --no-root-passwd && \
 	  echo ✅ NixOS installed successfully on {{HOST}}."'
 
+install_nix_on_ubuntu:
+  # Create /nix directory with correct permissions
+  mkdir -m 0755 -p /nix && chown root /nix
 
+  # Create nixbld group and users if they don't exist
+  groupadd nixbld -g 30000 || true
+  for i in $(seq 1 10); do
+    useradd -c "Nix build user $i" -d /var/empty -g nixbld -G nixbld \
+            -M -N -r -s /usr/sbin/nologin nixbld$i || true
+  done
+
+  # Download and extract Nix binary tarball
+  curl -L https://releases.nixos.org/nix/nix-2.30.2/nix-2.30.2-x86_64-linux.tar.xz -o nix.tar.xz
+  rm -rf nix-2.30.2-x86_64-linux
+  tar -xf nix.tar.xz
+
+  # Install Nix
+  cd nix-2.30.2-x86_64-linux && ./install
+
+  # Reminder to source the environment
+  echo "✅ Nix installed. Run: . /root/.nix-profile/etc/profile.d/nix.sh"
 
 
 switch HOST:
