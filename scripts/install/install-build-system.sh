@@ -1,46 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+HOST="${1:-}"
+
 echo "🔐 Checking for age key..."
-if [ ! -f /etc/sops/age/keys.txt ]; then
+if [[ -f /root/keys.txt ]]; then
   echo "📁 Installing age key to /etc/sops/age/keys.txt..."
-  mkdir -p /etc/sops/age
-  cp ~/keys.txt /etc/sops/age/keys.txt
-  chmod 400 /etc/sops/age/keys.txt
+  mkdir -p /mnt/etc/sops/age
+  cp /root/keys.txt /etc/sops/age/keys.txt
+  chmod 400 /mnt/etc/sops/age/keys.txt
+else
+  echo "⚠️  Warning: /root/keys.txt not found. Skipping age key installation."
+  echo "    → Secrets may fail to decrypt if needed by this configuration."
 fi
 
-echo "👥 Adding nixbld users..."
-groupadd nixbld -g 30000 || true
+echo "👥 Ensuring nixbld users exist..."
+groupadd nixbld -g 30000 2>/dev/null || true
 for i in {1..10}; do
-  useradd -c "Nix build user $i" -d /var/empty -g nixbld -G nixbld -M -N -r -s "$(which nologin)" "nixbld$i" || true
+  useradd -c "Nix build user $i" -d /var/empty -g nixbld -G nixbld -M -N -r -s "$(which nologin)" "nixbld$i" 2>/dev/null || true
 done
 
-echo "📥 Registering result as system profile..."
-nix-env --set \
-  -p /nix/var/nix/profiles/system \
-  -f $HOME/result
-
-echo "🧹 Cleaning up old default profiles..."
-rm -fv /nix/var/nix/profiles/default* || true
-
-echo "📥 Fixing /etc/resolv.conf if symlinked..."
-if [ -L /etc/resolv.conf ]; then
-  mv -v /etc/resolv.conf /etc/resolv.conf.lnk
-  cat /etc/resolv.conf.lnk > /etc/resolv.conf
-fi
-
-echo "📥 Sourcing nix profile..."
-if [ -f /nix/var/nix/profiles/system/etc/profile.d/nix.sh ]; then
-  source /nix/var/nix/profiles/system/etc/profile.d/nix.sh
+echo "📥 Sourcing nix profile to fix \$PATH..."
+if [[ -f /etc/profile.d/nix.sh ]]; then
+  source /etc/profile.d/nix.sh
 else
-  echo "⚠️  nix.sh not found — PATH may be incomplete"
+  echo "⚠️  Could not source system profile — PATH may be incomplete."
 fi
 
 echo "🚀 Installing system..."
-/nix/var/nix/profiles/system/bin/nixos-install --system $HOME/result --no-root-passwd
+nix --extra-experimental-features 'nix-command flakes' \
+  run github:NixOS/nixpkgs/25.05#nixos-install -- \
+  --system "$HOME/result" --no-root-passwd
 
-echo "🔁 Running switch-to-configuration boot..."
-/nix/var/nix/profiles/system/bin/switch-to-configuration boot
-
-echo "✅ System installation complete!"
-
+echo "✅ System installed"
+echo "📌 You can now reboot into your new NixOS system."
+echo "🔄 After reboot, run 'nixos-rebuild switch' to reapply or update the config."
