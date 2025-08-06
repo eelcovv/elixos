@@ -35,8 +35,14 @@
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
       services.displayManager.gdm = {
         enable = true;
-        wayland = true;
+        wayland = lib.mkForce false; # ✅ Zorgt dat GDM X11 *en* Wayland toestaat
       };
+
+      services.xserver.displayManager.defaultSession = "plasma"; # ✅ Laat Plasma als X11 sessie zien
+
+      services.xserver.displayManager.sessionPackages = [
+        pkgs.plasma-workspace
+      ];
 
       services.displayManager.autoLogin = {
         enable = false;
