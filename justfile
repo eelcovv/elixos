@@ -266,37 +266,25 @@ install HOST:
 	nixos-install --system result-{{HOST}} --no-root-passwd
 	@echo "✅ {{HOST}} is now installed!"
 
-# Install nixos on a rescue machine
-install_on_rescue HOST:
-	@echo "🚀 Building system for {{HOST}} remotely on /mnt..."
-	ssh root@{{SSH_HOST}} 'bash -l -c "\
-	  . /etc/profile.d/nix.sh && \
-	  export PATH=/root/.nix-profile/bin:\$$PATH && \
-	  mkdir -p /mnt/store && \
-	  nix \
-	    --store /mnt/store \
-	    --option build-users-group \"\" \
-	    --option experimental-features \"nix-command flakes\" \
-	    --option substituters https://cache.nixos.org/ \
-	    --option trusted-substituters https://cache.nixos.org/ \
-	    build /root/elixos#nixosConfigurations.{{HOST}}.config.system.build.toplevel \
-	    --out-link /mnt/result-{{HOST}} "'
-	@echo "✅ Build done (if no errors above)"
 
 
 # 🔨 Local build (within Ubuntu on the currrent machine)
-build_local_on_ubuntu HOST:
+build_on_ubuntu HOST:
 	@echo "🔨 Locally building system for {{HOST}} on Ubuntu..."
 	bash scripts/bootstrap/build-on-ubuntu.sh {{HOST}}
 
 # 💾 Lcal install (within Ubuntu on the current machine)
-install_local_on_ubuntu HOST:
+install_on_ubuntu HOST:
 	@echo "💾 Locally installing system for {{HOST}} on Ubuntu..."
 	bash scripts/install/install-over-ubuntu.sh {{HOST}}
+	switch {{HOST}}
 
 # Install the nix installer on a server with ubuntu installed
 install_nix_installer_on_ubuntu: 
 	scripts/bootstrap/install-nix.sh
+
+switch HOST:
+	sudo nixos-rebuild switch --flake .#{{HOST}}
 
 home USER HOST:
 	home-manager switch --flake .#{{USER}}@{{HOST}}

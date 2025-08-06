@@ -22,5 +22,8 @@ echo "💾 Installing GRUB..."
 nixos-install --system /root/result --no-root-passwd
 
 echo "✅ System installed for $HOST"
+echo "📌 You can now reboot into your new NixOS system."
+echo "🔄 After reboot, run 'nixos-rebuild switch' if you want to reapply config or update."
+
 
 
