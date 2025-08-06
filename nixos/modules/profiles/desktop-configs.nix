@@ -19,6 +19,7 @@
         (import ./kde.nix {inherit lib pkgs config;}).config
         (import ./wayland-session.nix {inherit lib pkgs config;})
         (import ./start-keyring-daemon.nix {inherit lib pkgs config;})
+        (import ./plasma-x11-wrapper.nix {inherit lib pkgs config;}).config
 
         # ✅ Toevoegen van Plasma X11 sessie met correct 'manage' veld
         {
@@ -39,7 +40,6 @@
         (import ./hyperland.nix {inherit lib pkgs config;}).config
         (import ./wayland-session.nix {inherit lib pkgs config;})
         (import ./start-keyring-daemon.nix {inherit lib pkgs config;})
-        (import ./plasma-x11-wrapper.nix {inherit lib pkgs config;}).config
       ]
     ))
 
