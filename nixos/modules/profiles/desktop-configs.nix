@@ -37,9 +37,9 @@
         wayland = lib.mkForce false;
       };
 
-      services.xserver.displayManager.defaultSession = "plasma";
+      services.displayManager.defaultSession = "plasma";
 
-      services.xserver.displayManager.sessionPackages = [
+      services.displayManager.sessionPackages = [
         pkgs.kdePackages.plasma-workspace
       ];
 
