@@ -6,5 +6,5 @@
 elixos.bundle
 .tmux.conf
 install.log
-*.tar.gz
+*.tar.?z
 nix-*
