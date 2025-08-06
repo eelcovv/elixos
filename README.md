@@ -725,120 +725,36 @@ The login to the server and go to the repository in `/root/elixos` and run
 just install_nix_installer_on_ubuntu
 ```
 
----
 
-## 🔧 3. Install Required Tools
-
-Also, make sure Nix is automatically loaded in future SSH sessions by adding to your `.bashrc`:
-
-```bash
-if [ -e . /etc/profile.d/nix.sh ]; then
-    . /etc/profile.d/nix.sh
-fi
-```
-
-Now install the required packages to complete the full installation: 
-
+then run 
 
 ```sh
-nix profile add --extra-experimental-features 'nix-command flakes' \
-  nixpkgs#git \
-  nixpkgs#just \
-  nixpkgs#coreutils \
-  nixpkgs#util-linux \
-  nixpkgs#e2fsprogs \
-  nixpkgs#openssh \
-  nixpkgs#nixos-install-tools \
-  nixpkgs#shadow \
-  nixpkgs#inetutils \
-  nixpkgs#procps \
-  nixpkgs#iproute2 \
-  nixpkgs#tmux \
-  nixpkgs#ncurses \
-  nixpkgs#rsync \
-  nixpkgs#xz
+	build_on_ubuntu contabo
 ```
 
----
-
-## 💽 4. Partition the Disk (with disko)
-
-
-Then you can run 
-
-```shell
-just bootstrap-laptop contabo
-```
-
-This deletes your whole harddrive of the contabo server and creates a new partion based on your disko under disks.
-
-The same could have been acchieved with:
+and finally
 
 ```sh
-git clone https://github.com/eelcovv/elixos /root/elixos
-cd /root/elixos
-nix run .#disko-install -- --flake .#contabo
+	install_on_ubuntu contabo
 ```
 
----
-
-## 📂 5. Bind the Nix store correctly
-
-To avoid corrupt builds or missing caches:
+The whole sequence can be started with one single command as well:
 
 ```sh
-mkdir -p /mnt/nix
-umount /nix || true
-mount --bind /mnt/nix /nix
+	install_server contabo
 ```
 
-Double-check:
+After this is finished, reboot your machine. 
+You can make your repository available again by running again:
 
 ```sh
-mount | grep /nix
+just bootstrap-base
 ```
 
-Should show: `/mnt/nix` is bind-mounted on `/nix`.
-
----
-
-## 🔐 6. Provide the age decryption key
-
-```sh
-mkdir -p /mnt/etc/sops/age
-cp /root/keys.txt /mnt/etc/sops/age/keys.txt
-chmod 400 /mnt/etc/sops/age/keys.txt
-```
-
----
-
-## 🧱 7. Build and install the system (remotely via SSH-safe Just target)
-
-From within `/mnt/root/elixos`:
-
-Instead of using tmux or staying logged in, run the following in the rescue shell:
-
-```sh
-just install_on_rescue contabo
-```
-
----
-
-## 📌 8. Post-install steps
-
-After reboot, log in as `eelco` with your configured password or SSH key.
-
-Optionally run:
+Now you can login and go to the local elixos repo and run
 
 ```sh
 just switch contabo
 ```
 
-to apply latest flake updates.
-
----
-
-## 💡 Tips
-
-- The `just install_on_rescue` command uses `nohup` to survive disconnects.
-- You can inspect progress later via `journalctl` or check `/mnt/home/result-contabo` for the build result.
+to finalise the installation.

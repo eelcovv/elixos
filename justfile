@@ -267,6 +267,10 @@ install HOST:
 	@echo "✅ {{HOST}} is now installed!"
 
 
+install_server HOST:
+	install_nix_installer_on_ubuntu
+	build_on_ubuntu {{HOST}}
+	install_on_ubuntu {{HOST}}
 
 # 🔨 Local build (within Ubuntu on the currrent machine)
 build_on_ubuntu HOST:
@@ -276,8 +280,7 @@ build_on_ubuntu HOST:
 # 💾 Lcal install (within Ubuntu on the current machine)
 install_on_ubuntu HOST:
 	@echo "💾 Locally installing system for {{HOST}} on Ubuntu..."
-	bash scripts/install/install-over-ubuntu.sh
-	switch {{HOST}}
+	bash scripts/install/install-over-ubuntu.sh {{HOST}}
 
 # Install the nix installer on a server with ubuntu installed
 install_nix_installer_on_ubuntu: 
