@@ -5,9 +5,8 @@
 }: {
   boot.loader = {
     grub.enable = true;
-    efiSupport = false; # 🔧 This is a BIOS (non-EFI) setup
-    efi.canTouchEfiVariables = false; # 🛑 Disable EFI-specific operations
+    efi.canTouchEfiVariables = false;
   };
 
-  boot.loader.systemd-boot.enable = false; # ✅ Not needed on BIOS systems
+  boot.loader.systemd-boot.enable = false;
 }

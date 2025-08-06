@@ -15,17 +15,16 @@
     ../../modules/hardware/grub.nix
   ];
 
-  # 🧱 BIOS installation → write GRUB to the MBR of the main disk
+  # 📦 BIOS install — install GRUB to MBR
   boot.loader.grub.device = "/dev/sda";
 
-  # 📁 Filesystem layout based on Ubuntu 22 default setup
+  # 🧱 Filesystem (Ubuntu-style)
   fileSystems."/" = {
     device = "/dev/sda1";
     fsType = "ext4";
   };
 
-  # ❌ No separate /boot or /boot/efi partitions needed in legacy boot mode
+  # ❌ No separate /boot needed
 
-  # 🧼 Clean /tmp on each reboot (optional, but useful)
   boot.tmp.cleanOnBoot = true;
 }
