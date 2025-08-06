@@ -7,11 +7,12 @@
   config = {
     services.xrdp = {
       enable = true;
-      defaultWindowManager = "gnome-session"; # of plasma
+      defaultWindowManager = "gnome-session";
     };
 
     networking.firewall.allowedTCPPorts = [3389];
 
-    hardware.pulseaudio.enable = lib.mkDefault true;
+    # PulseAudio is nodig voor audio over RDP
+    hardware.pulseaudio.enable = true;
   };
 }
