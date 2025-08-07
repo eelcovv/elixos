@@ -32,14 +32,21 @@
     ))
     # GDM + SSH prompt
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
-      services.displayManager.gdm = {
-        enable = true;
-        wayland = true;
-      };
-
-      services.displayManager.autoLogin = {
-        enable = false;
-        user = null;
+      services.displayManager = {
+        gdm = {
+          enable = true;
+          wayland = lib.mkForce false;
+        };
+        sessionPackages = with pkgs; [
+          gnome.gnome-session
+          hyprland
+          kdePackages.plasma-workspace
+          xterm
+        ];
+        autoLogin = {
+          enable = false;
+          user = null;
+        };
       };
 
       programs.ssh.askPassword = "${pkgs.openssh}/libexec/ssh-askpass";
