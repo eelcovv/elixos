@@ -10,17 +10,6 @@
       displayManager = {
         gdm.enable = true;
         gdm.wayland = lib.mkForce false;
-        sessionPackages = with pkgs; [
-          (pkgs.writeTextDir "share/xsessions/plasma-x11.desktop" ''
-            [Desktop Entry]
-            Version=1.0
-            Type=XSession
-            Exec=${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
-            TryExec=${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
-            Name=KDE Plasma (X11)
-            DesktopNames=KDE
-          '')
-        ];
       };
       desktopManager.plasma6.enable = true;
     };

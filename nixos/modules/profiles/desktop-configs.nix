@@ -37,18 +37,26 @@
           enable = true;
           wayland = lib.mkForce false;
         };
-        sessionPackages = with pkgs; [
-          hyprland
-          (pkgs.writeTextDir "share/xsessions/plasma-x11.desktop" ''
-            [Desktop Entry]
-            Version=1.0
-            Type=XSession
-            Exec=${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
-            TryExec=${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
-            Name=KDE Plasma (X11)
-            DesktopNames=KDE
-          '')
+        sessionPackages = [
+          (pkgs.stdenv.mkDerivation {
+            name = "plasma-x11-session";
+            phases = ["installPhase"];
+            installPhase = ''
+                    mkdir -p $out/share/xsessions
+                    cat > $out/share/xsessions/plasma-x11.desktop <<EOF
+              [Desktop Entry]
+              Version=1.0
+              Type=XSession
+              Exec=${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
+              TryExec=${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
+              Name=KDE Plasma (X11)
+              DesktopNames=KDE
+              EOF
+            '';
+            passthru.providedSessions = ["plasma-x11"];
+          })
         ];
+
         autoLogin = {
           enable = false;
           user = null;
