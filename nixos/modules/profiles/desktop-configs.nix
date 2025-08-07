@@ -39,7 +39,7 @@
         };
         sessionPackages = with pkgs; [
           hyprland
-          kdePackages.plasma-workspace
+          kdePackages.plasma-desktop
         ];
         autoLogin = {
           enable = false;

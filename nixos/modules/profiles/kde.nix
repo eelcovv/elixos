@@ -5,7 +5,15 @@
   ...
 }: {
   config = lib.mkIf config.desktop.enableKde {
-    services.xserver.enable = true;
+    services.xserver = {
+      enable = true;
+      displayManager = {
+        gdm.enable = true;
+        gdm.wayland = lib.mkForce false;
+        sessionPackages = with pkgs; [kdePackages.plasma-desktop];
+      };
+      desktopManager.plasma6.enable = true;
+    };
     services.desktopManager.plasma6.enable = true;
 
     environment.systemPackages = with pkgs.kdePackages; [
