@@ -5,14 +5,6 @@
   ...
 }: {
   config = lib.mkIf config.desktop.enableKde {
-    services = {
-      enable = true;
-      displayManager = {
-        gdm.enable = true;
-        gdm.wayland = lib.mkForce false;
-      };
-      desktopManager.plasma6.enable = true;
-    };
     services.desktopManager.plasma6.enable = true;
 
     environment.systemPackages = with pkgs.kdePackages; [
