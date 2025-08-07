@@ -39,7 +39,15 @@
         };
         sessionPackages = with pkgs; [
           hyprland
-          plasma-workspace-x11
+          (pkgs.writeTextDir "share/xsessions/plasma-x11.desktop" ''
+            [Desktop Entry]
+            Version=1.0
+            Type=XSession
+            Exec=${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
+            TryExec=${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11
+            Name=KDE Plasma (X11)
+            DesktopNames=KDE
+          '')
         ];
         autoLogin = {
           enable = false;
