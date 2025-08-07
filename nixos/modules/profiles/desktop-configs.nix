@@ -39,7 +39,7 @@
         };
         sessionPackages = with pkgs; [
           hyprland
-          kdePackages.plasma-x11-xsession
+          plasma-workspace-x11
         ];
         autoLogin = {
           enable = false;

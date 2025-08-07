@@ -10,7 +10,7 @@
       displayManager = {
         gdm.enable = true;
         gdm.wayland = lib.mkForce false;
-        sessionPackages = with pkgs; [kdePackages.plasma-x11-xsession];
+        sessionPackages = with pkgs; [plasma-workspace-x11];
       };
       desktopManager.plasma6.enable = true;
     };
