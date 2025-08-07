@@ -38,7 +38,7 @@
           wayland = lib.mkForce false;
         };
         sessionPackages = with pkgs; [
-          gnome.gnome-session
+          gnome-session
           hyprland
           kdePackages.plasma-workspace
           xterm
