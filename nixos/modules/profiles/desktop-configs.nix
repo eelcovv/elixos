@@ -28,8 +28,12 @@
         (import ./start-keyring-daemon.nix {inherit lib pkgs config;})
       ]
     ))
+
     # GDM + SSH prompt
     (lib.mkIf (config.desktop.enableGnome || config.desktop.enableKde || config.desktop.enableHyperland) {
+      # Enable X server
+      services.xserver.enable = true;
+
       services.displayManager = {
         gdm = {
           enable = true;
