@@ -41,7 +41,6 @@
           gnome-session
           hyprland
           kdePackages.plasma-workspace
-          xterm
         ];
         autoLogin = {
           enable = false;
