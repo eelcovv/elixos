@@ -5,7 +5,7 @@
   ...
 }: {
   config = lib.mkIf config.desktop.enableKde {
-    services.xserver = {
+    services = {
       enable = true;
       displayManager = {
         gdm.enable = true;
