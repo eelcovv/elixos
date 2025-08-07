@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  lib,
+  ...
+}: {
   networking.hostName = "contabo";
 
   desktop.enableGnome = false;
