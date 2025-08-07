@@ -35,7 +35,7 @@
       services.displayManager = {
         gdm = {
           enable = true;
-          wayland = lib.mkForce false;
+          wayland = true;
         };
         sessionPackages = [
           (pkgs.stdenv.mkDerivation {
