@@ -57,6 +57,8 @@
           })
         ];
 
+        defaultSession = "plasma-x11";
+
         autoLogin = {
           enable = false;
           user = null;
