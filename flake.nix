@@ -62,7 +62,11 @@
             sops-nix.nixosModules.sops
           ]
           ++ nixpkgs.lib.optional (user != null) [
-            ./home/users/${user}.nix
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.${user} = import ./home/users/${user}.nix;
+            }
           ];
       };
   in {
@@ -94,20 +98,22 @@
     homeConfigurations = builtins.listToAttrs (
       builtins.concatMap (
         user:
-          builtins.map (host: {
-            name = "${user}@${host}";
-            value = home-manager.lib.homeManagerConfiguration {
-              inherit system;
-              pkgs = nixpkgs.legacyPackages.${system};
-              modules = [
-                ./home/users/${user}.nix
-              ];
-              extraSpecialArgs = {
-                inherit inputs self;
-                userModulesPath = ./home/users;
+          builtins.map (
+            host: {
+              name = "${user}@${host}";
+              value = home-manager.lib.homeManagerConfiguration {
+                inherit system;
+                pkgs = nixpkgs.legacyPackages.${system};
+                modules = [
+                  ./home/users/${user}.nix
+                ];
+                extraSpecialArgs = {
+                  inherit inputs self;
+                  userModulesPath = ./home/users;
+                };
               };
-            };
-          })
+            }
+          )
           allHosts
       )
       allUsers
