@@ -63,19 +63,20 @@
     [
       ../modules/common-packages.nix
       ../modules/datascience.nix
-      ../modules/engingeering-packages.nix
-      ../modules/hyperland
       ../modules/devel-packages.nix
-      ../modules/maintainance-packages.nix
+      ../modules/editors.nix
+      ../modules/engingeering-packages.nix
       ../modules/graphics-packages.nix
+      ../modules/hyperland
+      ../modules/internet/remote-access.nix
+      ../modules/maintainance-packages.nix
       ../modules/multimedia.nix
       ../modules/office-packages.nix
       ../modules/publishing.nix
       ../modules/shells.nix
       ../modules/security.nix
+      ../modules/socialmedia.nix
       ../modules/terminals.nix
-      ../modules/editors.nix
-      ../modules/internet/remote-access.nix
 
       # Uitpakken van benchmarking lijst:
     ]
