@@ -1,8 +1,8 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   home.packages = with pkgs; [
+    gnome-keyring
     keeweb
-    vmware-horizon-client
     veracrypt
+    vmware-horizon-client
   ];
 }
