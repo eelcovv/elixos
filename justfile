@@ -22,12 +22,15 @@ vm_just *ARGS:
 vm_just_shell:
 	ssh -t -p {{SSH_PORT}} {{SSH_USER}}@{{SSH_HOST}} "cd {{REPO_DIR}} && nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#just -c bash"
 
+# Update the flake lock file
 update:
 	nix flake update
 
+# Run garbage collection to clean up old builds
 clean:
 	nix-collect-garbage
 
+# Format all files using pre-commit hooks
 fmt:
 	pre-commit run --all-files
 
