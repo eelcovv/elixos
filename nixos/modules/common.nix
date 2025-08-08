@@ -27,10 +27,17 @@ This NixOS configuration module defines common system settings:
       default = ["eelco"];
       description = "List of users who have SSH client keys.";
     };
+
     configuredUsers = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [];
       description = "List of users to configure via Home Manager and other modules.";
+    };
+
+    desktop.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Whether this system is a desktop system with a GUI.";
     };
   };
 
@@ -63,14 +70,14 @@ This NixOS configuration module defines common system settings:
     i18n.defaultLocale = "en_US.UTF-8";
     time.timeZone = "Europe/Amsterdam";
 
-    system.activationScripts.ensureMount = {
-      text = ''
-        echo "✔ Ensuring mount is available..."
-        if ! command -v mount >/dev/null; then
-          echo "❌ 'mount' not found in PATH. Trying fallback..."
-          ${pkgs.util-linux}/bin/mount --version > /dev/null
-        fi
-      '';
+    fonts = lib.mkIf config.desktop.enable {
+      enableDefaultPackages = true;
+      fontconfig.enable = true;
+      packages = with pkgs; [
+        noto-fonts
+        noto-fonts-emoji
+        font-awesome
+      ];
     };
 
     environment.systemPackages = with pkgs; let
