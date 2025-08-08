@@ -62,11 +62,7 @@
             sops-nix.nixosModules.sops
           ]
           ++ nixpkgs.lib.optional (user != null) [
-            {
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.${user} = import ./home/users/${user}.nix;
-            }
+            ./home/users/${user}.nix
           ];
       };
   in {
