@@ -68,6 +68,7 @@
       ../modules/devel-packages.nix
       ../modules/maintainance-packages.nix
       ../modules/graphics-packages.nix
+      ../modules/multimedia.nix
       ../modules/office-packages.nix
       ../modules/shells.nix
       ../modules/terminals.nix
