@@ -34,8 +34,6 @@
       })
     ];
 
-  home.sessionVariables.HOME_THEME = "pink-sakura";
-
   # keyboard configuration for hyperland
   xdg.configFile."hypr/conf/keyboard-local.conf".text = ''
     input {
