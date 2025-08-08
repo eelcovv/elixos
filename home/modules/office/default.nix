@@ -3,6 +3,8 @@
     ./libreoffice.nix
     ./jitsi.nix
     ./thunderbird.nix
-    ./zoom.nix
+  ];
+  home.packages = with pkgs; [
+    zoom-us
   ];
 }
