@@ -61,21 +61,21 @@
   '';
   imports =
     [
-      ../modules/common-packages.nix
-      ../modules/datascience.nix
+      ../modules/common
+      ../modules/databases
       ../modules/devel
       ../modules/editors
-      ../modules/engingeering-packages.nix
+      ../modules/engingeering
       ../modules/graphics
       ../modules/hyperland
       ../modules/internet
-      ../modules/maintainance-packages.nix
-      ../modules/multimedia.nix
+      ../modules/maintainance
+      ../modules/multimedia
       ../modules/office
-      ../modules/publishing.nix
+      ../modules/publishing
       ../modules/shells
-      ../modules/security.nix
-      ../modules/socialmedia.nix
+      ../modules/security
+      ../modules/socialmedia
       ../modules/terminals
 
       # Uitpakken van benchmarking lijst:

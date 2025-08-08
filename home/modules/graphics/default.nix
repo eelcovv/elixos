@@ -9,8 +9,9 @@
   ];
   home.packages = with pkgs; [
     imagemagick
+    inkscape-with-extensions
+    gimp
     graphicsmagick
     krita
-    gimp
   ];
 }

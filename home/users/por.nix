@@ -10,15 +10,14 @@
 
   imports =
     [
-      ../modules/common-packages.nix
+      ../modules/common
       ../modules/hyperland
       ../modules/graphics
       ../modules/office
       ../modules/internet
-      ../modules/shells.nix
-      ../modules/terminals.nix
+      ../modules/shells
+      ../modules/terminals
       ../modules/editors
-      ../modules/internet/remote-access.nix
 
       # Uitpakken van benchmarking lijst:
     ]
