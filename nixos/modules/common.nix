@@ -62,6 +62,8 @@ This NixOS configuration module defines common system settings:
 
     programs.zsh.enable = true;
 
+    programs.dconf.enable = true;
+
     services.openssh.enable = true;
     services.pipewire.enable = true;
     networking.networkmanager.enable = true;
