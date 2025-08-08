@@ -9,7 +9,6 @@
     ./bash.nix
     ./powershell.nix
     ./inputrc.nix
-    ./zsh.nix
   ];
 
   home.packages = with pkgs; [
