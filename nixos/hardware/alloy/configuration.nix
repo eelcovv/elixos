@@ -7,8 +7,8 @@
 }: {
   imports = [
     ../../modules/hardware/efi-boot-at-root.nix
-    ../../modules/hardware/nvidia-wayland-env.nix
-    ../../modules/hardware/nvidia-legacy.nix
+    ../../modules/hardware/gpu/nvidia.nix
+    ../../modules/hardware/gpu/nvidia-wayland-env.nix
     ./hardware-configuration.nix
   ];
 
@@ -17,11 +17,7 @@
   nixpkgs.hostPlatform = "x86_64-linux";
 
   hardware.nvidia = {
-    modesetting.enable = true;
-    powerManagement.enable = false;
-    nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    enable = true;
+    driver = "proprietary";
   };
-
-  services.xserver.videoDrivers = ["nvidia"];
 }

@@ -8,10 +8,11 @@
 in {
   options = {
     hardware.nvidia.enable = lib.mkEnableOption "Enable Nvidia GPU support";
-    hardware.nvidia.useOpenDriver = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Use Nvidia's open source kernel module instead of proprietary driver.";
+
+    hardware.nvidia.driver = lib.mkOption {
+      type = lib.types.enum ["proprietary" "open"];
+      default = "proprietary";
+      description = "Which Nvidia driver to use: 'proprietary' or 'open'.";
     };
   };
 
@@ -21,9 +22,9 @@ in {
 
     hardware.nvidia = {
       modesetting.enable = true;
+      open = cfg.driver == "open";
       powerManagement.enable = false;
       powerManagement.finegrained = false;
-      open = cfg.useOpenDriver;
       nvidiaSettings = true;
       package = config.boot.kernelPackages.nvidiaPackages.stable;
     };

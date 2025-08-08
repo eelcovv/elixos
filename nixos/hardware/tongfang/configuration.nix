@@ -15,7 +15,7 @@
 
   hardware.enableRedistributableFirmware = true;
   hardware.nvidia.enable = true;
-  hardware.nvidia.useOpenDriver = false;
+  hardware.nvidia.driver = "open"; # or "proprietary"
 
   specialisation = {
     nvidea.configuration = {
