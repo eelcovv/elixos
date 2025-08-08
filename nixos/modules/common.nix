@@ -18,7 +18,6 @@ This NixOS configuration module defines common system settings:
   imports = [
     inputs.home-manager.nixosModules.home-manager
     lib/conditional-secrets.nix
-    lib/wrappers.nix
   ];
 
   options = {
@@ -96,10 +95,6 @@ This NixOS configuration module defines common system settings:
       coreutils
       util-linux
     ];
-
-    environment.extraInit = ''
-      export PATH=$PATH:${pkgs.util-linux}/bin
-    '';
 
     system.stateVersion = "24.11";
   };
