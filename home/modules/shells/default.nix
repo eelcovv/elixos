@@ -6,9 +6,10 @@
 }: {
   # note that we import zsh via users
   imports = [
-    ./shells/bash.nix
-    ./shells/powershell.nix
-    ./shells/inputrc.nix
+    ./bash.nix
+    ./powershell.nix
+    ./inputrc.nix
+    ./zsh.nix
   ];
 
   home.packages = with pkgs; [

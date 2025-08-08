@@ -12,8 +12,9 @@
     [
       ../modules/common-packages.nix
       ../modules/hyperland
-      ../modules/graphics-packages.nix
-      ../modules/office-packages.nix
+      ../modules/graphics
+      ../modules/office
+      ../modules/internet
       ../modules/shells.nix
       ../modules/terminals.nix
       ../modules/editors

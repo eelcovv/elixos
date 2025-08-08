@@ -66,17 +66,17 @@
       ../modules/devel
       ../modules/editors
       ../modules/engingeering-packages.nix
-      ../modules/graphics-packages.nix
+      ../modules/graphics
       ../modules/hyperland
       ../modules/internet
       ../modules/maintainance-packages.nix
       ../modules/multimedia.nix
       ../modules/office
       ../modules/publishing.nix
-      ../modules/shells.nix
+      ../modules/shells
       ../modules/security.nix
       ../modules/socialmedia.nix
-      ../modules/terminals.nix
+      ../modules/terminals
 
       # Uitpakken van benchmarking lijst:
     ]
