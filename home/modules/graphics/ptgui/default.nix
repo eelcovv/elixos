@@ -15,6 +15,7 @@
   # ⚠️ Note: Redistribution of PTGui binaries is not allowed — avoid putting this file in public repositories.
   # ============================================
   ptguiStorePath = "/nix/store/blw8slhy3z8m4c5ms1s799ni8pphf9xk-PTGui_13.2.tar.gz";
+  ptguiSHA = "UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
 
   ptguiEnabled = builtins.pathExists ptguiStorePath;
 
@@ -30,7 +31,7 @@
     then
       builtins.fetchurl {
         url = "file://${ptguiStorePath}";
-        sha256 = "UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
+        sha256 = "{ptguiSHA}";
       }
     else null;
 
