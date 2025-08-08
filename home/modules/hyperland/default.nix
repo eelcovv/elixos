@@ -4,12 +4,7 @@
   ...
 }: let
   # Determine the selected theme from the environment variable or default to "default"
-  selectedTheme = let
-    envTheme = builtins.getEnv "HOME_THEME";
-  in
-    if envTheme == ""
-    then "default"
-    else envTheme;
+  selectedTheme = config.home.sessionVariables.HOME_THEME or "default";
 
   hyprDir = ./.;
   rofiDir = ./rofi;
