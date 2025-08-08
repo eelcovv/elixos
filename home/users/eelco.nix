@@ -70,6 +70,7 @@
       ../modules/graphics-packages.nix
       ../modules/multimedia.nix
       ../modules/office-packages.nix
+      ../modules/publishing.nix
       ../modules/shells.nix
       ../modules/terminals.nix
       ../modules/editors.nix
