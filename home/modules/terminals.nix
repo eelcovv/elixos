@@ -5,8 +5,9 @@
   ...
 }: {
   imports = [
-    ./terminals/kitty
     ./terminals/alacritty
     ./terminals/foot
+    ./terminals/kitty
+    ./terminals/wezterm
   ];
 }
