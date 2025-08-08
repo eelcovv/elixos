@@ -9,5 +9,6 @@
     graphicsmagick
     krita
     gimp
+    graphics/ptgui
   ];
 }
