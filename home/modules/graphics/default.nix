@@ -5,7 +5,7 @@
   ...
 }: {
   imports = [
-    ./graphics/ptgui
+    ./ptgui
   ];
   home.packages = with pkgs; [
     imagemagick
