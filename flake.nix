@@ -1,25 +1,15 @@
 {
   description = "Eelco's NixOS Configuration";
 
-  # Inputs: Define external sources for modules, tools and package sets
   inputs = {
-    # Official NixOS package set (unstable channel)
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-    # Hardware-specific modules for various devices
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
-    # Home Manager for managing user environments and dotfiles
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Declarative disk partitioning and formatting
     disko.url = "github:nix-community/disko";
-
-    # Encrypted secret management using age/sops
     sops-nix.url = "github:Mic92/sops-nix";
-
-    # Utility flake to build per-system outputs (devShells, packages, etc.)
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -47,19 +37,37 @@
       contabo = ./nixos/hosts/contabo.nix;
     };
 
-    mkHost = hostFile:
+    hostUserMap = {
+      singer = "eelco";
+      tongfang = "eelco";
+      ellie = "eelco";
+      alloy = "eelco";
+      contabo = "eelco";
+    };
+
+    mkHost = hostName: let
+      user = hostUserMap.${hostName} or null;
+    in
       nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
           inherit inputs self;
           userModulesPath = ./home/users;
         };
-        modules = [
-          hostFile
-          disko.nixosModules.disko
-          home-manager.nixosModules.home-manager
-          sops-nix.nixosModules.sops
-        ];
+        modules =
+          [
+            hostFiles.${hostName}
+            disko.nixosModules.disko
+            home-manager.nixosModules.home-manager
+            sops-nix.nixosModules.sops
+          ]
+          ++ nixpkgs.lib.optional (user != null) [
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.${user} = import ./home/users/${user}.nix;
+            }
+          ];
       };
   in {
     devShells = flake-utils.lib.eachDefaultSystem (system: {
@@ -85,7 +93,7 @@
       };
     });
 
-    nixosConfigurations = builtins.mapAttrs (_: mkHost) hostFiles;
+    nixosConfigurations = builtins.mapAttrs (name: _: mkHost name) hostFiles;
 
     homeConfigurations = builtins.listToAttrs (
       builtins.concatMap (
@@ -111,7 +119,7 @@
 
     packages.x86_64-linux = builtins.mapAttrs (
       _name: cfg: cfg.config.system.build.toplevel
-    ) (builtins.removeAttrs (builtins.mapAttrs (_: mkHost) hostFiles) ["test-vm"]);
+    ) (builtins.removeAttrs (builtins.mapAttrs (name: _: mkHost name) hostFiles) ["test-vm"]);
 
     apps.x86_64-linux.disko-install = {
       type = "app";
