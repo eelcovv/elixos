@@ -82,11 +82,6 @@
     ]
     ++ (import ../modules/benchmarking {inherit lib;})
     ++ [
-      (import ../modules/shells/zsh.nix {
-        inherit pkgs lib config;
-      })
-    ]
-    ++ [
       (import ../modules/development/git.nix {
         inherit config pkgs lib;
         userName = "Eelco van Vliet";
