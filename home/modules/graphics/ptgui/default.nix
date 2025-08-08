@@ -16,6 +16,7 @@
   # ============================================
   ptguiStorePath = "/nix/store/blw8slhy3z8m4c5ms1s799ni8pphf9xk-PTGui_13.2.tar.gz";
   ptguiSHA = "UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
+  ptguiVersion = "Pro 13.2";
 
   ptguiEnabled = builtins.pathExists ptguiStorePath;
 
@@ -35,7 +36,7 @@
       }
     else null;
 
-  ptgui_version = "Pro 13.2";
+  ptgui_version = ${ptguiVersion};
 in {
   home.packages = with pkgs;
     [
