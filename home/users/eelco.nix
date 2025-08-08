@@ -23,13 +23,17 @@
     imap = {
       host = "mail.davelab.nl";
       port = 993;
-      tls.enable = true; # ← GEEN type
+      tls = {
+        enable = true;
+      };
     };
 
     smtp = {
       host = "mail.davelab.nl";
       port = 587;
-      tls.enable = true; # ← GEEN type
+      tls = {
+        enable = true;
+      };
     };
 
     thunderbird.enable = true;
