@@ -9,6 +9,7 @@
     ./direnv.nix
     ./git-default.nix
     ./pycharm.nix
+    ./python.nix
     ./vscode.nix
   ];
 
