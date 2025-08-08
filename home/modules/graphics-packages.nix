@@ -9,6 +9,5 @@
     graphicsmagick
     krita
     gimp
-    inkscape
   ];
 }
