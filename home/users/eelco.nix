@@ -66,11 +66,11 @@
   imports =
     [
       ../modules/common
-      ../modules/databases
-      ../modules/development
+      #../modules/databases
+      #../modules/development
       ../modules/editors
-      ../modules/engingeering
-      ../modules/graphics
+      #../modules/engingeering
+      #../modules/graphics
       ../modules/hyperland
       ../modules/internet
       ../modules/maintainance
