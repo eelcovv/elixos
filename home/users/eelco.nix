@@ -68,10 +68,10 @@
       ../modules/engingeering-packages.nix
       ../modules/graphics-packages.nix
       ../modules/hyperland
-      ../modules/internet/remote-access.nix
+      ../modules/internet
       ../modules/maintainance-packages.nix
       ../modules/multimedia.nix
-      ../modules/office-packages.nix
+      ../modules/office
       ../modules/publishing.nix
       ../modules/shells.nix
       ../modules/security.nix
