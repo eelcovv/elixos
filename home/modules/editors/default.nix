@@ -5,7 +5,7 @@
   ...
 }: {
   imports = [
-    ./editors/vim
-    ./editors/nvim
+    ./vim
+    ./nvim
   ];
 }

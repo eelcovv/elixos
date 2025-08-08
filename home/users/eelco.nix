@@ -64,7 +64,7 @@
       ../modules/common-packages.nix
       ../modules/datascience.nix
       ../modules/devel
-      ../modules/editors.nix
+      ../modules/editors
       ../modules/engingeering-packages.nix
       ../modules/graphics-packages.nix
       ../modules/hyperland
