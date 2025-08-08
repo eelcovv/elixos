@@ -36,7 +36,7 @@
       }
     else null;
 
-  ptgui_version = ${ptguiVersion};
+  ptgui_version = "${ptguiVersion}";
 in {
   home.packages = with pkgs;
     [
