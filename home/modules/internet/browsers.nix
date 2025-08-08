@@ -1,9 +1,17 @@
 {pkgs, ...}: {
-  home.packages = [
-    pkgs.firefox
-    pkgs.chromium
-    pkgs.google-chrome
-    pkgs.tor-browser
-    pkgs.brave
+  home.packages = with pkgs; [
+    firefox
+    chromium
+    epiphany
+    google-chrome
+    brave
+    qutebrowser
+    tor-browser
+    protonmail-desktop
+    transmission_4 # torrent client -browser
+    protonmail-desktop
+    biglybt # torrent client
+    transmission_4 # torrent client
+    qbittorrent
   ];
 }
