@@ -31,7 +31,7 @@
     then
       builtins.fetchurl {
         url = "file://${ptguiStorePath}";
-        sha256 = "{ptguiSHA}";
+        sha256 = "${ptguiSHA}";
       }
     else null;
 
