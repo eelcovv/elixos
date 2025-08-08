@@ -63,6 +63,7 @@
     [
       ../modules/common-packages.nix
       ../modules/datascience.nix
+      ../modules/engingeering-packages.nix
       ../modules/hyperland
       ../modules/devel-packages.nix
       ../modules/maintainance-packages.nix

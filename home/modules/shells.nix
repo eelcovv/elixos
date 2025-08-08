@@ -7,6 +7,7 @@
   # note that we import zsh via users
   imports = [
     ./shells/bash.nix
+    ./shells/powershell.nix
     ./shells/inputrc.nix
   ];
 
