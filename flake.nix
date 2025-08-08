@@ -34,7 +34,7 @@
   }: let
     system = "x86_64-linux";
 
-    allUsers = ["eelco", "por"];
+    allUsers = ["eelco" "por"];
     allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo"];
 
     hostFiles = {

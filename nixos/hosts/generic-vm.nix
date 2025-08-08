@@ -27,7 +27,6 @@
   imports = [
     ../modules/common.nix
     ../modules/profiles/desktop.nix
-    ../modules/home-manager.nix
     ../users/eelco.nix
     ../modules/secrets/generic-vm-eelco.nix
     ../modules/services/ssh-client-keys.nix
