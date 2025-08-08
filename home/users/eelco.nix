@@ -72,6 +72,7 @@
       ../modules/office-packages.nix
       ../modules/publishing.nix
       ../modules/shells.nix
+      ../modules/security.nix
       ../modules/terminals.nix
       ../modules/editors.nix
       ../modules/internet/remote-access.nix
