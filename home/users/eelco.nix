@@ -63,7 +63,7 @@
     [
       ../modules/common-packages.nix
       ../modules/datascience.nix
-      ../modules/devel-packages.nix
+      ../modules/devel
       ../modules/editors.nix
       ../modules/engingeering-packages.nix
       ../modules/graphics-packages.nix

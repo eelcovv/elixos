@@ -5,9 +5,9 @@
   ...
 }: {
   imports = [
-    ./devel/git-default.nix
-    ./devel/pycharm.nix
-    ./devel/vscode.nix
+    ./git-default.nix
+    ./pycharm.nix
+    ./vscode.nix
   ];
 
   home.packages = with pkgs; [
