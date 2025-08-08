@@ -6,6 +6,7 @@
 }: {
   imports = [
     ./devel/git-default.nix
+    ./devel/pycharm.nix
     ./devel/vscode.nix
   ];
 
