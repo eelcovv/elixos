@@ -32,30 +32,11 @@
     flake-utils,
     ...
   }: let
-    # Reusable function to define a nixosSystem configuration
-    mkHost = hostFile:
-      nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs self;
-          userModulesPath = ./home/users; # Passed to Home Manager modules
-        };
-        modules = [
-          hostFile
-          disko.nixosModules.disko
-          home-manager.nixosModules.home-manager
-          sops-nix.nixosModules.sops
-        ];
-      };
-    homeUsers = {
-      "eelco@singer" = ./home/users/eelco.nix;
-      "eelco@tongfang" = ./home/users/eelco.nix;
-      "eelco@ellie" = ./home/users/eelco.nix;
-      "eelco@alloy" = ./home/users/eelco.nix;
-      "eelco@contabo" = ./home/users/eelco.nix;
-    };
+    system = "x86_64-linux";
 
-    # Map of host names to their NixOS configuration files
+    allUsers = ["eelco", "por"];
+    allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo"];
+
     hostFiles = {
       tongfang = ./nixos/hosts/tongfang.nix;
       generic-vm = ./nixos/hosts/generic-vm.nix;
@@ -64,62 +45,74 @@
       ellie = ./nixos/hosts/ellie.nix;
       alloy = ./nixos/hosts/alloy.nix;
       contabo = ./nixos/hosts/contabo.nix;
-      # contabo = ./nixos/hosts/contabo.nix;  # Uncomment if needed
     };
+
+    mkHost = hostFile:
+      nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          inherit inputs self;
+          userModulesPath = ./home/users;
+        };
+        modules = [
+          hostFile
+          disko.nixosModules.disko
+          home-manager.nixosModules.home-manager
+          sops-nix.nixosModules.sops
+        ];
+      };
   in {
-    # Outputs contain two parts:
-    # - devShells: Development environments per system
-    # - nixosConfigurations: System definitions for each host
     devShells = flake-utils.lib.eachDefaultSystem (system: {
       devShells.default = (import nixpkgs {inherit system;}).mkShell {
         packages = with (import nixpkgs {inherit system;}); [
-          pre-commit # Git hook runner
-          alejandra # Nix code formatter
-          rage # Age key management
-          sops # Secrets management
-          yq-go # YAML CLI processor
-          OVMF # UEFI firmware for VMs
-          qemu # Virtual machine tool
+          pre-commit
+          alejandra
+          rage
+          sops
+          yq-go
+          OVMF
+          qemu
           git
           openssh
-          age # Age encryption tool
-          just # Task runner
-          prettier # JS/CSS/JSON formatter
-          nodejs # Required by prettier
+          age
+          just
+          prettier
+          nodejs
         ];
-
         shellHook = ''
           echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
         '';
       };
     });
 
-    # System configuration per host
-    nixosConfigurations = builtins.mapAttrs (_name: mkHost) hostFiles;
+    nixosConfigurations = builtins.mapAttrs (_: mkHost) hostFiles;
 
-    homeConfigurations =
-      builtins.mapAttrs (
-        fullKey: moduleFile:
-          home-manager.lib.homeManagerConfiguration {
-            pkgs = import nixpkgs {
-              system = "x86_64-linux";
-              config.allowUnfree = true;
+    homeConfigurations = builtins.listToAttrs (
+      builtins.concatMap (
+        user:
+          builtins.map (host: {
+            name = "${user}@${host}";
+            value = home-manager.lib.homeManagerConfiguration {
+              inherit system;
+              pkgs = nixpkgs.legacyPackages.${system};
+              modules = [
+                ./home/users/${user}.nix
+              ];
+              extraSpecialArgs = {
+                inherit inputs self;
+                userModulesPath = ./home/users;
+              };
             };
-            modules = [moduleFile];
-            extraSpecialArgs = {
-              inherit inputs self;
-            };
-          }
+          })
+          allHosts
       )
-      homeUsers;
+      allUsers
+    );
 
-    # Package outputs (e.g., used by nix build .#tongfang)
     packages.x86_64-linux = builtins.mapAttrs (
-      _name: cfg:
-        cfg.config.system.build.toplevel
+      _name: cfg: cfg.config.system.build.toplevel
     ) (builtins.removeAttrs (builtins.mapAttrs (_: mkHost) hostFiles) ["test-vm"]);
 
-    # Disko runner app
     apps.x86_64-linux.disko-install = {
       type = "app";
       program = "${disko.packages.x86_64-linux.disko}/bin/disko";
