@@ -63,7 +63,7 @@
     [
       ../modules/common
       ../modules/databases
-      ../modules/devel
+      ../modules/development
       ../modules/editors
       ../modules/engingeering
       ../modules/graphics
