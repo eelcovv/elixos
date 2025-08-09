@@ -27,6 +27,10 @@
     allUsers = ["eelco" "por"];
     allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo"];
 
+    # Enable Home Manager for all hosts, or only for specific ones.
+    # normally you would set this to true for all hosts that have a user defined in hostUserMap.
+    enableHM = false;
+
     hostFiles = {
       tongfang = ./nixos/hosts/tongfang.nix;
       generic-vm = ./nixos/hosts/generic-vm.nix;
@@ -62,7 +66,7 @@
             sops-nix.nixosModules.sops
           ]
           ++ (
-            if user != null
+            if enableHM && user != null
             then [
               {
                 home-manager.useGlobalPkgs = true;
