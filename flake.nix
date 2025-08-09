@@ -29,7 +29,7 @@
 
     # Enable Home Manager for all hosts, or only for specific ones.
     # normally you would set this to true for all hosts that have a user defined in hostUserMap.
-    enableHM = false;
+    enableHM = true;
 
     hostFiles = {
       tongfang = ./nixos/hosts/tongfang.nix;
@@ -53,7 +53,6 @@
       user = hostUserMap.${hostName} or null;
     in
       nixpkgs.lib.nixosSystem {
-        inherit system;
         specialArgs = {
           inherit inputs self;
           userModulesPath = ./home/users;
