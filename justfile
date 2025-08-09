@@ -264,7 +264,7 @@ install HOST:
 	cp /root/keys.txt /mnt/etc/sops/age/keys.txt
 	chmod 400 /mnt/etc/sops/age/keys.txt
 	@echo "🚀 Building system for {{HOST}}..."
-	nix build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result-{{HOST}}
+	nix --extra-experimental-features 'nix-command flakes' build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result-{{HOST}}
 	@echo "🚀 Running nixos-install for {{HOST}}..."
 	nixos-install --system result-{{HOST}} --no-root-passwd
 	@echo "✅ {{HOST}} is now installed!"
