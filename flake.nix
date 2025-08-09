@@ -109,7 +109,6 @@
             host: {
               name = "${user}@${host}";
               value = home-manager.lib.homeManagerConfiguration {
-                inherit system;
                 pkgs = nixpkgs.legacyPackages.${system};
                 modules = [
                   ./home/users/${user}.nix
