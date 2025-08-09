@@ -249,6 +249,29 @@ partition-dry HOST:
 	nix run --extra-experimental-features 'nix-command flakes' github:nix-community/disko -- --flake ~/elixos#{{HOST}} --dry-run --mode zap_create_mount
 	@echo "🧪 Dry run completed for {{HOST}}."
 
+# ===== MOUNT HELPERS (SAFE) =====
+
+# Mount bestaande partities volgens je disko-config, zonder te zappen of te (her)formatteren
+mount HOST:
+	sudo -i nix --extra-experimental-features 'nix-command flakes' \
+	  run github:nix-community/disko -- --flake ~/elixos#{{HOST}} --mode mount
+	@echo "✅ Mounted {{HOST}} on /mnt according to disko-config"
+
+# Unmount alles onder /mnt (handig bij opnieuw proberen)
+umount-all:
+	- sudo swapoff -a
+	- sudo umount -Rl /mnt || true
+	@echo "✅ Everything under /mnt unmounted"
+
+# (Optional) /nix to disk bind to prevent RAM shortage
+bind-nix:
+	sudo mkdir -p /mnt/nix
+	# Copy existing /nix to /mnt/nix if it exists, otherwise just copy contents
+	sudo sh -c '( cd /nix 2>/dev/null && tar cf - . ) | ( cd /mnt/nix && tar xpf - ) || cp -a /nix/. /mnt/nix/.'
+	sudo mount --bind /mnt/nix /nix
+	sudo mkdir -p /nix/var/nix/daemon-socket
+	sudo chmod 755 /nix/var/nix/daemon-socket
+	@echo "✅ /nix mounted to /mnt/nix and bound to /nix"
 
 # 🛠 Generate hardware configuration (after partitioning!)
 generate-hardware-config:
