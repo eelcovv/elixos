@@ -96,6 +96,7 @@ This NixOS configuration module defines common system settings:
       bashInteractive
       coreutils
       util-linux
+      wireguard-tools
     ];
 
     system.stateVersion = "24.11";
