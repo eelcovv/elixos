@@ -415,6 +415,17 @@ _decrypt-secret-with-key HOST USER KEY_NAME:
     echo "📤 Decrypted content for key {{KEY_NAME}}:" && \
     sops -d "$FILE" | yq -r ".\"{{KEY_NAME}}\""
 
+# Generate WireGuard keypair for Surfshark
+gen-surfshark-wg:
+	@echo "🔑 Generating WireGuard keypair for Surfshark..."
+	@mkdir -p nixos/secrets/surfshark/wg
+	@wg genkey | tee nixos/secrets/surfshark/wg/privatekey.plain | wg pubkey > nixos/secrets/surfshark/wg/publickey
+	@echo "🔒 Encrypting private key with sops..."
+	sops --encrypt --in-place nixos/secrets/surfshark/wg/privatekey.plain
+	@mv -v nixos/secrets/surfshark/wg/privatekey.plain nixos/secrets/surfshark/wg/privatekey
+	@echo "✅ Done. Public key is:"
+	@cat nixos/secrets/surfshark/wg/publickey
+	@echo "⚠️  Add the public key above to Surfshark's WireGuard setup page."
 
 # ========== VALIDATION ==========
 check-install HOST USER:
