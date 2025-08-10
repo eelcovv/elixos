@@ -25,7 +25,7 @@
     system = "x86_64-linux";
 
     allUsers = ["eelco" "por"];
-    allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo"];
+    allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo", "generic-vm"];
 
     # Enable Home Manager for all hosts, or only for specific ones.
     # normally you would set this to true for all hosts that have a user defined in hostUserMap.
