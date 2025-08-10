@@ -109,7 +109,10 @@
             host: {
               name = "${user}@${host}";
               value = home-manager.lib.homeManagerConfiguration {
-                pkgs = nixpkgs.legacyPackages.${system};
+                pkgs = import nixpkgs {
+                  inherit system;
+                  config = {allowUnfree = true;};
+                };
                 modules = [
                   ./home/users/${user}.nix
                 ];
