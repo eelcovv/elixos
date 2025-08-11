@@ -463,7 +463,7 @@ vpn-off:
 	else \
 		sudo systemctl stop wg-quick-wg-surfshark; \
 		echo "🛑 Surfshark VPN stopped"; \
-	fi:
+	fi
 	@just vpn-status
 
 # Show Surfshark VPN status
