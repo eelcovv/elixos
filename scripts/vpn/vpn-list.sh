@@ -92,6 +92,11 @@ for iface in $active_ifaces; do
 done
 orig_loc="$active_loc"
 
+# Als er geen tunnel actief is en je vraagt --speedtest zonder loc: test alles.
+if $need_speedtest && [[ -z "${target_loc:-}" && -z "${active_loc:-}" ]]; then
+  mode_all=true
+fi
+
 # ---- helpers ----
 get_endpoint() {
   local iface="$1" endpoint="n/a"
@@ -130,13 +135,25 @@ stop_loc()  { sudo systemctl stop  "wg-quick-wg-surfshark-$1" || true; }
 
 wait_until_up() {
   local iface="$1" tries=30
-  for _ in $(seq 1 $tries); do
+  for _ in $(seq 1 "$tries"); do
     if wg show interfaces 2>/dev/null | tr ' ' '\n' | grep -qx "$iface"; then
       return 0
     fi
     sleep 0.5
   done
   return 0
+}
+
+ensure_routed_via() {
+  # Wacht tot de default route naar internet via de gevraagde iface gaat
+  local iface="$1" tries=20
+  for _ in $(seq 1 "$tries"); do
+    if ip -4 route get 1.1.1.1 2>/dev/null | grep -q "dev ${iface}\b"; then
+      return 0
+    fi
+    sleep 0.3
+  done
+  return 1
 }
 
 run_speedtest() {
@@ -186,8 +203,14 @@ for loc in "${locs[@]}"; do
     [[ -n "$active_loc" ]] && stop_loc "$active_loc"
     start_loc "$loc"
     wait_until_up "$iface"
+    if ! ensure_routed_via "$iface"; then
+      echo "⚠️  Route is nog niet via ${iface}; meting kan onnauwkeurig zijn."
+    fi
     active_loc="$loc"
     active_ifaces="$iface"
+  else
+    # Al actief? Dan toch even verifiëren dat route echt via de iface loopt.
+    ensure_routed_via "$iface" || echo "⚠️  Route lijkt niet via ${iface} te lopen; meting kan onnauwkeurig zijn."
   fi
 
   # Speedtest uitvoeren
