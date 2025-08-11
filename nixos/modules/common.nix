@@ -96,11 +96,6 @@ This NixOS configuration module defines common system settings:
       bashInteractive
       coreutils
       util-linux
-      wireguard-tools
-      speedtest-cli
-      ookla-speedtest # binaire 'speedtest' (aanrader)
-      fast-cli # netflix fallback (node)
-      jq
     ];
 
     system.stateVersion = "24.11";

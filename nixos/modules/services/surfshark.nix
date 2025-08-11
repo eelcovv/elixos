@@ -4,7 +4,13 @@
   pkgs,
   ...
 }: {
-  environment.systemPackages = with pkgs; [wireguard-tools speedtest-cli];
+  environment.systemPackages = with pkgs; [
+    wireguard-tools
+    speedtest-cli
+    ookla-speedtest # binaire 'speedtest' (aanrader)
+    fast-cli # netflix fallback (node)
+    jq
+  ];
 
   # Surfshark private key via sops
   sops.secrets."surfshark/wg/privatekey" = {
@@ -17,7 +23,7 @@
 
   # NL (Amsterdam)
   networking.wg-quick.interfaces."wg-surfshark-nl" = {
-    address = ["10.14.0.2/16"];
+    address = ["10.14.0.2/32"];
     dns = ["162.252.172.57" "149.154.159.92"];
     privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
     peers = [
@@ -28,16 +34,15 @@
         persistentKeepalive = 25;
       }
     ];
-    mtu = 1420;
+    mtu = 1380;
     autostart = false;
   };
 
   # Bangkok (Surfshark)
   networking.wg-quick.interfaces."wg-surfshark-bkk" = {
-    address = ["10.14.0.2/16"];
+    address = ["10.14.0.2/32"];
     dns = ["162.252.172.57" "149.154.159.92"];
     privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
-
     peers = [
       {
         publicKey = "OoFY46j/w4uQFyFu/OQ/h3x+ymJ1DJ4UR1fwGNxOxk0=";
@@ -46,17 +51,15 @@
         persistentKeepalive = 25;
       }
     ];
-
-    mtu = 1420;
+    mtu = 1380;
     autostart = false;
   };
 
   # Singapore (Surfshark)
   networking.wg-quick.interfaces."wg-surfshark-sg" = {
-    address = ["10.14.0.2/16"];
+    address = ["10.14.0.2/32"];
     dns = ["162.252.172.57" "149.154.159.92"];
     privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
-
     peers = [
       {
         publicKey = "MGfgkhJsMVMTO33h1wr76+z6gQr/93VcGdClfbaPsnU=";
@@ -65,8 +68,7 @@
         persistentKeepalive = 25;
       }
     ];
-
-    mtu = 1420;
+    mtu = 1380;
     autostart = false;
   };
 
