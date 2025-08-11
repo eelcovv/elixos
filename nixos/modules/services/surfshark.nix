@@ -17,8 +17,8 @@
   };
 
   # WireGuard interface voor Surfshark AMS
+  # The information below is obtained from your Surfshark configuration file.
   networking.wireguard.interfaces.wg-surfshark = {
-    # uit jouw conf:
     ips = ["10.14.0.2/16"];
     privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
 
