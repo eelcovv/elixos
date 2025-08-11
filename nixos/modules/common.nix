@@ -97,6 +97,7 @@ This NixOS configuration module defines common system settings:
       coreutils
       util-linux
       wireguard-tools
+      speedtest-cli
     ];
 
     system.stateVersion = "24.11";

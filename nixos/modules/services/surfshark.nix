@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: {
-  environment.systemPackages = with pkgs; [wireguard-tools];
+  environment.systemPackages = with pkgs; [wireguard-tools speedtest-cli];
 
   # Surfshark private key via sops
   sops.secrets."surfshark/wg/privatekey" = {
