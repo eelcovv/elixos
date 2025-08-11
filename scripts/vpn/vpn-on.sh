@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Usage: vpn-on.sh <loc>
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <loc>   (e.g. nl, bkk, sg)"
+  echo "Usage: $0 <loc>   (e.g. nl, bk, sg)"
   exit 1
 fi
 LOC="$1"

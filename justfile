@@ -443,7 +443,7 @@ gen-surfshark-wg:
 	@echo "⚠️  Add the public key above to Surfshark's WireGuard setup page."
 
 # ---- Surfshark WireGuard (wg-quick) helpers ----
-# Convention: interfaces are named wg-surfshark-<loc>, e.g. wg-surfshark-nl, wg-surfshark-bkk, wg-surfshark-sg
+# Convention: interfaces are named wg-surfshark-<loc>, e.g. wg-surfshark-nl, wg-surfshark-bk, wg-surfshark-sg
 
 vpn-list ARG="":
 	./scripts/vpn/vpn-list.sh {{ARG}}
