@@ -7,12 +7,11 @@
   environment.systemPackages = with pkgs; [
     wireguard-tools
     speedtest-cli
-    ookla-speedtest # binaire 'speedtest' (aanrader)
-    fast-cli # netflix fallback (node)
-    jq
   ];
 
-  # Surfshark private key via sops
+  networking.wireguard.enable = true;
+
+  # Surfshark private key via sops (ASCII 1-liner)
   sops.secrets."surfshark/wg/privatekey" = {
     sopsFile = ../../secrets/surfshark/wg/privatekey;
     format = "binary";
@@ -38,16 +37,16 @@
     autostart = false;
   };
 
-  # Bangkok (Surfshark)
+  # Bangkok
   networking.wg-quick.interfaces."wg-surfshark-bkk" = {
-    address = ["10.14.0.2/32"];
+    address = ["10.14.0.2/16"];
     dns = ["162.252.172.57" "149.154.159.92"];
     privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
     peers = [
       {
         publicKey = "OoFY46j/w4uQFyFu/OQ/h3x+ymJ1DJ4UR1fwGNxOxk0=";
         endpoint = "th-bkk.prod.surfshark.com:51820";
-        allowedIPs = ["0.0.0.0/0" "::/0"];
+        allowedIPs = ["0.0.0.0/0"];
         persistentKeepalive = 25;
       }
     ];
@@ -55,7 +54,7 @@
     autostart = false;
   };
 
-  # Singapore (Surfshark)
+  # Singapore
   networking.wg-quick.interfaces."wg-surfshark-sg" = {
     address = ["10.14.0.2/32"];
     dns = ["162.252.172.57" "149.154.159.92"];
@@ -72,5 +71,6 @@
     autostart = false;
   };
 
+  # Vermindert strict reverse-path checks wanneer de tunnel default route neemt
   networking.firewall.checkReversePath = "loose";
 }
