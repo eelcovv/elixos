@@ -6,21 +6,32 @@ repos:
     entry: alejandra
     language: system
     types: [ nix ]
+
   - id: prettier-json
     name: prettier (json)
     entry: prettier
     language: system
     types: [ json ]
     files: \.json$
+
   - id: prettier-yaml
     name: prettier (yaml)
     entry: prettier
     language: system
     types: [ yaml ]
     files: \.(yml|yaml)$
+
   - id: prettier-md
     name: prettier (markdown)
     entry: prettier
     language: system
     types: [ markdown ]
     files: \.md$
+
+  - id: shfmt
+    name: shfmt (bash)
+    entry: shfmt
+    args: [ "-w", "-i", "2", "-ci" ]
+    language: system
+    types: [ shell ]
+    files: \.(sh|bash)$
