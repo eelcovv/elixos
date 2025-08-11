@@ -445,8 +445,8 @@ gen-surfshark-wg:
 # ---- Surfshark WireGuard (wg-quick) helpers ----
 # Convention: interfaces are named wg-surfshark-<loc>, e.g. wg-surfshark-nl, wg-surfshark-bkk, wg-surfshark-sg
 
-vpn-list:
-	./scripts/vpn/vpn-list.sh
+vpn-list ARG="":
+	./scripts/vpn/vpn-list.sh {{ARG}}
 
 vpn-on LOC="nl":
 	./scripts/vpn/vpn-on.sh {{LOC}}
