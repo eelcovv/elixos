@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-active="$(systemctl list-units --type=service --no-legend \
-  | awk '/^wg-quick-wg-surfshark-.*\.service/ {print $1}' \
-  | while read -r u; do systemctl is-active --quiet "$u" && echo "$u"; done \
-  | sed 's/^wg-quick-wg-surfshark-\(.*\)\.service/\1/')"
-
+active="$(wg show interfaces 2>/dev/null || true)"
+active_loc=""
 if [[ -n "$active" ]]; then
-  echo "🔍 VPN status: ✅ active  (loc: ${active})"
+  # Neem de eerste wg-surfshark-*
+  for iface in $active; do
+    if [[ "$iface" == wg-surfshark-* ]]; then
+      active_loc="${iface#wg-surfshark-}"
+      break
+    fi
+  done
+fi
+
+if [[ -n "$active_loc" ]]; then
+  echo "🔍 VPN status: ✅ active  (loc: ${active_loc})"
 else
   echo "🔍 VPN status: ❌ inactive"
 fi
@@ -15,8 +22,8 @@ fi
 echo "🌍 Public IP:"
 curl -s ifconfig.me ; echo
 
-if [[ -n "$active" ]]; then
-  iface="wg-surfshark-${active}"
+if [[ -n "$active_loc" ]]; then
+  iface="wg-surfshark-${active_loc}"
   echo "🔑 WireGuard handshake info:"
   sudo wg show "$iface" | grep -E "endpoint|latest handshake|transfer" || true
 else

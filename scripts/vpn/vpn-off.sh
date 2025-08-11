@@ -2,13 +2,12 @@
 set -euo pipefail
 
 stopped=0
-while read -r unit; do
-  if systemctl is-active --quiet "$unit"; then
-    sudo systemctl stop "$unit"
+for iface in $(wg show interfaces 2>/dev/null || true); do
+  if [[ "$iface" == wg-surfshark-* ]]; then
+    sudo systemctl stop "wg-quick-${iface}.service" || true
     stopped=1
   fi
-done < <(systemctl list-units --type=service --no-legend \
-        | awk '/^wg-quick-wg-surfshark-.*\.service/ {print $1}')
+done
 
 if [[ $stopped -eq 1 ]]; then
   echo "🛑 Surfshark VPN stopped"
