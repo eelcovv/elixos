@@ -448,7 +448,7 @@ gen-surfshark-wg:
 vpn-list:
 	./scripts/vpn/vpn-list.sh
 
-vpn-on LOC="NL":
+vpn-on LOC="nl":
 	./scripts/vpn/vpn-on.sh {{LOC}}
 
 vpn-off:
