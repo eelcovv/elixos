@@ -446,6 +446,21 @@ gen-surfshark-wg:
 show-ip-location:
 	curl https://ipinfo.io
 
+# Start Surfshark VPN (NL Amsterdam)
+vpn-on:
+	sudo systemctl start wg-quick-wg-surfshark
+	@echo "✅ Surfshark VPN gestart"
+	@echo "Publiek IP:"
+	@curl -s ifconfig.me ; echo
+
+# Stop Surfshark VPN
+vpn-off:
+	sudo systemctl stop wg-quick-wg-surfshark
+	@echo "🛑 Surfshark VPN gestopt"
+	@echo "Publiek IP:"
+	@curl -s ifconfig.me ; echo
+
+
 # ========== VALIDATION ==========
 check-install HOST USER:
 	@echo "🔍 Checking /mnt-based install for HOST={{HOST}}, USER={{USER}}..."
