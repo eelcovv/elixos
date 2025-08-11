@@ -446,19 +446,19 @@ gen-surfshark-wg:
 # Convention: interfaces are named wg-surfshark-<loc>, e.g. wg-surfshark-nl, wg-surfshark-bkk, wg-surfshark-sg
 
 vpn-list:
-	./scripts/vpn-list.sh
+	./scripts/vpn/vpn-list.sh
 
 vpn-on LOC="NL":
-	./scripts/vpn-on.sh {{LOC}}
+	./scripts/vpn/vpn-on.sh {{LOC}}
 
 vpn-off:
-	./scripts/vpn-off.sh
+	./scripts/vpn/vpn-off.sh
 
 vpn-status:
-	./scripts/vpn-status.sh
+	./scripts/vpn/vpn-status.sh
 
 vpn-location:
-	./scripts/vpn-location.sh
+	./scripts/vpn/vpn-location.sh
 
 
 # ========== VALIDATION ==========
