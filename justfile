@@ -442,6 +442,10 @@ gen-surfshark-wg:
 	@cat nixos/secrets/surfshark/wg/publickey
 	@echo "⚠️  Add the public key above to Surfshark's WireGuard setup page."
 
+# Show IP location using ipinfo.io
+show-ip-location:
+	curl https://ipinfo.io
+
 # ========== VALIDATION ==========
 check-install HOST USER:
 	@echo "🔍 Checking /mnt-based install for HOST={{HOST}}, USER={{USER}}..."
