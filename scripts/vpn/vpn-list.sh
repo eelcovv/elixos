@@ -35,6 +35,15 @@ if [[ -r /etc/wg-endpoints.json ]]; then
   done < <(jq -r 'to_entries[] | .key, .value' /etc/wg-endpoints.json 2>/dev/null || true)
 fi
 
+
+declare -A endpoints_manual=()
+if [[ -r "$HOME/.config/surfshark-endpoints" ]]; then
+  while IFS='=' read -r k v; do
+    [[ -z "${k:-}" || -z "${v:-}" ]] && continue
+    endpoints_manual["wg-surfshark-$k"]="$v"
+  done < "$HOME/.config/surfshark-endpoints"
+fi
+
 for unit in "${units[@]}"; do
   loc="${unit#wg-quick-wg-surfshark-}"; loc="${loc%.service}"
   iface="wg-surfshark-${loc}"
@@ -63,12 +72,9 @@ for unit in "${units[@]}"; do
     endpoint="${endpoints_json[$iface]:-n/a}"
   fi
 
-  declare -A endpoints_manual=()
-  if [[ -r "$HOME/.config/surfshark-endpoints" ]]; then
-    while IFS='=' read -r k v; do
-      [[ -z "${k:-}" || -z "${v:-}" ]] && continue
-      endpoints_manual["wg-surfshark-$k"]="$v"
-    done < "$HOME/.config/surfshark-endpoints"
+  # 4) handmatige mapping
+  if [[ "$endpoint" == "n/a" ]]; then
+    endpoint="${endpoints_manual[$iface]:-n/a}"
   fi
 
   lat="n/a"
@@ -78,7 +84,7 @@ for unit in "${units[@]}"; do
     [[ -z "$lat" ]] && lat="n/a"
   fi
 
-  printf " %s %-8s  endpoint=%-28s  latency=%s\n" "$mark" "$loc" "$endpoint" "$lat"
+  printf " %s %-8s  endpoint=%-38s  latency=%s\n" "$mark" "$loc" "$endpoint" "$lat"
 done
 
 echo "(* marks the currently active location)"
