@@ -443,22 +443,46 @@ gen-surfshark-wg:
 	@echo "⚠️  Add the public key above to Surfshark's WireGuard setup page."
 
 # Show IP location using ipinfo.io
-show-ip-location:
+vpn-location:
 	curl https://ipinfo.io
 
 # Start Surfshark VPN (NL Amsterdam)
 vpn-on:
-	sudo systemctl start wg-quick-wg-surfshark
-	@echo "✅ Surfshark VPN gestart"
-	@echo "Publiek IP:"
-	@curl -s ifconfig.me ; echo
+	@if systemctl is-active --quiet wg-quick-wg-surfshark; then \
+		echo "⚠️  Surfshark VPN is already running"; \
+	else \
+		sudo systemctl start wg-quick-wg-surfshark; \
+		echo "✅ Surfshark VPN started"; \
+	fi
+	@just vpn-status
 
 # Stop Surfshark VPN
 vpn-off:
-	sudo systemctl stop wg-quick-wg-surfshark
-	@echo "🛑 Surfshark VPN gestopt"
-	@echo "Publiek IP:"
+	@if ! systemctl is-active --quiet wg-quick-wg-surfshark; then \
+		echo "⚠️  Surfshark VPN is already stopped"; \
+	else \
+		sudo systemctl stop wg-quick-wg-surfshark; \
+		echo "🛑 Surfshark VPN stopped"; \
+	fi:
+	@just vpn-status
+
+# Show Surfshark VPN status
+vpn-status:
+	@echo "🔍 VPN status:"
+	@if systemctl is-active --quiet wg-quick-wg-surfshark; then \
+		echo "   Status: ✅ active"; \
+	else \
+		echo "   Status: ❌ inactive"; \
+	fi
+	@echo "🌍 Public IP:"
 	@curl -s ifconfig.me ; echo
+	@if systemctl is-active --quiet wg-quick-wg-surfshark; then \
+		echo "🔑 WireGuard handshake info:"; \
+		sudo wg show wg-surfshark | grep -E "endpoint|latest handshake|transfer"; \
+	else \
+		echo "🔑 WireGuard handshake info: (VPN inactive)"; \
+	fi
+
 
 
 # ========== VALIDATION ==========
