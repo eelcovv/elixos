@@ -9,7 +9,7 @@
 
   # Private key as sops-secret
   sops.secrets."surfshark/wg/privatekey" = {
-    sopsFile = ../../secrets/surfshark.yaml; # vanuit modules/services/ naar secrets/
+    sopsFile = ../../secrets/surfshark/wg/privatekey;
     format = "yaml";
     owner = "root";
     group = "root";
