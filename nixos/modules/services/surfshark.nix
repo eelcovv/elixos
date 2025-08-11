@@ -6,6 +6,7 @@
 }: {
   environment.systemPackages = with pkgs; [wireguard-tools];
 
+  # Surfshark private key via sops
   sops.secrets."surfshark/wg/privatekey" = {
     sopsFile = ../../secrets/surfshark/wg/privatekey;
     format = "binary";
@@ -14,8 +15,10 @@
     mode = "0400";
   };
 
-  networking.wireguard.interfaces.wg-surfshark = {
-    ips = ["10.14.0.2/16"];
+  # wg-quick interface (neemt DNS over uit je conf)
+  networking.wg-quick.interfaces."wg-surfshark" = {
+    address = ["10.14.0.2/16"];
+    dns = ["162.252.172.57" "149.154.159.92"];
     privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
 
     peers = [
@@ -27,26 +30,9 @@
       }
     ];
 
-    # vaak nodig, scheelt fragmentatie
-    mtu = 1420;
-
-    # Maak een route-exceptie voor het endpoint-IP via je normale default route
-    postSetup = ''
-      EP=$(getent ahostsv4 nl-ams.prod.surfshark.com | awk "/STREAM/ {print \$1; exit}")
-      GW=$(ip route show default | awk "/default/ {print \$3; exit}")
-      DEV=$(ip route show default | awk "/default/ {print \$5; exit}")
-      [ -n "$EP" ] && [ -n "$GW" ] && [ -n "$DEV" ] && ip route add "$EP" via "$GW" dev "$DEV" || true
-    '';
-    preShutdown = ''
-      EP=$(getent ahostsv4 nl-ams.prod.surfshark.com | awk "/STREAM/ {print \$1; exit}")
-      [ -n "$EP" ] && ip route del "$EP" 2>/dev/null || true
-    '';
+    mtu = 1420; # helpt soms tegen vertraging
+    autostart = false; # alleen starten als jij het zegt
   };
 
   networking.firewall.checkReversePath = "loose";
-
-  # DNS via resolved + NetworkManager, maar stel de servers hier in:
-  services.resolved.enable = true;
-  networking.networkmanager.dns = "systemd-resolved";
-  networking.nameservers = ["162.252.172.57" "149.154.159.92" "1.1.1.1" "9.9.9.9"];
 }
