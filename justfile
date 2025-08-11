@@ -457,8 +457,9 @@ vpn-off:
 vpn-status:
 	./scripts/vpn/vpn-status.sh
 
+# Show IP location using ipinfo.io
 vpn-location:
-	./scripts/vpn/vpn-location.sh
+	curl https://ipinfo.io
 
 
 # ========== VALIDATION ==========
