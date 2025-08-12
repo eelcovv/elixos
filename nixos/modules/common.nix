@@ -20,6 +20,9 @@ This NixOS configuration module defines common system settings:
     lib/conditional-secrets.nix
   ];
 
+  # create the group 'elixos' which we use to allow access to our repo for all users belonging to this group
+  users.groups.elixos = {};
+
   options = {
     globalSshClientUsers = lib.mkOption {
       type = lib.types.listOf lib.types.str;
