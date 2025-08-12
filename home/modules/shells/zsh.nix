@@ -1,11 +1,14 @@
-{ config, pkgs, lib, ... }:
-let
-  cfg = config.shells.zsh;
-  validPromptStyles = [ "powerlevel10k" "ohmyposh" "robbyrussell" "agnoster" "af-magic" ];
-in
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
+  cfg = config.shells.zsh;
+  validPromptStyles = ["powerlevel10k" "ohmyposh" "robbyrussell" "agnoster" "af-magic"];
+in {
   options.shells.zsh = {
-    enable = lib.mkEnableOption "Enable Zsh configuration" // { default = true; };
+    enable = lib.mkEnableOption "Enable Zsh configuration" // {default = true;};
 
     promptStyle = lib.mkOption {
       type = lib.types.enum validPromptStyles;
@@ -18,7 +21,7 @@ in
     assertions = [
       {
         assertion = builtins.elem cfg.promptStyle validPromptStyles;
-        message = "Invalid promptStyle: ${cfg.promptStyle}. Must be one of: ${lib.concatStringsSep \", \" validPromptStyles}";
+        message = "Invalid promptStyle: ${cfg.promptStyle}. Must be one of: ${lib.concatStringsSep ", " validPromptStyles}";
       }
     ];
 
@@ -35,8 +38,15 @@ in
         # Alleen thema zetten als het géén p10k/ohmyposh is
         theme = lib.mkIf (cfg.promptStyle != "powerlevel10k" && cfg.promptStyle != "ohmyposh") cfg.promptStyle;
         plugins = [
-          "git" "z" "sudo" "fzf" "colored-man-pages" "web-search"
-          "copyfile" "copybuffer" "dirhistory"
+          "git"
+          "z"
+          "sudo"
+          "fzf"
+          "colored-man-pages"
+          "web-search"
+          "copyfile"
+          "copybuffer"
+          "dirhistory"
         ];
       };
 
@@ -73,7 +83,12 @@ in
     home.file.".p10k.zsh".source = ./p10k.zsh;
 
     home.packages = with pkgs; [
-      zsh fzf oh-my-posh zsh-autosuggestions zsh-syntax-highlighting zsh-powerlevel10k
+      zsh
+      fzf
+      oh-my-posh
+      zsh-autosuggestions
+      zsh-syntax-highlighting
+      zsh-powerlevel10k
     ];
   };
 }
