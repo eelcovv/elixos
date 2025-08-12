@@ -797,104 +797,119 @@ just switch contabo
 
 You're done! 🎉
 
-## VPN instructions 
+## VPN Instructions
 
-Here some instructions to activate a VPN if you have one available. The instructions are based on surfshark with a WireGuard backend.
+These instructions explain how to set up and use a VPN connection in NixOS.  
+They are based on **Surfshark** with a **WireGuard** backend, but the steps can be adapted for other providers.
 
-### Create a VPN private/public key pair
+---
 
-To anounce your self at the vpn provide, you can create a key pair doing:
+### 1. Create a VPN Private/Public Key Pair
 
-```sh
+To authenticate with your VPN provider, you first need to create a WireGuard key pair.
+
+ ```sh
 just gen-vpn-keypair [PROVIDER] [BACKEND]
-```
+ ```
 
-Without arguments, a keypair for surfshark with the wireguard backend is created in the folder `nixos/secrets/vpn/surfshark/wg`.
-The private key is encrypted using your sops setup. The public key pair is created, but you can delete it or store it somewhere
-else once you have registered at your provider.  
+- Without arguments, this creates a key pair for **Surfshark** with the **WireGuard** backend.  
+- Keys are stored in `nixos/secrets/vpn/surfshark/wg`.
+- The **private key** is encrypted using your SOPS setup.  
+- The **public key** is stored alongside it — you can delete it after registering with your provider if desired.
 
-To register at your provider (in this case Surfshark), go  to your account -> VPN and go to manual with the option 
-'I already have a keypair'.
-At this point you can paste your public keypair.
+**Registering your key with Surfshark:**
 
-### Add a VPN location
+1. Log in to your Surfshark account.
+2. Go to **VPN** → **Manual setup** → **I already have a key pair**.
+3. Paste the generated public key.
 
-You can add one or more VPN locations. Just select a location from the list and download the vpn location information.
-Edit the file `nixos/modules/services/vpn-entries.nix` and copy an excisting location like:
+---
 
-'''nix
-  # NL (Amsterdam)
-  networking.wg-quick.interfaces."wg-surfshark-nl" = {
-    address = ["10.14.0.2/32"];
-    dns = ["162.252.172.57" "149.154.159.92"];
+### 2. Add a VPN Location
+
+You can add one or more VPN locations to your configuration.
+
+1. Select a location from your provider’s list and download the configuration.
+2. Edit `nixos/modules/services/vpn-entries.nix` and copy an existing entry, for example:
+
+    ```nix
+    # NL (Amsterdam)
+    networking.wg-quick.interfaces."wg-surfshark-nl" = {
+    address = [ "10.14.0.2/32" ];
+    dns = [ "162.252.172.57" "149.154.159.92" ];
     privateKeyFile = config.sops.secrets."vpn/surfshark/wg/privatekey".path;
     peers = [
-      {
+        {
         publicKey = "Lxg3jAOKcBA9tGBtB6vEWMFl5LUEB6AwOpuniYn1cig=";
         endpoint = "nl-ams.prod.surfshark.com:51820";
-        allowedIPs = ["0.0.0.0/0" "::/0"];
+        allowedIPs = [ "0.0.0.0/0" "::/0" ];
         persistentKeepalive = 25;
-      }
+        }
     ];
     mtu = 1380;
     autostart = false;
-  };
-'''
+    };
+    ```
 
-Update the new 'wg-surfshark-nl' to your new location, for instance 'wg-surfshark-ff' for Frankfurt. Note that 
-apparaently there exist a maximum string lenght which prohibites to use a name longer than 15 characters, so 
-frk would given an error. 
+3. Change the interface name to match your new location, e.g. `"wg-surfshark-ff"` for Frankfurt.  
+   **Note:** WireGuard interface names have a 15-character limit.
 
-In this location modify the `address` and `dns` fields according to the information you have just donwloaded. 
+4. Update the `address`, `dns`, `publicKey`, and `endpoint` fields with the values from your provider’s configuration.
 
-Finally, to make your new location available in the list, also add an entry to this file with the ff letters corresponding
-to the ff in your new name.
+5. Add the short code (e.g. `ff`) to the VPN helper’s location list so it can be selected.
 
-### VPN helper functions
+---
 
-Once you have added a location, you should be able to get a list of all location with:
+### 3. VPN Helper Commands
 
-```sh
+**List available locations:**
+
+ ```sh
 just vpn-list
 🌐 Available Surfshark locations:
- * bk        endpoint=103.176.152.7:51820                     latency=6 ms
-   ff        endpoint=sg-sng.prod.surfshark.com:51820         latency=32 ms
-   nl        endpoint=143.244.42.89:51820                     latency=235 ms
-   sg        endpoint=sg-sng.prod.surfshark.com:51820         latency=31 ms
-```
+ * bk  endpoint=103.176.152.7:51820           latency=6 ms
+   ff  endpoint=sg-sng.prod.surfshark.com:51820 latency=32 ms
+   nl  endpoint=143.244.42.89:51820           latency=235 ms
+   sg  endpoint=sg-sng.prod.surfshark.com:51820 latency=31 ms
+ ```
 
-You can see there are for locations with one location active (bk). Note that the latency is incluened by the current active location. 
-If you want to properly measure the speed of all your locations, first turn your locations off
+`*` marks the currently active location. Latency is measured from your current connection, so it may be skewed if the VPN is already on.
 
-```sh
+---
+
+**Turn VPN off:**
+
+ ```sh
 just vpn-off
-```
+ ```
 
-Then run (this takes a while):
+**Speed test all locations (VPN off recommended for accuracy):**
 
-```sh
+ ```sh
 just vpn-list --speedtest-all
 🌐 Available Surfshark locations:
- * bk        endpoint=th-bkk.prod.surfshark.com:51820         latency=10 ms    DL=111.95 Mbit/s UL=45.88 Mbit/s Ping=13.027 ms
- * ff        endpoint=sg-sng.prod.surfshark.com:51820         latency=30 ms    DL=n/a        UL=n/a        Ping=n/a
- * nl        endpoint=143.244.42.89:51820                     latency=n/a      DL=56.00 Mbit/s UL=15.33 Mbit/s Ping=307.128 ms
- * sg        endpoint=sg-sng.prod.surfshark.com:51820         latency=355 ms   DL=101.26 Mbit/s UL=76.57 Mbit/s Ping=58.118 ms
-```
+ * bk  endpoint=th-bkk.prod.surfshark.com:51820 latency=10 ms DL=111.95 Mbit/s UL=45.88 Mbit/s Ping=13.027 ms
+   ff  endpoint=sg-sng.prod.surfshark.com:51820 latency=30 ms DL=n/a        UL=n/a        Ping=n/a
+   nl  endpoint=143.244.42.89:51820              latency=n/a  DL=56.00 Mbit/s UL=15.33 Mbit/s Ping=307.128 ms
+   sg  endpoint=sg-sng.prod.surfshark.com:51820 latency=355 ms DL=101.26 Mbit/s UL=76.57 Mbit/s Ping=58.118 ms
+ ```
 
-To turn on a specific VPN location do:
+---
 
-```sh
-just vpn-on bk
-```
+**Turn on a specific location:**
 
-You can check the status of the connection with
+ ```sh
+ just vpn-on bk
+ ```
 
-```sh
-just vpn-status 
-```
-
-Also, you can get your current vpn location with
+**Check VPN status:**
 
 ```sh
-just vpn-location
+just vpn-status
 ```
+
+**Show current VPN location:**
+
+ ```sh
+ just vpn-location
+ ```
