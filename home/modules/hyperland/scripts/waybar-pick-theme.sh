@@ -15,10 +15,17 @@ fi
 declare -a paths=()
 declare -a names=()
 
-# Enumerate variants that have CSS (skip "assets")
+# Enumerate variants that have CSS, follow symlinks, skip assets
+# Allow both single-level (e.g., themes/default/style.css)
+# and nested (e.g., themes/ml4w/dark/style.css)
 while IFS= read -r -d '' css_file; do
     variant_dir="$(dirname "$css_file")"
-    rel="${variant_dir#"$THEMES_DIR"/}"            # -> ml4w/dark
+    case "$variant_dir" in
+        *"/assets"/*) continue ;;
+    esac
+    rel="${variant_dir#"$THEMES_DIR"/}"   # -> "default" or "ml4w/dark" etc.
+
+    # Optional friendly label from config.sh inside the variant dir
     label=""
     if [[ -f "$variant_dir/config.sh" ]]; then
         # shellcheck source=/dev/null
@@ -26,9 +33,10 @@ while IFS= read -r -d '' css_file; do
         label="${theme_name:-}"
     fi
     [[ -z "$label" ]] && label="$(printf "%s — %s" "${rel%%/*}" "${rel##*/}")"
+
     names+=("$label")
     paths+=("$rel")
-done < <(find "$THEMES_DIR" -mindepth 2 -type f \( -name 'style.css' -o -name 'style-custom.css' \) -print0)
+done < <(find -L "$THEMES_DIR" -mindepth 1 -type f \( -name 'style.css' -o -name 'style-custom.css' \) -print0)
 
 # Handle empty result safely
 if (( ${#paths[@]} == 0 )); then
