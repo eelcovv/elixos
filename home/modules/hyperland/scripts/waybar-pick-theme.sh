@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 # shellcheck shell=bash
 set -euo pipefail
@@ -6,7 +5,15 @@ set -euo pipefail
 WB_DIR="$HOME/.config/waybar"
 THEMES_DIR="$WB_DIR/themes"
 
-declare -a paths names
+# Ensure the themes directory exists
+if [[ ! -d "$THEMES_DIR" ]]; then
+    notify-send "Waybar" "Themes dir not found: $THEMES_DIR"
+    exit 1
+fi
+
+# Explicitly initialize arrays to satisfy `set -u`
+declare -a paths=()
+declare -a names=()
 
 # Enumerate variants that have CSS (skip "assets")
 while IFS= read -r -d '' css_file; do
@@ -23,12 +30,14 @@ while IFS= read -r -d '' css_file; do
     paths+=("$rel")
 done < <(find "$THEMES_DIR" -mindepth 2 -type f \( -name 'style.css' -o -name 'style-custom.css' \) -print0)
 
-if [[ ${#paths[@]} -eq 0 ]]; then
+# Handle empty result safely
+if (( ${#paths[@]:-0} == 0 )); then
     notify-send "Waybar" "No theme variants found under $THEMES_DIR"
     exit 1
 fi
 
 idx="$(printf "%s\n" "${names[@]}" | rofi -dmenu -i -no-show-icons -width 40 -p 'Waybar theme' -format i || true)"
-[[ -z "$idx" || ! "$idx" =~ ^[0-9]+$ ]] && exit 0
+[[ -z "${idx:-}" || ! "$idx" =~ ^[0-9]+$ ]] && exit 0
 
 exec waybar-switch-theme "${paths[$idx]}"
+
