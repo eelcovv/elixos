@@ -849,3 +849,52 @@ In this location modify the `address` and `dns` fields according to the informat
 
 Finally, to make your new location available in the list, also add an entry to this file with the ff letters corresponding
 to the ff in your new name.
+
+### VPN helper functions
+
+Once you have added a location, you should be able to get a list of all location with:
+
+```sh
+just vpn-list
+🌐 Available Surfshark locations:
+ * bk        endpoint=103.176.152.7:51820                     latency=6 ms
+   ff        endpoint=sg-sng.prod.surfshark.com:51820         latency=32 ms
+   nl        endpoint=143.244.42.89:51820                     latency=235 ms
+   sg        endpoint=sg-sng.prod.surfshark.com:51820         latency=31 ms
+```
+
+You can see there are for locations with one location active (bk). Note that the latency is incluened by the current active location. 
+If you want to properly measure the speed of all your locations, first turn your locations off
+
+```sh
+just vpn-off
+```
+
+Then run (this takes a while):
+
+```sh
+just vpn-list --speedtest-all
+🌐 Available Surfshark locations:
+ * bk        endpoint=th-bkk.prod.surfshark.com:51820         latency=10 ms    DL=111.95 Mbit/s UL=45.88 Mbit/s Ping=13.027 ms
+ * ff        endpoint=sg-sng.prod.surfshark.com:51820         latency=30 ms    DL=n/a        UL=n/a        Ping=n/a
+ * nl        endpoint=143.244.42.89:51820                     latency=n/a      DL=56.00 Mbit/s UL=15.33 Mbit/s Ping=307.128 ms
+ * sg        endpoint=sg-sng.prod.surfshark.com:51820         latency=355 ms   DL=101.26 Mbit/s UL=76.57 Mbit/s Ping=58.118 ms
+```
+
+To turn on a specific VPN location do:
+
+```sh
+just vpn-on bk
+```
+
+You can check the status of the connection with
+
+```sh
+just vpn-status 
+```
+
+Also, you can get your current vpn location with
+
+```sh
+just vpn-location
+```
