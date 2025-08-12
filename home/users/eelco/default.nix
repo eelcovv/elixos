@@ -44,10 +44,10 @@
     ++ (import ../../modules/benchmarking {inherit lib;})
     # Local sub modules for this  user (email/nextcloud/gnome)
     ++ [
-      (import ../../modules/shells/zsh.nix {inherit pkgs lib config;})
       ./email.nix
       ./git.nix
-      ./nextcloud.nix
       ./gnome-bindings.nix
+      ./nextcloud.nix
+      ./zsh.nix
     ];
 }

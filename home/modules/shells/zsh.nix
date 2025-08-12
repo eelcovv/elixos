@@ -2,18 +2,12 @@
   config,
   pkgs,
   lib,
+  promptStyle ? "powerlevel10k",
   ...
 }: let
-  # Choose one: "powerlevel10k", "ohmyposh", "robbyrussell", "agnoster", "af-magic", etc.
-  promptStyle = "powerlevel10k";
-  #promptStyle = "ohmyposh";
-  #promptStyle = "robbyrussell";
-  #promptStyle = "af-magic";
-
   # Safeguard: only allow supported options
   validPromptStyles = ["powerlevel10k" "ohmyposh" "robbyrussell" "agnoster" "af-magic"];
 in {
-  # Ensure only valid prompt styles are accepted
   assertions = [
     {
       assertion = builtins.elem promptStyle validPromptStyles;
@@ -23,9 +17,7 @@ in {
 
   programs.zsh = {
     enable = true;
-    shellAliases = {
-      vi = "nvim";
-    };
+    shellAliases.vi = "nvim";
 
     autosuggestion.enable = true;
     enableCompletion = true;
@@ -33,10 +25,8 @@ in {
 
     oh-my-zsh = {
       enable = true;
-
       # Disable oh-my-zsh theme if powerlevel10k or ohmyposh is selected
       theme = lib.mkIf (promptStyle != "powerlevel10k" && promptStyle != "ohmyposh") promptStyle;
-
       plugins = [
         "git"
         "z"
