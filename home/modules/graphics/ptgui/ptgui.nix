@@ -26,8 +26,8 @@ with pkgs; let
     then derivedSemver
     else upstreamVersion;
 
-  # Default policy: for v13+ force X11 when running under Wayland.
-  autoForceX11 = lib.versionAtLeast effectiveSemver "13";
+  # Default policy: for v12 force X11 when running under Wayland.
+  autoForceX11 = lib.versionAtLeast effectiveSemver "12";
   useForceX11 =
     if forceX11 == null
     then autoForceX11
