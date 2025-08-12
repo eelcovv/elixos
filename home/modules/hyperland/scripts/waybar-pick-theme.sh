@@ -31,7 +31,7 @@ while IFS= read -r -d '' css_file; do
 done < <(find "$THEMES_DIR" -mindepth 2 -type f \( -name 'style.css' -o -name 'style-custom.css' \) -print0)
 
 # Handle empty result safely
-if (( ${#paths[@]:-0} == 0 )); then
+if (( ${#paths[@]} == 0 )); then
     notify-send "Waybar" "No theme variants found under $THEMES_DIR"
     exit 1
 fi
