@@ -140,7 +140,7 @@ in
     '';
 
     meta = with lib; {
-      homepage = "https://www.ptgui.com/";
+      homepage = "https://ptgui.com/";
       description = "PTGui panoramic photo stitching software (binary distribution)";
       longDescription = ''
         PTGui panoramic photo stitching software packaged for Nix.
