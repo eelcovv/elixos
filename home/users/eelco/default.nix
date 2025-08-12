@@ -42,16 +42,10 @@
       ../../modules/terminals
     ]
     ++ (import ../../modules/benchmarking {inherit lib;})
-    ++ [
-      (import ../../modules/development/git.nix {
-        inherit config pkgs lib;
-        userName = "Eelco van Vliet";
-        userEmail = "eelcovv@gmail.com";
-      })
-    ]
     # Local sub modules for this  user (email/nextcloud/gnome)
     ++ [
       ./email.nix
+      ./git.nix
       ./nextcloud.nix
       ./gnome-bindings.nix
     ];
