@@ -27,7 +27,6 @@
     allUsers = ["eelco" "por"];
     allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo" "generic-vm"];
 
-    # Enable Home Manager for all hosts, or only for specific ones.
     enableHM = true;
 
     hostFiles = {
@@ -40,17 +39,19 @@
       contabo = ./nixos/hosts/contabo.nix;
     };
 
-    hostUserMap = {
+    # ALTIJD lijsten gebruiken per host
+    hostUsersMap = {
       singer = ["eelco" "por"];
-      tongfang = "eelco";
-      ellie = "eelco";
-      alloy = "eelco";
-      contabo = "eelco";
-      # generic-vm/test-vm geen vaste user → laat weg of voeg toe indien gewenst
+      tongfang = ["eelco"];
+      ellie = ["eelco"];
+      alloy = ["eelco"];
+      contabo = ["eelco"];
+      generic-vm = [];
+      test-vm = [];
     };
 
     mkHost = hostName: let
-      user = hostUserMap.${hostName} or null;
+      users = hostUsersMap.${hostName} or [];
     in
       nixpkgs.lib.nixosSystem {
         specialArgs = {
@@ -65,14 +66,15 @@
             sops-nix.nixosModules.sops
           ]
           ++ (
-            if enableHM && user != null
+            if enableHM && users != []
             then [
               {
                 home-manager.useGlobalPkgs = true;
                 home-manager.useUserPackages = true;
 
-                # ⬇️ Belangrijk: importeer de directory (default.nix) i.p.v. ${user}.nix
-                home-manager.users.${user} = import ./home/users/${user};
+                # Maak een attrset { eelco = import ...; por = import ...; }
+                home-manager.users =
+                  nixpkgs.lib.genAttrs users (u: import (./home/users + "/${u}"));
               }
             ]
             else []
@@ -102,40 +104,36 @@
       };
     });
 
-    # NixOS hosts
     nixosConfigurations = builtins.mapAttrs (name: _: mkHost name) hostFiles;
 
-    # Losse Home Manager configs per user@host
     homeConfigurations = builtins.listToAttrs (
       builtins.concatMap (
         user:
-          builtins.map (
-            host: {
-              name = "${user}@${host}";
-              value = home-manager.lib.homeManagerConfiguration {
-                pkgs = import nixpkgs {
-                  inherit system;
-                  config = {allowUnfree = true;};
-                };
-                modules = [
-                  ./home/users/${user}
-                ];
-                extraSpecialArgs = {
-                  inherit inputs self;
-                  userModulesPath = ./home/users;
-                };
+          builtins.map (host: {
+            name = "${user}@${host}";
+            value = home-manager.lib.homeManagerConfiguration {
+              pkgs = import nixpkgs {
+                inherit system;
+                config = {allowUnfree = true;};
               };
-            }
-          )
+              modules = [
+                (./home/users + "/${user}")
+              ];
+              extraSpecialArgs = {
+                inherit inputs self;
+                userModulesPath = ./home/users;
+              };
+            };
+          })
           allHosts
       )
       allUsers
     );
 
-    # Handige outputs
-    packages.x86_64-linux = builtins.mapAttrs (
-      _name: cfg: cfg.config.system.build.toplevel
-    ) (builtins.removeAttrs (builtins.mapAttrs (name: _: mkHost name) hostFiles) ["test-vm"]);
+    packages.x86_64-linux =
+      builtins.mapAttrs
+      (_: cfg: cfg.config.system.build.toplevel)
+      (builtins.removeAttrs (builtins.mapAttrs (n: _: mkHost n) hostFiles) ["test-vm"]);
 
     apps.x86_64-linux.disko-install = {
       type = "app";
