@@ -5,7 +5,8 @@
   ...
 }: {
   imports = [
-    ./ssh-and-surfshark.nix
+    ./ssh-config.nix
+    ./vpn-config.nix
   ];
 
   home.packages = with pkgs; [
