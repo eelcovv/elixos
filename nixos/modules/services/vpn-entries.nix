@@ -12,8 +12,8 @@
   networking.wireguard.enable = true;
 
   # Surfshark private key via sops (ASCII 1-liner)
-  sops.secrets."surfshark/wg/privatekey" = {
-    sopsFile = ../../secrets/surfshark/wg/privatekey;
+  sops.secrets."vpn/surfshark/wg/privatekey" = {
+    sopsFile = ../../secrets/vpn/surfshark/wg/privatekey;
     format = "binary";
     owner = "root";
     group = "root";
@@ -24,7 +24,7 @@
   networking.wg-quick.interfaces."wg-surfshark-nl" = {
     address = ["10.14.0.2/32"];
     dns = ["162.252.172.57" "149.154.159.92"];
-    privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
+    privateKeyFile = config.sops.secrets."vpn/surfshark/wg/privatekey".path;
     peers = [
       {
         publicKey = "Lxg3jAOKcBA9tGBtB6vEWMFl5LUEB6AwOpuniYn1cig=";
@@ -58,7 +58,7 @@
   networking.wg-quick.interfaces."wg-surfshark-sg" = {
     address = ["10.14.0.2/32"];
     dns = ["162.252.172.57" "149.154.159.92"];
-    privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
+    privateKeyFile = config.sops.secrets."vpn/surfshark/wg/privatekey".path;
     peers = [
       {
         publicKey = "MGfgkhJsMVMTO33h1wr76+z6gQr/93VcGdClfbaPsnU=";

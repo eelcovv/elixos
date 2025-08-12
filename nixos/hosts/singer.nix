@@ -26,7 +26,7 @@
     # 🛠️ Services
     [
       ../modules/services/ssh-client-keys.nix
-      ../modules/services/surfshark.nix
+      ../modules/services/vpn-entries.nix
     ]
     ++
     # 💻 Hardware and disk setup

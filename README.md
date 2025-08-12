@@ -801,12 +801,21 @@ You're done! 🎉
 
 Here some instructions to activate a VPN if you have one available. The instructions are based on surfshark.
 
-### Create a VPB private/public key pair
+### Create a VPN private/public key pair
 
 To anounce your self at the vpn provide, you can create a key pair doing:
 
 ```sh
-just gen-surfshare-wg
+just gen-vpn-keypair [PROVIDER] [BACKEND]
 ```
 
+Without arguments, a keypair for surfshark with the wireguard backend is created in the folder `nixos/secrets/vpn/surfshark/wg`.
+The private key is encrypted using your sops setup. The public key pair is created, but you can delete it or store it somewhere
+else once you have registered at your provider.  
 
+To register at your provider (in this case Surfshark), go  to your account -> VPN and go to manual with the option 'Already have a keypair'.
+At this point you can paste your public keypair. 
+
+### Add a VPN location
+
+You can add one or more VPN locations. Just select a location from the list and download the vpn location information.
