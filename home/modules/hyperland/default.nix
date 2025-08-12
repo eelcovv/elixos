@@ -4,14 +4,15 @@
   lib,
   ...
 }: let
-  # Read HOME_THEME from the environment at evaluation time; fallback to "default"
+  # Read HOME_THEME only from the environment to avoid recursion.
+  # Fallback to "default" when not provided by the caller (e.g., scripts).
   envTheme = builtins.getEnv "HOME_THEME";
   selected =
     if envTheme != ""
     then envTheme
-    else (config.home.sessionVariables.HOME_THEME or "default");
+    else "default";
 
-  # Split "ml4w/dark" -> ["ml4w","dark"]; themeName is first segment, variantPath is the full string
+  # Split "ml4w/dark" -> themeName="ml4w", variantPath="ml4w/dark"
   parts = lib.splitString "/" selected;
   themeName =
     if parts == []
@@ -22,32 +23,44 @@
     then "default"
     else selected;
 
-  # Layout roots inside this module
   hyprDir = ./.;
   waybarDir = ./waybar;
   rofiRoot = ./rofi;
 
-  # Rofi theme folder: prefer themes/<themeName>, fallback to themes/default
+  # Rofi: choose folder by THEME name, fallback to default if missing
   rofiThemeCandidate = "${rofiRoot}/themes/${themeName}";
   rofiThemePath =
     if builtins.pathExists rofiThemeCandidate
     then rofiThemeCandidate
     else "${rofiRoot}/themes/default";
 
-  # Waybar: config comes from THEME folder; style from VARIANT folder
-  waybarConfigPath = "${waybarDir}/themes/${themeName}/config.jsonc";
+  # Waybar: config lives in THEME folder; style lives in VARIANT folder
+  waybarConfigCandidate = "${waybarDir}/themes/${themeName}/config.jsonc";
+  configExists = builtins.pathExists waybarConfigCandidate;
+
   waybarVariantDir = "${waybarDir}/themes/${variantPath}";
-  styleCustomExists = builtins.pathExists (waybarVariantDir + "/style-custom.css");
-  waybarStylePath =
-    if styleCustomExists
-    then "${waybarVariantDir}/style-custom.css"
-    else "${waybarVariantDir}/style.css";
+  styleCss = waybarVariantDir + "/style.css";
+  styleCustom = waybarVariantDir + "/style-custom.css";
+  styleExists = builtins.pathExists styleCss || builtins.pathExists styleCustom;
+
+  # Safe fallbacks to avoid evaluation errors if a theme/variant is missing
+  finalConfigPath =
+    if configExists
+    then waybarConfigCandidate
+    else "${waybarDir}/themes/default/config.jsonc";
+
+  finalStylePath =
+    if builtins.pathExists styleCustom
+    then styleCustom
+    else if builtins.pathExists styleCss
+    then styleCss
+    else "${waybarDir}/themes/default/style.css";
 
   # Wallpapers
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
-  # Expose variables to the session for scripts and tools
+  # Session variables (do NOT read HOME_THEME from config.* here)
   home.sessionVariables = {
     HOME_THEME = selected;
     WALLPAPER_DIR = wallpaperTargetDir;
@@ -63,14 +76,14 @@ in {
   xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
   xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
-  # Waybar: make the whole themes tree available, then pin config/style from HOME_THEME
+  # Waybar: expose themes tree for the picker, and pin config/style from selected theme/variant
   xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
-  xdg.configFile."waybar/config.jsonc".source = waybarConfigPath;
-  xdg.configFile."waybar/style.css".source = waybarStylePath;
+  xdg.configFile."waybar/config.jsonc".source = finalConfigPath;
+  xdg.configFile."waybar/style.css".source = finalStylePath;
   xdg.configFile."waybar/modules.jsonc".source = "${waybarDir}/modules.jsonc";
   xdg.configFile."waybar/colors.css".source = "${waybarDir}/colors.css";
 
-  # Rofi: choose by THEME name (variant-independent), fallback to default
+  # Rofi theme by THEME name
   xdg.configFile."rofi/config.rasi".source = "${rofiThemePath}/config.rasi";
   xdg.configFile."rofi/colors.rasi".source = "${rofiThemePath}/colors.rasi";
 
@@ -81,17 +94,15 @@ in {
     splash = false
   '';
 
-  # Ship a default wallpaper and waypaper config
+  # Default wallpaper + waypaper
   xdg.configFile."wallpapers/default.png".source = "${wallpaperDir}/nixos.png";
   xdg.configFile."waypaper".source = "${hyprDir}/waypaper";
 
-  # Install helper scripts into ~/.local/bin (ensure it is on PATH)
+  # Put helper scripts in ~/.local/bin (if you added them in ./scripts as discussed)
   home.sessionPath = lib.unique ((config.home.sessionPath or []) ++ ["$HOME/.local/bin"]);
-
   home.file.".local/bin/waybar-switch-theme".text =
     builtins.readFile ./scripts/waybar-switch-theme.sh;
   home.file.".local/bin/waybar-switch-theme".executable = true;
-
   home.file.".local/bin/waybar-pick-theme".text =
     builtins.readFile ./scripts/waybar-pick-theme.sh;
   home.file.".local/bin/waybar-pick-theme".executable = true;
