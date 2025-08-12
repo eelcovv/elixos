@@ -415,51 +415,29 @@ _decrypt-secret-with-key HOST USER KEY_NAME:
     echo "📤 Decrypted content for key {{KEY_NAME}}:" && \
     sops -d "$FILE" | yq -r ".\"{{KEY_NAME}}\""
 
-# Generate a WireGuard keypair for Surfshark (only if it doesn't exist yet)
-gen-surfshark-wg:
-	@if [ -f nixos/secrets/surfshark/wg/privatekey ]; then \
-		echo "❌ Private key already exists at nixos/secrets/surfshark/wg/privatekey"; \
-		echo "   Aborting to avoid overwriting your registered key."; \
-		exit 1; \
-	fi
-	@echo "🔑 Generating WireGuard keypair for Surfshark..."
-	@mkdir -p nixos/secrets/surfshark/wg
-	@wg genkey | tee nixos/secrets/surfshark/wg/privatekey.plain | wg pubkey > nixos/secrets/surfshark/wg/publickey
-	@echo "🔒 Encrypting private key with sops..."
-	sops --encrypt --in-place nixos/secrets/surfshark/wg/privatekey.plain
-	@mv nixos/secrets/surfshark/wg/privatekey.plain nixos/secrets/surfshark/wg/privatekey
-	@echo "✅ Done. Public key is:"
-	@cat nixos/secrets/surfshark/wg/publickey
-	@echo "⚠️  Add the public key above to Surfshark's WireGuard setup page."
+# ---- VPN helpers. Assume default Surfshark with WireGuard (wg-quick) ----
 
-	@echo "🔑 Generating WireGuard keypair for Surfshark..."
-	@mkdir -p nixos/secrets/surfshark/wg
-	@wg genkey | tee nixos/secrets/surfshark/wg/privatekey.plain | wg pubkey > nixos/secrets/surfshark/wg/publickey
-	@echo "🔒 Encrypting private key with sops..."
-	sops --encrypt --in-place nixos/secrets/surfshark/wg/privatekey.plain
-	@mv -v nixos/secrets/surfshark/wg/privatekey.plain nixos/secrets/surfshark/wg/privatekey
-	@echo "✅ Done. Public key is:"
-	@cat nixos/secrets/surfshark/wg/publickey
-	@echo "⚠️  Add the public key above to Surfshark's WireGuard setup page."
+# Generate a WireGuard keypair for provider and backend (only if it doesn't exist yet)
+gen-vpn-keypair PROVIDER="surfshark" BACKEND="wg":
+	@bash ./scripts/vpn/gen-vpn-keypair.sh {{PROVIDER}} {{BACKEND}}
 
-# ---- Surfshark WireGuard (wg-quick) helpers ----
 # Convention: interfaces are named wg-surfshark-<loc>, e.g. wg-surfshark-nl, wg-surfshark-bk, wg-surfshark-sg
 
 vpn-list ARG="":
-	./scripts/vpn/vpn-list.sh {{ARG}}
+	@bash ./scripts/vpn/vpn-list.sh {{ARG}}
 
 vpn-on LOC="nl":
-	./scripts/vpn/vpn-on.sh {{LOC}}
+	@bash ./scripts/vpn/vpn-on.sh {{LOC}}
 
 vpn-off:
-	./scripts/vpn/vpn-off.sh
+	@bash ./scripts/vpn/vpn-off.sh
 
 vpn-status:
-	./scripts/vpn/vpn-status.sh
+	@bash ./scripts/vpn/vpn-status.sh
 
 # Show IP location using ipinfo.io
 vpn-location:
-	curl https://ipinfo.io
+	@curl https://ipinfo.io
 
 
 # ========== VALIDATION ==========
