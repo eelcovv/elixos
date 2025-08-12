@@ -19,11 +19,6 @@
       ../../modules/terminals
       ../../modules/editors
     ]
-    ++ [
-      (import ../../modules/shells/zsh.nix {
-        inherit pkgs lib config;
-      })
-    ]
     # Lokale user-specifieke modules
     ++ [
       ./git.nix
