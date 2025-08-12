@@ -19,7 +19,7 @@
     "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
       name = "Ghostty Console";
       command = "ghostty";
-      binding = "<Super>t";
+      binding = "<Super>Return";
     };
 
     "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1" = {
@@ -38,13 +38,13 @@
     "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4" = {
       name = "WasIstLos";
       command = "wasistlos";
-      binding = "<Super><Shift>w";
+      binding = "<Super><Shift>W";
     };
 
     "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5" = {
       name = "KeeWeb";
       command = "keeweb";
-      binding = "<Super>k";
+      binding = "<Super><Shift>K";
     };
   };
 }
