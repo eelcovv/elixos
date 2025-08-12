@@ -24,29 +24,11 @@
         inherit pkgs lib config;
       })
     ]
+    # Lokale user-specifieke modules
     ++ [
-      (import ../../modules/development/git.nix {
-        inherit config pkgs lib;
-        userName = "Karnrawee Mangkang";
-        userEmail = "karnrawee.mangkang@gmail.com";
-      })
+      ./git.nix
+      ./keyboard.nix
     ];
-
-  # keyboard configuration for hyperland
-  xdg.configFile."hypr/conf/keyboard-local.conf".text = ''
-    input {
-      kb_layout = us,th
-      kb_options = grp:alt_shift_toggle
-    }
-  '';
-
-  # Set up keyboard layout for gnome
-  dconf.settings = {
-    "org/gnome/desktop/input-sources" = {
-      sources = [(lib.gvariant.mkTuple ["xkb" "us"]) (lib.gvariant.mkTuple ["xkb" "th"])];
-      xkb-options = ["grp:alt_shift_toggle"];
-    };
-  };
 
   home.sessionPath = ["$HOME/.local/bin"];
 }
