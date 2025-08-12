@@ -1,21 +1,51 @@
-# To install PTGui in NixOS: see default.nix
+# Improved PTGui packaging with robust version handling and conditional Wayland->X11 fallback
 {
   pkgs,
+  lib ? pkgs.lib,
   src,
-  version,
+  # Visible label in menus / desktop files (what users see)
+  versionLabel ? "Pro 13.2",
+  # Optional purely-numeric upstream version (e.g., "13.2"). If omitted, parsed from versionLabel.
+  upstreamVersion ? null,
+  # Optional override for X11 fallback behavior (true/false). If null, auto policy applies.
+  forceX11 ? null,
   ...
 }:
 with pkgs; let
-  versionhash = builtins.hashString "sha1" version;
-  # Keep the simple heuristic but we’ll wrap the binary instead of stuffing env into Exec
-  isv13 = (builtins.match ".*13\\..*" version) != null;
+  # Extract first "digits[.digits]" from versionLabel; fallback to "0"
+  # Use POSIX-compatible regex (no lazy quantifiers or non-capturing groups)
+  derivedSemver = let
+    m = builtins.match ".*([0-9]+(\\.[0-9]+)?).*" versionLabel;
+  in
+    if m == null
+    then "0"
+    else builtins.elemAt m 0;
+
+  effectiveSemver =
+    if upstreamVersion == null
+    then derivedSemver
+    else upstreamVersion;
+
+  # Default policy: for v13+ force X11 when running under Wayland.
+  autoForceX11 = lib.versionAtLeast effectiveSemver "13";
+  useForceX11 =
+    if forceX11 == null
+    then autoForceX11
+    else forceX11;
+
+  versionhash = builtins.hashString "sha1" versionLabel;
 in
   stdenvNoCC.mkDerivation {
-    inherit version src;
     pname = "ptgui";
+    # Keep the user-facing label
+    version = versionLabel;
+    inherit src;
 
-    # Add wrappers for GTK env and for setting GDK_BACKEND on v13
-    nativeBuildInputs = [autoPatchelfHook wrapGAppsHook makeWrapper];
+    nativeBuildInputs = [
+      autoPatchelfHook
+      wrapGAppsHook
+      makeWrapper
+    ];
 
     buildInputs = [
       udev
@@ -48,7 +78,6 @@ in
     dontConfigure = true;
     dontBuild = true;
 
-    # Unpack and strip the top-level directory
     unpackPhase = ''
       tar --strip-components=1 -xzf "$src"
     '';
@@ -60,24 +89,15 @@ in
           mkdir -p "$out/opt/ptgui" "$out/bin" "$out/share/applications" "$out/share/mime/packages"
           cp -r * "$out/opt/ptgui"
 
-          # Link raw binaries first…
-          ln -s "$out/opt/ptgui/PTGui"       "$out/bin/PTGui"
-          ln -s "$out/opt/ptgui/PTGuiViewer" "$out/bin/PTGuiViewer"
+          # Wrap binaries so terminal and desktop launches behave the same.
+          makeWrapper "$out/opt/ptgui/PTGui" "$out/bin/PTGui" \
+            ${lib.optionalString useForceX11 ''--run 'if [ "''${XDG_SESSION_TYPE:-}" = wayland ]; then export GDK_BACKEND=x11; fi' ''}
 
-          # …then wrap PTGui so GDK_BACKEND is x11 for v13 (Wayland compatibility)
-          if ${
-        if isv13
-        then "true"
-        else "false"
-      }; then
-            rm "$out/bin/PTGui"
-            makeWrapper "$out/opt/ptgui/PTGui" "$out/bin/PTGui" \
-              --set GDK_BACKEND x11
-          fi
+          makeWrapper "$out/opt/ptgui/PTGuiViewer" "$out/bin/PTGuiViewer"
 
-          cat > "$out/share/applications/newhouse-ptgui-${versionhash}.desktop" <<'EOF'
+          cat > "$out/share/applications/newhouse-ptgui-${versionhash}.desktop" <<EOF
       [Desktop Entry]
-      Name=PTGui ${version}
+      Name=PTGui ${versionLabel}
       Comment=PTGui Stitching Software
       Keywords=panorama;stitching;stitch;stitcher;panoramas;
       Exec="$out/bin/PTGui" %F
@@ -88,9 +108,9 @@ in
       MimeType=application/x-ptguiproject;application/x-ptguibatchlist;image/tiff;image/jpeg;image/png;image/x-exr;image/x-canon-crw;image/x-canon-cr2;image/x-canon-cr3;image/x-nikon-nef;image/x-fuji-raf;image/x-sigma-x3f;image/x-minolta-mrw;image/x-sony-srf;image/x-adobe-dng;image/x-olympus-orf;image/x-sony-arw;image/x-pentax-pef;image/x-kodak-dcr;image/x-sony-sr2;image/x-gopro-gpr;image/x-panasonic-raw
       EOF
 
-          cat > "$out/share/applications/newhouse-ptguiviewer-${versionhash}.desktop" <<'EOF'
+          cat > "$out/share/applications/newhouse-ptguiviewer-${versionhash}.desktop" <<EOF
       [Desktop Entry]
-      Name=PTGui Viewer ${version}
+      Name=PTGui Viewer ${versionLabel}
       Comment=Viewer for spherical panoramas
       Keywords=panorama;panoramas;viewer;PTGui;
       Exec="$out/bin/PTGuiViewer" %F
@@ -121,9 +141,11 @@ in
 
     meta = with lib; {
       homepage = "https://www.ptgui.com/";
-      description = "PTGui";
+      description = "PTGui panoramic photo stitching software (binary distribution)";
       longDescription = ''
-        PTGui Panoramic photo stitching software
+        PTGui panoramic photo stitching software packaged for Nix.
+        This derivation wraps the vendor binaries and adjusts environment variables
+        for Wayland compatibility when appropriate.
       '';
       sourceProvenance = with sourceTypes; [binaryNativeCode];
       license = licenses.unfree;
