@@ -41,7 +41,7 @@
   networking.wg-quick.interfaces."wg-surfshark-bk" = {
     address = ["10.14.0.2/16"];
     dns = ["162.252.172.57" "149.154.159.92"];
-    privateKeyFile = config.sops.secrets."surfshark/wg/privatekey".path;
+    privateKeyFile = config.sops.secrets."vpn/surfshark/wg/privatekey".path;
     peers = [
       {
         publicKey = "OoFY46j/w4uQFyFu/OQ/h3x+ymJ1DJ4UR1fwGNxOxk0=";

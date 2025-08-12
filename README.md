@@ -15,27 +15,53 @@ It leverages flakes and sops-nix for secure, reproducible, and extendable NixOS 
 
 ## 📁 Project Structure
 
-    elixos/
-    ├── flake.nix
-    ├── flake.lock
-    ├── justfile
-    ├── nixos/
-    │   ├── configuration.nix
-    │   ├── disks/
-    │   ├── hardware/
-    │   ├── hosts/
-    │   ├── home/
-    │   ├── users/
-    │   ├── modules/
-    │   └── secrets/
+The elixos structure looks like:
 
-## 🚀 Preparation before starting with your install
-
-As a start do:
-
-```shell
-nix develop
-```
+elixos
+├── home
+│   ├── modules
+│   │   ├── benchmarking
+│   │   ├── common
+│   │   ├── databases
+│   │   ├── desktop
+│   │   ├── development
+│   │   ├── editors
+│   │   ├── engingeering
+│   │   ├── graphics
+│   │   ├── hyperland
+│   │   ├── internet
+│   │   ├── maintainance
+│   │   ├── multimedia
+│   │   ├── office
+│   │   ├── publishing
+│   │   ├── security
+│   │   ├── shells
+│   │   ├── socialmedia
+│   │   └── terminals
+│   └── users
+├── nixos
+│   ├── disks
+│   ├── hardware
+│   │   ├── alloy
+│   │   ├── contabo
+│   │   ├── singer
+│   │   └── tongfang
+│   ├── hosts
+│   ├── modules
+│   │   ├── disk-layouts
+│   │   ├── fonts
+│   │   ├── hardware
+│   │   ├── lib
+│   │   ├── profiles
+│   │   ├── secrets
+│   │   └── services
+│   ├── secrets
+│   │   └── surfshark
+│   └── users
+└── scripts
+    ├── bootstrap
+    ├── install
+    └── vpn
 
 This installs all the required development tools.
 
@@ -268,7 +294,7 @@ just ssh_authorize USER   # Add your SSH key to the live VM
     Working SSH login
 ```
 
-## 📚 Tips
+### 📚 Tips
 
 - Add `export TERM=xterm` to your VM shell profile for better terminal compatibility.
 - Use `just vm_run_gpu` for graphical output with virtio-vga and virgl.
@@ -276,9 +302,9 @@ just ssh_authorize USER   # Add your SSH key to the live VM
 
 Happy hacking with Elixos! 🧬
 
-# Steps laptop installation
+## Steps laptop installation
 
-## Preparation
+### Preparation
 
 1. Download the [https://nixos.org/download/](nixos minimal ISO image) and create a live USB starter with it
 
@@ -286,9 +312,9 @@ Happy hacking with Elixos! 🧬
 
    Tip: use the copytoram option to prevent issues during startup (blackscreen)
 
-## Connectig with wifi
+### Connectig with wifi
 
-### Method 1: using ip/iw and wpa_passphrase
+#### Method 1: using ip/iw and wpa_passphrase
 
 1. **Log in as root**
 
@@ -394,7 +420,7 @@ Also, check if you are connected to the internet with
 ping 1.1.1.1
 ```
 
-### Method 2: using nmtui
+#### Method 2: using nmtui
 
 Just start:
 
@@ -404,7 +430,7 @@ nmtui
 
 And set you password to the network in the terminal interface.
 
-## Starting sshd deamon
+### Starting sshd deamon
 
 To start your demeaon, first set your root password with
 
@@ -432,7 +458,7 @@ ip ad
 
 It should be something like `192.168.2.3`
 
-## Loging in on the live installer from a host laptop
+### Loging in on the live installer from a host laptop
 
 Make sure you have set the _root_ password. To do that, on your live installer, login as root as
 
@@ -462,7 +488,7 @@ ssh-keygen -R "[192.168.2.3]:22"
 Alternatively, you can just open your `~/.ssh/known_hosts` file and look for the lines containing
 `192.168.2.3` and remove those lines.
 
-### trouble shooting for logging in
+#### trouble shooting for logging in
 
 In case logging in is not allowed at all, you may want to change your _/etc/ssh/sshd_config_ file.
 Since in nixos you cannot change settings files (even not as root), just copy the file to your home
@@ -505,7 +531,7 @@ Also check your firewall if it is not running
 
 To transer your git repo, either bundle or just add your publish key to your git hub account
 
-## Transfering the installation reoo to your laptop
+### Transfering the installation reoo to your laptop
 
 From now on, you can use the justfile entries to install the laptop
 
@@ -537,7 +563,7 @@ just switch singer
 
 This should finalize your installation
 
-## Tranfering you git repository to the laptop
+### Tranfering you git repository to the laptop
 
 In your terminal where you are remotely logged in on you laptop do:
 
@@ -571,7 +597,7 @@ No you can push your repository to the laptop with
 git push nixtmp main
 ```
 
-## Installing your laptop
+### Installing your laptop
 
 Install just to be able to use is
 
@@ -663,20 +689,20 @@ And try to rebuild your system with
 sudo nixos-rebuild switch --flake .#singer
 ```
 
-# 💽 Elixos Server Installation Guide (Contabo Example)
+## 💽 Elixos Server Installation Guide (Contabo Example)
 
 This guide describes how to install the **Elixos** operating system on a remote server. The example below assumes a **Contabo server**, but the process works for **any x86\_64 Linux machine in rescue mode or with Ubuntu pre-installed**.
 
 ---
 
-## 🚧 1. Boot into Rescue Mode or Install Ubuntu
+### 🚧 1. Boot into Rescue Mode or Install Ubuntu
 
 1. Install **Ubuntu LTS 22.04** (or later) on your server with a root user.
 2. SSH into the machine using the SSH key you provided during setup.
 
 ---
 
-## 🧪 2. Install Nix
+### 🧪 2. Install Nix
 
 First, install required packages:
 
@@ -692,7 +718,7 @@ snap install just --classic
 
 ---
 
-## 📦 3. Set Up Your Host Environment
+### 📦 3. Set Up Your Host Environment
 
 On your **local machine (not the server)**, source the environment file:
 
@@ -714,7 +740,7 @@ Make sure `SSH_HOST` points to the **public IP of your server**.
 
 ---
 
-## 🚀 4. Bootstrap and Install Elixos
+### 🚀 4. Bootstrap and Install Elixos
 
 From your **local machine**, run:
 
@@ -747,7 +773,7 @@ just install_server contabo
 
 ---
 
-## 🔁 5. Reboot and Finalize
+### 🔁 5. Reboot and Finalize
 
 After installation, **reboot the server** into your new NixOS system.
 
@@ -771,5 +797,16 @@ just switch contabo
 
 You're done! 🎉
 
+## VPN instructions 
 
-# Inst
+Here some instructions to activate a VPN if you have one available. The instructions are based on surfshark.
+
+### Create a VPB private/public key pair
+
+To anounce your self at the vpn provide, you can create a key pair doing:
+
+```sh
+just gen-surfshare-wg
+```
+
+
