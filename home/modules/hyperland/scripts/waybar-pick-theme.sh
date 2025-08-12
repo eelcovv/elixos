@@ -2,50 +2,38 @@
 # shellcheck shell=bash
 set -euo pipefail
 
-WB_DIR="$HOME/.config/waybar"
-THEMES_DIR="$WB_DIR/themes"
+# Usage: waybar-switch-theme ml4w/dark
+THEME="${1:-}"
+if [[ -z "$THEME" ]]; then
+    echo "Usage: waybar-switch-theme <theme-path> (e.g., ml4w/dark)"
+    exit 2
+fi
 
-# Ensure the themes directory exists
-if [[ ! -d "$THEMES_DIR" ]]; then
-    notify-send "Waybar" "Themes dir not found: $THEMES_DIR"
+THEMES_DIR="$HOME/.config/waybar/themes"
+if [[ ! -d "$THEMES_DIR/$THEME" ]]; then
+    echo "Unknown theme variant: $THEME"
+    exit 1
+fi
+if [[ ! -f "$THEMES_DIR/$THEME/style.css" && ! -f "$THEMES_DIR/$THEME/style-custom.css" ]]; then
+    echo "Theme '$THEME' has no style.css"
     exit 1
 fi
 
-# Explicitly initialize arrays to satisfy `set -u`
-declare -a paths=()
-declare -a names=()
+echo ":: Switching HOME_THEME=$THEME via Home Manager..."
+HOST="$(hostname)"
+env HOME_THEME="$THEME" home-manager switch --flake ".#eelco@$HOST"
 
-# Enumerate variants that have CSS, follow symlinks, skip assets
-# Allow both single-level (e.g., themes/default/style.css)
-# and nested (e.g., themes/ml4w/dark/style.css)
-while IFS= read -r -d '' css_file; do
-    variant_dir="$(dirname "$css_file")"
-    case "$variant_dir" in
-        *"/assets"/*) continue ;;
-    esac
-    rel="${variant_dir#"$THEMES_DIR"/}"   # -> "default" or "ml4w/dark" etc.
+# Ensure there is exactly ONE Waybar:
+# 1) stop any lingering systemd user service
+systemctl --user stop waybar.service 2>/dev/null || true
 
-    # Optional friendly label from config.sh inside the variant dir
-    label=""
-    if [[ -f "$variant_dir/config.sh" ]]; then
-        # shellcheck source=/dev/null
-        source "$variant_dir/config.sh" || true
-        label="${theme_name:-}"
-    fi
-    [[ -z "$label" ]] && label="$(printf "%s — %s" "${rel%%/*}" "${rel##*/}")"
+# 2) kill any running Waybar processes (name or full cmdline)
+pkill -x waybar 2>/dev/null || true
+pkill -f '(^|/| )waybar( |$)' 2>/dev/null || true
+sleep 0.3
 
-    names+=("$label")
-    paths+=("$rel")
-done < <(find -L "$THEMES_DIR" -mindepth 1 -type f \( -name 'style.css' -o -name 'style-custom.css' \) -print0)
+# 3) start a single instance
+waybar >/dev/null 2>&1 & disown
 
-# Handle empty result safely
-if (( ${#paths[@]} == 0 )); then
-    notify-send "Waybar" "No theme variants found under $THEMES_DIR"
-    exit 1
-fi
-
-idx="$(printf "%s\n" "${names[@]}" | rofi -dmenu -i -no-show-icons -width 40 -p 'Waybar theme' -format i || true)"
-[[ -z "${idx:-}" || ! "$idx" =~ ^[0-9]+$ ]] && exit 0
-
-exec waybar-switch-theme "${paths[$idx]}"
+notify-send "Waybar theme" "Applied: $THEME"
 
