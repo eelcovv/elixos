@@ -913,3 +913,23 @@ just vpn-status
  ```sh
  just vpn-location
  ```
+
+### 4. VPN Remarks on Git
+
+When connected to a VPN server, you may no longer be able to reach `github.com` on port 22.  
+The solution is to use port 443 instead.  
+
+Although this change is only strictly necessary when using a VPN, it is recommended to set GitHub to use port 443 by default.
+This configuration can be found in `home/modules/security/ssh-config.nix`.  
+
+To verify that GitHub is indeed using port 443, run:  
+
+```sh
+ssh -T git@github.com -v
+```
+
+In the output, you should see:
+
+```sh
+debug1: Connecting to ssh.github.com [...] port 443.
+```
