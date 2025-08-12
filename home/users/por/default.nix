@@ -10,24 +10,22 @@
 
   imports =
     [
-      ../modules/common
-      ../modules/hyperland
-      ../modules/graphics
-      ../modules/office
-      ../modules/internet
-      ../modules/shells
-      ../modules/terminals
-      ../modules/editors
-
-      # Uitpakken van benchmarking lijst:
+      ../../modules/common
+      ../../modules/hyperland
+      ../../modules/graphics
+      ../../modules/office
+      ../../modules/internet
+      ../../modules/shells
+      ../../modules/terminals
+      ../../modules/editors
     ]
     ++ [
-      (import ../modules/shells/zsh.nix {
+      (import ../../modules/shells/zsh.nix {
         inherit pkgs lib config;
       })
     ]
     ++ [
-      (import ../modules/development/git.nix {
+      (import ../../modules/development/git.nix {
         inherit config pkgs lib;
         userName = "Karnrawee Mangkang";
         userEmail = "karnrawee.mangkang@gmail.com";

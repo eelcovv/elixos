@@ -28,7 +28,6 @@
     allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo" "generic-vm"];
 
     # Enable Home Manager for all hosts, or only for specific ones.
-    # normally you would set this to true for all hosts that have a user defined in hostUserMap.
     enableHM = true;
 
     hostFiles = {
@@ -47,6 +46,7 @@
       ellie = "eelco";
       alloy = "eelco";
       contabo = "eelco";
+      # generic-vm/test-vm geen vaste user → laat weg of voeg toe indien gewenst
     };
 
     mkHost = hostName: let
@@ -70,7 +70,9 @@
               {
                 home-manager.useGlobalPkgs = true;
                 home-manager.useUserPackages = true;
-                home-manager.users.${user} = import ./home/users/${user}.nix;
+
+                # ⬇️ Belangrijk: importeer de directory (default.nix) i.p.v. ${user}.nix
+                home-manager.users.${user} = import ./home/users/${user};
               }
             ]
             else []
@@ -100,8 +102,10 @@
       };
     });
 
+    # NixOS hosts
     nixosConfigurations = builtins.mapAttrs (name: _: mkHost name) hostFiles;
 
+    # Losse Home Manager configs per user@host
     homeConfigurations = builtins.listToAttrs (
       builtins.concatMap (
         user:
@@ -114,7 +118,7 @@
                   config = {allowUnfree = true;};
                 };
                 modules = [
-                  ./home/users/${user}.nix
+                  ./home/users/${user}
                 ];
                 extraSpecialArgs = {
                   inherit inputs self;
@@ -128,6 +132,7 @@
       allUsers
     );
 
+    # Handige outputs
     packages.x86_64-linux = builtins.mapAttrs (
       _name: cfg: cfg.config.system.build.toplevel
     ) (builtins.removeAttrs (builtins.mapAttrs (name: _: mkHost name) hostFiles) ["test-vm"]);
