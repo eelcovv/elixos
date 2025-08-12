@@ -71,6 +71,23 @@
     autostart = false;
   };
 
+  # Frankfurt
+  networking.wg-quick.interfaces."wg-surfshark-ff" = {
+    address = ["10.14.0.2/16"];
+    dns = ["162.252.172.57" "149.154.159.92"];
+    privateKeyFile = config.sops.secrets."vpn/surfshark/wg/privatekey".path;
+    peers = [
+      {
+        publicKey = "fJDA+OA6jzQxfRcoHfC27xz7m3C8/590fRjpntzSpGo=";
+        endpoint = "sg-sng.prod.surfshark.com:51820";
+        allowedIPs = ["0.0.0.0/0" "::/0"];
+        persistentKeepalive = 25;
+      }
+    ];
+    mtu = 1380;
+    autostart = false;
+  };
+
   # Vermindert strict reverse-path checks wanneer de tunnel default route neemt
   networking.firewall.checkReversePath = "loose";
 }

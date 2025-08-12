@@ -799,7 +799,7 @@ You're done! 🎉
 
 ## VPN instructions 
 
-Here some instructions to activate a VPN if you have one available. The instructions are based on surfshark.
+Here some instructions to activate a VPN if you have one available. The instructions are based on surfshark with a WireGuard backend.
 
 ### Create a VPN private/public key pair
 
@@ -813,9 +813,39 @@ Without arguments, a keypair for surfshark with the wireguard backend is created
 The private key is encrypted using your sops setup. The public key pair is created, but you can delete it or store it somewhere
 else once you have registered at your provider.  
 
-To register at your provider (in this case Surfshark), go  to your account -> VPN and go to manual with the option 'Already have a keypair'.
-At this point you can paste your public keypair. 
+To register at your provider (in this case Surfshark), go  to your account -> VPN and go to manual with the option 
+'I already have a keypair'.
+At this point you can paste your public keypair.
 
 ### Add a VPN location
 
 You can add one or more VPN locations. Just select a location from the list and download the vpn location information.
+Edit the file `nixos/modules/services/vpn-entries.nix` and copy an excisting location like:
+
+'''nix
+  # NL (Amsterdam)
+  networking.wg-quick.interfaces."wg-surfshark-nl" = {
+    address = ["10.14.0.2/32"];
+    dns = ["162.252.172.57" "149.154.159.92"];
+    privateKeyFile = config.sops.secrets."vpn/surfshark/wg/privatekey".path;
+    peers = [
+      {
+        publicKey = "Lxg3jAOKcBA9tGBtB6vEWMFl5LUEB6AwOpuniYn1cig=";
+        endpoint = "nl-ams.prod.surfshark.com:51820";
+        allowedIPs = ["0.0.0.0/0" "::/0"];
+        persistentKeepalive = 25;
+      }
+    ];
+    mtu = 1380;
+    autostart = false;
+  };
+'''
+
+Update the new 'wg-surfshark-nl' to your new location, for instance 'wg-surfshark-ff' for Frankfurt. Note that 
+apparaently there exist a maximum string lenght which prohibites to use a name longer than 15 characters, so 
+frk would given an error. 
+
+In this location modify the `address` and `dns` fields according to the information you have just donwloaded. 
+
+Finally, to make your new location available in the list, also add an entry to this file with the ff letters corresponding
+to the ff in your new name.
