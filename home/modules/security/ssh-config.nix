@@ -34,6 +34,7 @@
     # -----------------------------------------------------------------------------
     # GitHub
     # -----------------------------------------------------------------------------
+    # Use port 443 to keep SSH connections stable when using a VPN.
     Host github.com
       HostName ssh.github.com
       Port 443
