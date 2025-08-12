@@ -856,7 +856,7 @@ You can add one or more VPN locations to your configuration.
 
 4. Update the `address`, `dns`, `publicKey`, and `endpoint` fields with the values from your provider’s configuration.
 
-5. Add the short code (e.g. `ff`) to the VPN helper’s location list so it can be selected.
+5. Add the short code (e.g. `ff`) to the VPN helper’s location list so it can be selected in the file `home/modules/security/vpn-config.nix`.
 
 ---
 
