@@ -36,16 +36,12 @@
 
   # Waybar: config lives in THEME folder; style lives in VARIANT folder
   waybarConfigCandidate = "${waybarDir}/themes/${themeName}/config.jsonc";
-  configExists = builtins.pathExists waybarConfigCandidate;
-
   waybarVariantDir = "${waybarDir}/themes/${variantPath}";
-  styleCss = waybarVariantDir + "/style.css";
-  styleCustom = waybarVariantDir + "/style-custom.css";
-  styleExists = builtins.pathExists styleCss || builtins.pathExists styleCustom;
+  styleCustom = "${waybarVariantDir}/style-custom.css";
+  styleCss = "${waybarVariantDir}/style.css";
 
-  # Safe fallbacks to avoid evaluation errors if a theme/variant is missing
   finalConfigPath =
-    if configExists
+    if builtins.pathExists waybarConfigCandidate
     then waybarConfigCandidate
     else "${waybarDir}/themes/default/config.jsonc";
 
@@ -98,8 +94,8 @@ in {
   xdg.configFile."wallpapers/default.png".source = "${wallpaperDir}/nixos.png";
   xdg.configFile."waypaper".source = "${hyprDir}/waypaper";
 
-  # Put helper scripts in ~/.local/bin (if you added them in ./scripts as discussed)
-  home.sessionPath = lib.unique ((config.home.sessionPath or []) ++ ["$HOME/.local/bin"]);
+  # Append ~/.local/bin without referencing config.home.sessionPath
+  home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   home.file.".local/bin/waybar-switch-theme".text =
     builtins.readFile ./scripts/waybar-switch-theme.sh;
   home.file.".local/bin/waybar-switch-theme".executable = true;
