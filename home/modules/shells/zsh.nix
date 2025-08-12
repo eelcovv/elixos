@@ -18,24 +18,15 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = builtins.elem cfg.promptStyle validPromptStyles;
-        message = "Invalid promptStyle: ${cfg.promptStyle}. Must be one of: ${lib.concatStringsSep ", " validPromptStyles}";
-      }
-    ];
-
     programs.zsh = {
       enable = true;
       shellAliases.vi = "nvim";
-
       autosuggestion.enable = true;
       enableCompletion = true;
       syntaxHighlighting.enable = true;
 
       oh-my-zsh = {
         enable = true;
-        # Alleen thema zetten als het géén p10k/ohmyposh is
         theme = lib.mkIf (cfg.promptStyle != "powerlevel10k" && cfg.promptStyle != "ohmyposh") cfg.promptStyle;
         plugins = [
           "git"
@@ -62,23 +53,12 @@ in {
 
         bindkey -v
         export KEYTIMEOUT=1
-
-        if [ "$TERM" = "xterm-ghostty" ]; then
-          export TERM=xterm-256color
-        fi
-
-        # FZF key bindings (CTRL-R)
+        if [ "$TERM" = "xterm-ghostty" ]; then export TERM=xterm-256color; fi
         source <(fzf --zsh)
-
-        # History
-        HISTFILE=~/.zsh_history
-        HISTSIZE=10000
-        SAVEHIST=10000
-        setopt appendhistory
+        HISTFILE=~/.zsh_history; HISTSIZE=10000; SAVEHIST=10000; setopt appendhistory
       '';
     };
 
-    # Prompt-specifieke bestanden
     xdg.configFile."ohmyposh/zen.toml".source = ./ohmyposh/zen.toml;
     home.file.".p10k.zsh".source = ./p10k.zsh;
 

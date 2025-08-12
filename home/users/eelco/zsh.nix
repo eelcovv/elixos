@@ -1,3 +1,6 @@
 {...}: {
-  shells.zsh.promptStyle = "ohmyposh"; # of "powerlevel10k", "robbyrussell", "agnoster", "af-magic"
+  shells.zsh = {
+    enable = true;
+    promptStyle = "ohmyposh";
+  };
 }
