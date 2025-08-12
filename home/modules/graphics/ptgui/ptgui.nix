@@ -1,23 +1,4 @@
-#####################################
-# To install PTGui in NixOS:
-#
-# Download PTGui from www.ptgui.com. This gives a file named (for example) PTGui_Pro_12.27.tar.gz
-# Place this in a persistent directory of your choice, for example /var/lib/ptgui/PTGui_Pro_12.27.tar.gz
-#
-# You could also place it under /etc/nixos/, but please note that redistributing the PTGui
-# application is not allowed. So don't do this if you keep your nixos profile in a public repository.
-#
-# Copy the current file (ptgui.nix) to /etc/nixos/ptgui.nix
-#
-# In your /etc/nixos/configuration.nix, add PTGui to the systemPackages:
-#
-#   environment.systemPackages = with pkgs; [
-#     ...
-#     (callPackage ./ptgui.nix {src = /var/lib/ptgui/PTGui_Pro_12.27.tar.gz; version = "Pro 12.27"; })
-#   ];
-#
-# Multiple versions of PTGui can be installed by adding multiple lines to environment.systemPackages.
-#####################################
+# To install PTGui in NixOS: see default.nix
 {
   pkgs,
   src,
