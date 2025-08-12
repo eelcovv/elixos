@@ -32,6 +32,7 @@ in
 
       oh-my-zsh = {
         enable = true;
+        # Alleen thema zetten als het géén p10k/ohmyposh is
         theme = lib.mkIf (cfg.promptStyle != "powerlevel10k" && cfg.promptStyle != "ohmyposh") cfg.promptStyle;
         plugins = [
           "git" "z" "sudo" "fzf" "colored-man-pages" "web-search"
@@ -56,9 +57,10 @@ in
           export TERM=xterm-256color
         fi
 
-        # FZF key bindings (CTRL-R voor fuzzy history)
+        # FZF key bindings (CTRL-R)
         source <(fzf --zsh)
 
+        # History
         HISTFILE=~/.zsh_history
         HISTSIZE=10000
         SAVEHIST=10000
@@ -66,6 +68,7 @@ in
       '';
     };
 
+    # Prompt-specifieke bestanden
     xdg.configFile."ohmyposh/zen.toml".source = ./ohmyposh/zen.toml;
     home.file.".p10k.zsh".source = ./p10k.zsh;
 
