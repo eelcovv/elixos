@@ -315,8 +315,10 @@ install_nix_installer_on_ubuntu:
 switch HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
 
+# Run Home Manager for a specific USER@HOST
 home USER HOST:
-	home-manager switch --flake .#{{USER}}@{{HOST}}
+	sudo -u {{USER}} -H home-manager switch --flake .#{{USER}}@{{HOST}}
+
 
 # ========== NETWORK INSTALL HELPERS ==========
 ssh-copy-key:
