@@ -1,68 +1,57 @@
 #!/usr/bin/env bash
-#  _____ _                                       _ _       _
-# |_   _| |__   ___ _ __ ___   ___  _____      _(_) |_ ___| |__   ___ _ __
-#   | | | '_ \ / _ \ '_ ` _ \ / _ \/ __\ \ /\ / / | __/ __| '_ \ / _ \ '__|
-#   | | | | | |  __/ | | | | |  __/\__ \\ V  V /| | || (__| | | |  __/ |
-#   |_| |_| |_|\___|_| |_| |_|\___||___/ \_/\_/ |_|\__\___|_| |_|\___|_|
-
-# by Stephan Raabe (2024)
-# -----------------------------------------------------
-
 set -euo pipefail
 
-# Default theme folder
-themes_path="$HOME/.config/waybar/themes"
-settings_file="$HOME/.config/hypr/settings/waybar-theme.sh"
+WB_DIR="$HOME/.config/waybar"
+THEMES_DIR="$WB_DIR/themes"
+SETTINGS_FILE="$HOME/.config/hypr/settings/waybar-theme.sh"
 
-# Create settings dir if missing
-mkdir -p "$(dirname "$settings_file")"
+# Ensure the settings directory exists
+mkdir -p "$(dirname "$SETTINGS_FILE")"
 
-# Initialize arrays
-declare -a listThemes
-declare -a listNames
+declare -a paths names
 
-# Read theme folders
-while IFS= read -r -d '' theme_dir; do
-    # Skip "assets" and root
-    [[ "$theme_dir" == "$themes_path" || "$theme_dir" == "$themes_path/assets" ]] && continue
+# Find all theme variants (leaf directories at least 2 levels deep), skip "assets"
+while IFS= read -r -d '' variant_dir; do
+  # Example: /home/user/.config/waybar/themes/ml4w/light
+  rel="${variant_dir#$THEMES_DIR/}"        # -> ml4w/light
+  base="/${rel%%/*}"                       # -> /ml4w
+  variant="/${rel}"                        # -> /ml4w/light
 
-    # Only include leaf directories (no subfolders)
-    if [[ "$(find "$theme_dir" -mindepth 1 -type d | wc -l)" == "0" ]]; then
-        rel_path="${theme_dir#$themes_path}"
-        theme_id="${rel_path#/}" # remove leading slash
+  # Try to read a human-friendly theme name from config.sh in the variant directory
+  label=""
+  if [[ -f "$variant_dir/config.sh" ]]; then
+    # shellcheck disable=SC1090
+    source "$variant_dir/config.sh" || true
+    label="${theme_name:-}"
+  fi
+  [[ -z "$label" ]] && label="$(printf "%s — %s" "${rel%%/*}" "${rel##*/}")"
 
-        theme_entry="/$theme_id;$rel_path"
-        config_file="$theme_dir/config.sh"
+  names+=("$label")
+  paths+=("${base};${variant}")
+done < <(find "$THEMES_DIR" -mindepth 2 -type d -not -path '*/assets*' -print0)
 
-        if [[ -f "$config_file" ]]; then
-            # shellcheck disable=SC1090
-            source "$config_file"
-            listNames+=("$theme_name")
-        else
-            listNames+=("$theme_id;$rel_path")
-        fi
-
-        listThemes+=("$theme_entry")
-    fi
-done < <(find "$themes_path" -mindepth 1 -maxdepth 1 -type d -print0)
-
-# Exit if no themes found
-if [[ "${#listThemes[@]}" -eq 0 ]]; then
-    notify-send "No themes found" "No Waybar themes detected in $themes_path"
-    exit 1
+# Abort if no variants found
+if [[ ${#paths[@]} -eq 0 ]]; then
+  notify-send "Waybar" "No theme variants found under $THEMES_DIR"
+  exit 1
 fi
 
-# Show rofi menu
-menu=$(printf "%s\n" "${listNames[@]}")
-choice=$(echo -e "$menu" | rofi -dmenu -i -no-show-icons -width 30 -p "Themes" -format i -config ~/.config/rofi/config-themes.rasi)
+# Show selection menu
+choice_idx="$(printf "%s\n" "${names[@]}" | rofi -dmenu -i -no-show-icons -width 40 -p "Waybar theme" -format i || true)"
+[[ -z "$choice_idx" || ! "$choice_idx" =~ ^[0-9]+$ ]] && exit 0
 
-# Apply theme
-if [[ -n "$choice" && "$choice" =~ ^[0-9]+$ ]]; then
-    selected="${listThemes[$choice]}"
-    echo "$selected" > "$settings_file"
-    echo ":: Selected theme: $selected"
-    "$HOME/.config/waybar/launch.sh"
-else
-    echo ":: No theme selected"
+# Save selection
+selected="${paths[$choice_idx]}"
+echo "$selected" > "$SETTINGS_FILE"
+echo ":: Selected theme: $selected"
+
+# Restart Waybar via your launcher
+"$WB_DIR/launch.sh"
+
+# Optional: also recolor based on the current wallpaper
+if [[ -x "$HOME/.config/hypr/scripts/wallpaper.sh" ]]; then
+  "$HOME/.config/hypr/scripts/wallpaper.sh"
 fi
+
+notify-send "Waybar Theme" "Applied: ${names[$choice_idx]}"
 
