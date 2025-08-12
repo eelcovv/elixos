@@ -41,7 +41,7 @@
     };
 
     hostUserMap = {
-      singer = "eelco";
+      singer = ["eelco" "por"];
       tongfang = "eelco";
       ellie = "eelco";
       alloy = "eelco";
