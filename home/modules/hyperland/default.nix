@@ -139,23 +139,23 @@ in {
     if [ -n "$CSS_SRC" ]; then
         cp -f "$CSS_SRC" "$CUR/style.resolved.css"
 
-        # Remove any parent-import of style.css to prevent recursion during rebuilds
+        # Prevent recursion during rebuilds
         sed -i -E '/@import.*\.\.\/style\.css/d' "$CUR/style.resolved.css"
 
+        # 1) Remove ANY @import of colors.css (handles url(...), '...', "...")
+        sed -i -E '/@import.*colors\.css/d' "$CUR/style.resolved.css"
 
-        # 1) Remove ANY @import url(...colors.css) line (tilde or absolute path)
-        sed -i -E "/@import[[:space:]]+url\\((['\\\"]?)[^)]*colors\\.css\\1\\)/d" "$CUR/style.resolved.css"
+        # (Optional) also drop other parent imports in the seed to be extra safe
+        # sed -i -E '/@import.*\.\.\//d' "$CUR/style.resolved.css"
 
-        # 2) Rewrite stray references to colors.css under ~ or /home/* to relative
-        sed -i -E 's#~/colors\.css#colors.css#g; s#/home/[^/]+/colors\.css#colors.css#g' "$CUR/style.resolved.css"
-
-        # 3) Prepend exactly one safe import to the local palette
+        # 2) Prepend exactly one safe import to the local palette
         printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css"
         mv -f "$CUR/.tmp.css" "$CUR/style.resolved.css"
     else
         printf '@import url("colors.css");\n' > "$CUR/style.resolved.css"
     fi
     chmod 0644 "$CUR/style.resolved.css"
+
   '';
 
   # Waybar via systemd user service (do NOT autostart via Hyprland exec-once)
