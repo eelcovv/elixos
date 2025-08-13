@@ -4,59 +4,24 @@
   lib,
   ...
 }: let
-  # Read HOME_THEME only from the environment to avoid recursion during evaluation.
-  # Fallback to "default" when not provided (e.g., when called by Home Manager).
-  envTheme = builtins.getEnv "HOME_THEME";
-  selected =
-    if envTheme != ""
-    then envTheme
-    else "default";
-
-  # Split "ml4w/dark" -> themeName="ml4w", variantPath="ml4w/dark"
-  parts = lib.splitString "/" selected;
-  themeName =
-    if parts == []
-    then "default"
-    else builtins.head parts;
-  variantPath =
-    if parts == []
-    then "default"
-    else selected;
-
+  # Keep paths to your module assets
   hyprDir = ./.;
   waybarDir = ./waybar;
   rofiRoot = ./rofi;
 
-  # Rofi: choose the folder by THEME name; fallback to default if missing
-  rofiThemeCandidate = "${rofiRoot}/themes/${themeName}";
+  # Rofi theme: keep static "default" (pure setup; no env-based switching here)
   rofiThemePath =
-    if builtins.pathExists rofiThemeCandidate
-    then rofiThemeCandidate
-    else "${rofiRoot}/themes/default";
-
-  # Waybar: config lives in THEME folder; style lives in VARIANT folder
-  waybarConfigCandidate = "${waybarDir}/themes/${themeName}/config.jsonc";
-  waybarVariantDir = "${waybarDir}/themes/${variantPath}";
-  styleCustom = "${waybarVariantDir}/style-custom.css";
-  styleCss = "${waybarVariantDir}/style.css";
-
-  finalConfigPath =
-    if builtins.pathExists waybarConfigCandidate
-    then waybarConfigCandidate
-    else "${waybarDir}/themes/default/config.jsonc";
-
-  finalStylePath =
-    if builtins.pathExists styleCustom
-    then styleCustom
-    else if builtins.pathExists styleCss
-    then styleCss
-    else "${waybarDir}/themes/default/style.css";
+    if builtins.pathExists "${rofiRoot}/themes/default"
+    then "${rofiRoot}/themes/default"
+    else rofiRoot;
 
   # Wallpapers
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
-  # Packages (Waybar is provided by programs.waybar; keep others here)
+  ############################
+  # Packages (Waybar provided by programs.waybar)
+  ############################
   home.packages = with pkgs; [
     kitty
     rofi-wayland
@@ -77,15 +42,18 @@ in {
     waypaper
   ];
 
-  # Session variables
-  # Note: SSH_AUTH_SOCK keeps a literal $XDG_RUNTIME_DIR to be interpreted at runtime.
+  ############################
+  # Session environment
+  ############################
+  # Note: keep SSH_AUTH_SOCK with a literal $XDG_RUNTIME_DIR to be expanded at runtime.
   home.sessionVariables = {
-    HOME_THEME = selected;
     WALLPAPER_DIR = wallpaperTargetDir;
     SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
   };
 
+  ############################
   # Hyprland configs
+  ############################
   xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
   xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
   xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
@@ -93,12 +61,17 @@ in {
   xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
   xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
   xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
-  # Install the whole themes tree (read-only symlink to the store)
+
+  ############################
+  # Waybar (pure: variant selected at runtime via ~/.config/waybar/current)
+  ############################
+  # Install the complete themes tree (read-only symlink to the Nix store)
   xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
 
-  # Stable config that includes the active variant via ~/.config/waybar/current
+  # Stable top-level config delegates to the active variant via "current/"
   xdg.configFile."waybar/config.jsonc".text = ''
     {
+      // Main config delegates to the currently selected variant
       "include": [
         "~/.config/waybar/current/config.jsonc",
         "~/.config/waybar/current/modules.jsonc"
@@ -108,23 +81,63 @@ in {
 
   # Stable stylesheet that imports from the active variant
   xdg.configFile."waybar/style.css".text = ''
+    /* Delegate styling to the current variant */
     @import url("current/style.css");
+    /* Optional: if variants ship a palette */
     @import url("current/colors.css");
   '';
 
-  # Create/refresh ~/.config/waybar/current (not inside read-only themes/)
+  # Create/refresh ~/.config/waybar/current (outside read-only themes/)
   home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["writeBoundary"] ''
     CFG="$HOME/.config/waybar"
     mkdir -p "$CFG"
-    # Point to default variant on first install; adjust if you want a different initial target
-    DEFAULT="$CFG/themes/default"
+    DEFAULT="$CFG/themes/default"   # change if you want a different initial variant
     TARGET="$CFG/current"
     if [ ! -e "$TARGET" ]; then
       ln -sfn "$DEFAULT" "$TARGET"
     fi
   '';
 
-  # Waybar via systemd user service
+  # Waybar via systemd user service (do NOT autostart via Hyprland exec-once)
   programs.waybar.enable = true;
   programs.waybar.systemd.enable = true;
+
+  ############################
+  # Rofi (static default; pure)
+  ############################
+  xdg.configFile."rofi/config.rasi".source = "${rofiThemePath}/config.rasi";
+  xdg.configFile."rofi/colors.rasi".source = "${rofiThemePath}/colors.rasi";
+
+  ############################
+  # Hyprpaper defaults
+  ############################
+  xdg.configFile."hypr/hyprpaper.conf".text = ''
+    preload = ${wallpaperTargetDir}/default.png
+    wallpaper = ,${wallpaperTargetDir}/default.png
+    splash = false
+  '';
+
+  # Default wallpaper + waypaper config
+  xdg.configFile."wallpapers/default.png".source = "${wallpaperDir}/nixos.png";
+  xdg.configFile."waypaper".source = "${hyprDir}/waypaper";
+
+  ############################
+  # Scripts & helper installation
+  ############################
+  # Add ~/.local/bin to PATH
+  home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
+
+  # Install helper under ~/.local/lib/waybar-theme/
+  home.file.".local/lib/waybar-theme/helper-functions.sh".text =
+    builtins.readFile ./scripts/helper-functions.sh;
+  home.file.".local/lib/waybar-theme/helper-functions.sh".executable = true;
+
+  # Install switch/pick scripts under ~/.local/bin/
+  home.file.".local/bin/waybar-switch-theme".text =
+    builtins.readFile ./scripts/waybar-switch-theme.sh;
+  home.file.".local/bin/waybar-switch-theme".executable = true;
+
+  home.file.".local/bin/waybar-pick-theme".text =
+    builtins.readFile ./scripts/waybar-pick-theme.sh;
+  home.file.".local/bin/waybar-pick-theme".executable = true;
 }
