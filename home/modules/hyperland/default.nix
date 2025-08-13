@@ -49,6 +49,8 @@ in {
     WALLPAPER_DIR = wallpaperTargetDir;
     # Keep literal $XDG_RUNTIME_DIR for runtime expansion
     SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
+    # Make rofi always use our patched config
+    ROFI_CONFIG = "${config.xdg.configHome}/rofi/config.rasi";
   };
 
   ################################
@@ -143,9 +145,6 @@ in {
         # Remove ANY @import of colors.css (handles url(...), '...', "...")
         sed -i -E '/@import.*colors\.css/d' "$CUR/style.resolved.css"
 
-        # (Optional) also drop other parent imports in the seed to be extra safe
-        # sed -i -E '/@import.*\.\.\//d' "$CUR/style.resolved.css"
-
         # Prepend exactly one safe import to the local palette
         printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css"
         mv -f "$CUR/.tmp.css" "$CUR/style.resolved.css"
@@ -158,6 +157,7 @@ in {
   # Waybar via systemd user service (do NOT autostart via Hyprland exec-once)
   programs.waybar.enable = true;
   programs.waybar.systemd.enable = true;
+
   ################################
   # Rofi (pure + CWD-proof imports)
   ################################
@@ -199,12 +199,23 @@ in {
     then {source = "${rofiThemePath}/border-radius.rasi";}
     else {text = ''* { border-radius: 8px; }'';};
 
+  # Disable background images that some themes set (prevents GdkPixbuf warnings)
+  xdg.configFile."rofi/overrides.rasi".text = ''
+    * {
+      /* Leave fonts/colors alone; only kill background images */
+    }
+    window, mainbox, inputbar, listview, element, button, textbox, message, mode-switcher {
+      background-image: none;
+    }
+  '';
+
   # Top-level config: always import the patched theme config below
   xdg.configFile."rofi/config.rasi".text = ''
     @import "${config.xdg.configHome}/rofi/_patched/config.rasi"
   '';
 
-  # Patch the theme's config.rasi so imports resolve to local copies or the theme dir in the store
+  # Patch the theme's config.rasi so imports resolve to local copies or the theme dir in the store,
+  # and finally import our overrides so they win.
   home.activation.rofiPatch = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
     CFG="$HOME/.config/rofi"
@@ -212,7 +223,9 @@ in {
     SRC="${rofiThemePath}/config.rasi"
 
     if [ -e "$SRC" ]; then
-        cp -f "$SRC" "$CFG/_patched/config.rasi"
+        # i.p.v. cp -f ...  => zorg dat het bestand schrijfbaar is
+        install -m 0644 -D "$SRC" "$CFG/_patched/config.rasi"
+        chmod u+w "$CFG/_patched/config.rasi"
 
         # Force known fragments to ~/.config/rofi/…
         sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*wallpaper\\.rasi['\\\"]?\\)?;#@import \"$CFG/wallpaper.rasi\";#g" "$CFG/_patched/config.rasi"
@@ -221,17 +234,12 @@ in {
         sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*border\\.rasi['\\\"]?\\)?;#@import \"$CFG/border.rasi\";#g"     "$CFG/_patched/config.rasi"
         sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*border-radius\\.rasi['\\\"]?\\)?;#@import \"$CFG/border-radius.rasi\";#g" "$CFG/_patched/config.rasi"
 
-        # For any other *bare* .rasi (no slash), rewrite to the theme dir in the store
+        # Bare .rasi imports → theme dir in store
         sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?([^/][^'\\\")]*\\.rasi)['\\\"]?\\)?;#@import \"${rofiThemePath}/\\2\";#g" "$CFG/_patched/config.rasi"
     else
-        printf '@theme \"gruvbox-dark\"\\n' > "$CFG/_patched/config.rasi"
+        printf '@theme "gruvbox-dark"\n' > "$CFG/_patched/config.rasi"
     fi
   '';
-
-  # (Optional but recommended) ensure Rofi uses our config
-  home.sessionVariables = {
-    ROFI_CONFIG = "${config.xdg.configHome}/rofi/config.rasi";
-  };
 
   ################################
   # Hyprpaper defaults

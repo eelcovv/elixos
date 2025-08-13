@@ -56,16 +56,20 @@ fi
 pick_with_menu() {
     local prompt="Waybar theme"
     if command -v rofi >/dev/null 2>&1; then
-        printf '%s\n' "${OPTIONS[@]}" | rofi -dmenu -p "$prompt" -i
+        # Use rofi in "clean" mode (ignore user config), show 30 lines, no icons.
+        printf '%s\n' "${OPTIONS[@]}" \
+        | rofi -no-config -dmenu -p "$prompt" -i \
+                -show-icons - \
+                -theme-str 'window { width: 40ch; } listview { lines: 30; }'
     elif command -v wofi >/dev/null 2>&1; then
         printf '%s\n' "${OPTIONS[@]}" | wofi --dmenu -p "$prompt"
     elif command -v fzf >/dev/null 2>&1; then
         printf '%s\n' "${OPTIONS[@]}" | fzf --prompt "$prompt> "
     else
-        # No menu program; default to the first option
         printf '%s\n' "${OPTIONS[0]}"
     fi
 }
+
 
 SEL="$(pick_with_menu || true)"
 if [[ -z "${SEL:-}" ]]; then
