@@ -4,8 +4,8 @@
   lib,
   ...
 }: let
-  # Read HOME_THEME only from the environment to avoid recursion.
-  # Fallback to "default" when not provided by the caller (e.g., scripts).
+  # Read HOME_THEME only from the environment to avoid recursion during evaluation.
+  # Fallback to "default" when not provided (e.g., when called by Home Manager).
   envTheme = builtins.getEnv "HOME_THEME";
   selected =
     if envTheme != ""
@@ -27,7 +27,7 @@
   waybarDir = ./waybar;
   rofiRoot = ./rofi;
 
-  # Rofi: choose folder by THEME name, fallback to default if missing
+  # Rofi: choose the folder by THEME name; fallback to default if missing
   rofiThemeCandidate = "${rofiRoot}/themes/${themeName}";
   rofiThemePath =
     if builtins.pathExists rofiThemeCandidate
@@ -56,7 +56,8 @@
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
-  # Session variables (do NOT read HOME_THEME from config.* here)
+  # Session variables
+  # Note: SSH_AUTH_SOCK keeps a literal $XDG_RUNTIME_DIR to be interpreted at runtime.
   home.sessionVariables = {
     HOME_THEME = selected;
     WALLPAPER_DIR = wallpaperTargetDir;
@@ -72,7 +73,7 @@ in {
   xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
   xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
-  # Waybar: expose themes tree for the picker, and pin config/style from selected theme/variant
+  # Waybar: expose the themes tree for the picker, and pin config/style from selected theme/variant
   xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
   xdg.configFile."waybar/config.jsonc".source = finalConfigPath;
   xdg.configFile."waybar/style.css".source = finalStylePath;
@@ -94,16 +95,19 @@ in {
   xdg.configFile."wallpapers/default.png".source = "${wallpaperDir}/nixos.png";
   xdg.configFile."waypaper".source = "${hyprDir}/waypaper";
 
-  # Append ~/.local/bin without referencing config.home.sessionPath
+  # Add ~/.local/bin to PATH
   home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
+
+  # Theme switcher / picker scripts (installed as-is)
   home.file.".local/bin/waybar-switch-theme".text =
     builtins.readFile ./scripts/waybar-switch-theme.sh;
   home.file.".local/bin/waybar-switch-theme".executable = true;
+
   home.file.".local/bin/waybar-pick-theme".text =
     builtins.readFile ./scripts/waybar-pick-theme.sh;
   home.file.".local/bin/waybar-pick-theme".executable = true;
 
-  # Packages
+  # Packages (Waybar is provided by programs.waybar; keep others here)
   home.packages = with pkgs; [
     kitty
     rofi-wayland
@@ -113,7 +117,6 @@ in {
     hypridle
     wofi
     rofimoji
-    waybar
     swaynotificationcenter
     dunst
     brightnessctl
@@ -124,4 +127,8 @@ in {
     wallust
     waypaper
   ];
+
+  # Waybar via systemd user service (no Hyprland exec-once = waybar)
+  programs.waybar.enable = true;
+  programs.waybar.systemd.enable = true;
 }
