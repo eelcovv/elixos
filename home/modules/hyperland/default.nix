@@ -93,41 +93,32 @@ in {
   xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
   xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
   xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
-
-  # Install the whole themes tree as before
+  # Install the whole themes tree (read-only symlink to the store)
   xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
 
-  # Provide a stable config.jsonc that includes the active variant via "themes/current"
-  # Waybar supports "include" of JSON/JSONC fragments.
+  # Stable config that includes the active variant via ~/.config/waybar/current
   xdg.configFile."waybar/config.jsonc".text = ''
     {
-      // Main config delegates to the currently selected variant
       "include": [
-        "~/.config/waybar/themes/current/config.jsonc",
-        "~/.config/waybar/themes/current/modules.jsonc"
+        "~/.config/waybar/current/config.jsonc",
+        "~/.config/waybar/current/modules.jsonc"
       ]
     }
   '';
 
-  # Provide a stable stylesheet that imports from the active variant
+  # Stable stylesheet that imports from the active variant
   xdg.configFile."waybar/style.css".text = ''
-    /* Delegate styling to the current variant */
-    @import url("themes/current/style.css");
-    /* Optional: if your variants ship their own palette */
-    @import url("themes/current/colors.css");
+    @import url("current/style.css");
+    @import url("current/colors.css");
   '';
 
-  # Optional: keep a global fallback colors/modules file if a variant doesn't ship them:
-  # xdg.configFile."waybar/colors.css".source = "${waybarDir}/colors.css";
-  # xdg.configFile."waybar/modules.jsonc".source = "${waybarDir}/modules.jsonc";
-
-  # Create an initial "current" symlink pointing to the default variant at activation time.
-  # We use a one-shot activation script to avoid hardcoding a store path in the symlink.
+  # Create/refresh ~/.config/waybar/current (not inside read-only themes/)
   home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    THEME_DIR="$HOME/.config/waybar/themes"
-    TARGET="$THEME_DIR/current"
-    DEFAULT="$THEME_DIR/default"  # adjust if you want another initial variant, e.g. "ml4w/light"
-    mkdir -p "$THEME_DIR"
+    CFG="$HOME/.config/waybar"
+    mkdir -p "$CFG"
+    # Point to default variant on first install; adjust if you want a different initial target
+    DEFAULT="$CFG/themes/default"
+    TARGET="$CFG/current"
     if [ ! -e "$TARGET" ]; then
       ln -sfn "$DEFAULT" "$TARGET"
     fi
