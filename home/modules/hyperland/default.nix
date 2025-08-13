@@ -56,57 +56,6 @@
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
-  # Session variables
-  # Note: SSH_AUTH_SOCK keeps a literal $XDG_RUNTIME_DIR to be interpreted at runtime.
-  home.sessionVariables = {
-    HOME_THEME = selected;
-    WALLPAPER_DIR = wallpaperTargetDir;
-    SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
-  };
-
-  # Hyprland configs
-  xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
-  xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
-  xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
-  xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
-  xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
-  xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
-  xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
-
-  # Waybar: expose the themes tree for the picker, and pin config/style from selected theme/variant
-  xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
-  xdg.configFile."waybar/config.jsonc".source = finalConfigPath;
-  xdg.configFile."waybar/style.css".source = finalStylePath;
-  xdg.configFile."waybar/modules.jsonc".source = "${waybarDir}/modules.jsonc";
-  xdg.configFile."waybar/colors.css".source = "${waybarDir}/colors.css";
-
-  # Rofi theme by THEME name
-  xdg.configFile."rofi/config.rasi".source = "${rofiThemePath}/config.rasi";
-  xdg.configFile."rofi/colors.rasi".source = "${rofiThemePath}/colors.rasi";
-
-  # Hyprpaper defaults (runtime can still override)
-  xdg.configFile."hypr/hyprpaper.conf".text = ''
-    preload = ${wallpaperTargetDir}/default.png
-    wallpaper = ,${wallpaperTargetDir}/default.png
-    splash = false
-  '';
-
-  # Default wallpaper + waypaper
-  xdg.configFile."wallpapers/default.png".source = "${wallpaperDir}/nixos.png";
-  xdg.configFile."waypaper".source = "${hyprDir}/waypaper";
-
-  # Add ~/.local/bin to PATH
-  home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
-
-  # Theme switcher / picker scripts (installed as-is)
-  home.file.".local/bin/waybar-switch-theme".text =
-    builtins.readFile ./scripts/waybar-switch-theme.sh;
-  home.file.".local/bin/waybar-switch-theme".executable = true;
-
-  home.file.".local/bin/waybar-pick-theme".text =
-    builtins.readFile ./scripts/waybar-pick-theme.sh;
-  home.file.".local/bin/waybar-pick-theme".executable = true;
-
   # Packages (Waybar is provided by programs.waybar; keep others here)
   home.packages = with pkgs; [
     kitty
@@ -128,7 +77,63 @@ in {
     waypaper
   ];
 
-  # Waybar via systemd user service (no Hyprland exec-once = waybar)
+  # Session variables
+  # Note: SSH_AUTH_SOCK keeps a literal $XDG_RUNTIME_DIR to be interpreted at runtime.
+  home.sessionVariables = {
+    HOME_THEME = selected;
+    WALLPAPER_DIR = wallpaperTargetDir;
+    SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
+  };
+
+  # Hyprland configs
+  xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
+  xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
+  xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
+  xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
+  xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
+  xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
+  xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
+
+  # Install the whole themes tree as before
+  xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
+
+  # Provide a stable config.jsonc that includes the active variant via "themes/current"
+  # Waybar supports "include" of JSON/JSONC fragments.
+  xdg.configFile."waybar/config.jsonc".text = ''
+    {
+      // Main config delegates to the currently selected variant
+      "include": [
+        "~/.config/waybar/themes/current/config.jsonc",
+        "~/.config/waybar/themes/current/modules.jsonc"
+      ]
+    }
+  '';
+
+  # Provide a stable stylesheet that imports from the active variant
+  xdg.configFile."waybar/style.css".text = ''
+    /* Delegate styling to the current variant */
+    @import url("themes/current/style.css");
+    /* Optional: if your variants ship their own palette */
+    @import url("themes/current/colors.css");
+  '';
+
+  # Optional: keep a global fallback colors/modules file if a variant doesn't ship them:
+  # xdg.configFile."waybar/colors.css".source = "${waybarDir}/colors.css";
+  # xdg.configFile."waybar/modules.jsonc".source = "${waybarDir}/modules.jsonc";
+
+  # Create an initial "current" symlink pointing to the default variant at activation time.
+  # We use a one-shot activation script to avoid hardcoding a store path in the symlink.
+  home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    THEME_DIR="$HOME/.config/waybar/themes"
+    TARGET="$THEME_DIR/current"
+    DEFAULT="$THEME_DIR/default"  # adjust if you want another initial variant, e.g. "ml4w/light"
+    mkdir -p "$THEME_DIR"
+    if [ ! -e "$TARGET" ]; then
+      ln -sfn "$DEFAULT" "$TARGET"
+    fi
+  '';
+
+  # Waybar via systemd user service
   programs.waybar.enable = true;
   programs.waybar.systemd.enable = true;
 }
