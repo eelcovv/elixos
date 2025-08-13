@@ -46,6 +46,7 @@ _pick_first() {
     return 1
 }
 
+
 switch_theme() {
     # Args: <theme/variant>; populates ~/.config/waybar/current/* with best-available links.
     local theme="$1"
@@ -54,7 +55,7 @@ switch_theme() {
     local base="$cfg/themes"
     local cur="$cfg/current"
     local theme_root="${theme%%/*}"          # "ml4w" from "ml4w/light"
-    local var_dir="$base/$theme"             # variant dir (may miss config/modules/colors)
+    local var_dir="$base/$theme"             # variant dir
     local theme_dir="$base/$theme_root"      # theme-level dir
     local def_dir="$base/default"            # default variant dir
 
@@ -63,47 +64,43 @@ switch_theme() {
     local col_global="$cfg/colors.css"
 
     ensure_theme_variant "$base" "$theme" || return 1
-
     mkdir -p "$cur"
 
     # Resolve files with fallbacks: variant -> theme -> default -> global (where applicable)
     local cfg_src mod_src css_src col_src
+    cfg_src=$(_pick_first  "$var_dir/config.jsonc"  "$theme_dir/config.jsonc"  "$def_dir/config.jsonc")
+    mod_src=$(_pick_first  "$var_dir/modules.jsonc" "$theme_dir/modules.jsonc" "$def_dir/modules.jsonc" "$mod_global")
+    css_src=$(_pick_first  "$var_dir/style.css"     "$var_dir/style-custom.css" "$def_dir/style.css" "$def_dir/style-custom.css")
+    col_src=$(_pick_first  "$var_dir/colors.css"    "$theme_dir/colors.css"    "$col_global")
 
-    cfg_src=$(_pick_first \
-        "$var_dir/config.jsonc" \
-        "$theme_dir/config.jsonc" \
-        "$def_dir/config.jsonc" \
-    )
-    mod_src=$(_pick_first \
-        "$var_dir/modules.jsonc" \
-        "$theme_dir/modules.jsonc" \
-        "$def_dir/modules.jsonc" \
-        "$mod_global" \
-    )
-    css_src=$(_pick_first \
-        "$var_dir/style.css" \
-        "$var_dir/style-custom.css" \
-        "$def_dir/style.css" \
-        "$def_dir/style-custom.css" \
-    )
-    col_src=$(_pick_first \
-        "$var_dir/colors.css" \
-        "$theme_dir/colors.css" \
-        "$col_global" \
-    )
-
-    # Update links atomically
+    # Link the straightforward ones
     ln -sfn "$cfg_src" "$cur/config.jsonc"
     ln -sfn "$mod_src" "$cur/modules.jsonc"
-    ln -sfn "$css_src" "$cur/style.css"
-    # colors is optional; if absent entirely, create an empty file to avoid import errors
+
+    # colors.css is optional, maar we willen altijd een geldig target hebben
     if [[ -n "${col_src:-}" ]]; then
         ln -sfn "$col_src" "$cur/colors.css"
     else
         : > "$cur/colors.css"
     fi
 
+    # --- CSS compat: patch imports van "~/colors.css" weg/om naar "colors.css" ---
+    # We willen GEEN /home/<user>/colors.css nodig hebben.
+    # Als de variant-CSS zo'n import bevat, maken we een gepatchte kopie in current/.
+    if grep -Eq '@import[[:space:]]+url\((["'\'']?)~/colors\.css\1\)' "$css_src"; then
+        # Maak een resolved kopie met de import eruit of naar relatieve "colors.css"
+        # 1) verwijder het expliciete import-statement volledig (we importeren al via top-level)
+        # 2) als er elders nog "~/" naar "colors.css" verwijst, maak die relatief
+        sed -E '
+            s#@import[[:space:]]+url\((["'\'']?)~/colors\.css\1\);[[:space:]]*##g;
+            s#~/colors\.css#colors.css#g;
+        ' "$css_src" > "$cur/style.resolved.css"
+        ln -sfn "$cur/style.resolved.css" "$cur/style.css"
+    else
+        # Geen HOME-imports: link CSS direct
+        ln -sfn "$css_src" "$cur/style.css"
+    fi
+
     systemctl --user restart waybar.service
     notify "Waybar theme" "Applied: $theme"
 }
-
