@@ -132,9 +132,11 @@ in {
         #   1) copy the chosen CSS,
         #   2) replace literal ~/colors.css -> colors.css,
         #   3) always prepend an import for colors.css
-        cp "$CSS_SRC" "$CUR/style.resolved.css"
+        cp -f "$CSS_SRC" "$CUR/style.resolved.css"
         sed -i -e 's#~/colors\.css#colors.css#g' "$CUR/style.resolved.css"
-        printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css" && mv "$CUR/.tmp.css" "$CUR/style.resolved.css"
+        printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css"
+        mv -f "$CUR/.tmp.css" "$CUR/style.resolved.css"
+        chmod 0644 "$CUR/style.resolved.css"
     else
         printf '@import url("colors.css");\n' > "$CUR/style.resolved.css"
     fi
