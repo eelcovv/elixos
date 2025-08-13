@@ -139,6 +139,10 @@ in {
     if [ -n "$CSS_SRC" ]; then
         cp -f "$CSS_SRC" "$CUR/style.resolved.css"
 
+        # Remove any parent-import of style.css to prevent recursion during rebuilds
+        sed -i -E '/@import.*\.\.\/style\.css/d' "$CUR/style.resolved.css"
+
+
         # 1) Remove ANY @import url(...colors.css) line (tilde or absolute path)
         sed -i -E "/@import[[:space:]]+url\\((['\\\"]?)[^)]*colors\\.css\\1\\)/d" "$CUR/style.resolved.css"
 

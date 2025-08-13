@@ -117,15 +117,27 @@ switch_theme() {
     # 1) remove any @import url(...colors.css),
     # 2) rewrite absolute/tilde colors.css to relative,
     # 3) prepend exactly one safe import to local palette.
+    # Always produce a safe, preprocessed CSS
     if [[ -n "$css_src" && -e "$css_src" ]]; then
         cp -f "$css_src" "$cur/style.resolved.css"
-        sed -i -E "/@import[[:space:]]+url\\((['\\\"]?)[^)]*colors\\.css\\1\\)/d" "$cur/style.resolved.css"
-        sed -i -E 's#~/colors\.css#colors.css#g; s#/home/[^/]+/colors\.css#colors.css#g' "$cur/style.resolved.css"
+
+        # Remove ANY @import of colors.css (url(...), '...', "...")
+        perl -0777 -pe 's/^\s*@import[^\n]*colors\.css[^\n]*\n//gmi' -i "$cur/style.resolved.css"
+
+        # Rewrite parent-relative imports to live under the theme dir, to avoid recursion via ~/.config/waybar/style.css
+        # ../style.css  ->  <theme_dir>/style.css
+        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\\.{2}/style\\.css['\"]?\\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
+        # ../whatever.css  ->  <theme_dir>/whatever.css
+        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\\.{2}/([^'\"\)]+)['\"]?\\)?;#@import url(\"$theme_dir/\\2\");#g" "$cur/style.resolved.css"
+
+        # Prepend exactly one safe import to the local palette
         printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
         mv -f "$cur/.tmp.css" "$cur/style.resolved.css"
     else
         printf '@import url("colors.css");\n' > "$cur/style.resolved.css"
     fi
+    chmod 0644 "$cur/style.resolved.css"
+
 
     chmod 0644 "$cur/style.resolved.css"
     systemctl --user restart waybar.service
