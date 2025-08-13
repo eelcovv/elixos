@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Two-step picker: pick theme family, then variant; delegate to switch_theme.
+# Filters out non-themes like "assets".
 # shellcheck shell=bash
 set -euo pipefail
 
@@ -27,7 +28,6 @@ fi
 BASE="$HOME/.config/waybar/themes"
 [[ -d "$BASE" ]] || { echo "No themes dir at $BASE"; exit 1; }
 
-# --- helpers for menu ---
 menu_pick() {
     # args: prompt
     local prompt="$1"
@@ -38,35 +38,52 @@ menu_pick() {
     elif command -v fzf >/dev/null 2>&1; then
         fzf --prompt "$prompt> "
     else
-        # dumb fallback: pick the first line
         head -n1
     fi
 }
 
-# 1) families = alle directe submappen
-mapfile -t FAMILIES < <(find -L "$BASE" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+# --- 1) Build filtered list of families (skip non-themes like "assets") ---
+FAMILIES=()
+while IFS= read -r -d '' famdir; do
+    fam="$(basename "$famdir")"
+    # skip hidden dirs
+    [[ "$fam" == .* ]] && continue
+
+    has_root_style=0
+    [[ -f "$famdir/style.css" || -f "$famdir/style-custom.css" ]] && has_root_style=1
+
+    has_variant=0
+    # scan one level of subdirs for style.css / style-custom.css
+    for vdir in "$famdir"/*/ ; do
+        [[ -d "$vdir" ]] || continue
+        if [[ -f "$vdir/style.css" || -f "$vdir/style-custom.css" ]]; then
+            has_variant=1
+            break
+        fi
+    done
+
+    if (( has_root_style == 1 || has_variant == 1 )); then
+        FAMILIES+=("$fam")
+    fi
+done < <(find -L "$BASE" -mindepth 1 -maxdepth 1 -type d -print0)
+
 if [[ ${#FAMILIES[@]} -eq 0 ]]; then
-    echo "No theme families found under $BASE"
+    echo "No theme families with styles found under $BASE"
     exit 1
 fi
+IFS=$'\n' FAMILIES=( $(printf '%s\n' "${FAMILIES[@]}" | sort -u) ); unset IFS
 
 SEL_FAMILY="$(printf '%s\n' "${FAMILIES[@]}" | menu_pick "Waybar theme")"
 [[ -n "${SEL_FAMILY:-}" ]] || { echo "No selection made."; exit 1; }
 
 FAM_DIR="$BASE/$SEL_FAMILY"
 
-# 2) varianten = submappen met style.css of style-custom.css
-VARIANTS=()
-while IFS= read -r -d '' d; do
-    b="$(basename "$d")"
-    VARIANTS+=("$b")
-done < <(find -L "$FAM_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
-
-# filter op aanwezigheid style.css / style-custom.css
+# --- 2) Variants for this family (subdirs that contain style.css or style-custom.css) ---
 FILTERED=()
-for v in "${VARIANTS[@]}"; do
-    if [[ -f "$FAM_DIR/$v/style.css" || -f "$FAM_DIR/$v/style-custom.css" ]]; then
-        FILTERED+=("$v")
+for vdir in "$FAM_DIR"/*/ ; do
+    [[ -d "$vdir" ]] || continue
+    if [[ -f "$vdir/style.css" || -f "$vdir/style-custom.css" ]]; then
+        FILTERED+=( "$(basename "$vdir")" )
     fi
 done
 
@@ -84,6 +101,6 @@ fi
 SEL_VARIANT="$(printf '%s\n' "${FILTERED[@]}" | menu_pick "$SEL_FAMILY variant")"
 [[ -n "${SEL_VARIANT:-}" ]] || { echo "No selection made."; exit 1; }
 
-# 3) switch
+# --- 3) Switch ---
 switch_theme "$SEL_FAMILY/$SEL_VARIANT"
 
