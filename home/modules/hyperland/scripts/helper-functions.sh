@@ -118,9 +118,12 @@ switch_theme() {
     #   2) replace literal ~/colors.css -> colors.css,
     #   3) always prepend an import for colors.css
     if [[ -n "$css_src" && -e "$css_src" ]]; then
-        cp "$css_src" "$cur/style.resolved.css"
+    # Always build a safe, preprocessed CSS
+        cp -f "$css_src" "$cur/style.resolved.css"
         sed -i -e 's#~/colors\.css#colors.css#g' "$cur/style.resolved.css"
-        printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css" && mv "$cur/.tmp.css" "$cur/style.resolved.css"
+        printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
+        mv -f "$cur/.tmp.css" "$cur/style.resolved.css"
+        chmod 0644 "$cur/style.resolved.css"
     else
         printf '@import url("colors.css");\n' > "$cur/style.resolved.css"
     fi
