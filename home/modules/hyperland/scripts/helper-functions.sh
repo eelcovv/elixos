@@ -15,12 +15,30 @@ notify() {
     fi
 }
 
+# List variants as "theme/variant" under $base (default: ~/.config/waybar/themes).
+# Criteria: variant dir contains style.css or style-custom.css. We do NOT require config.jsonc here,
+# because many themes keep config.jsonc at the theme root.
 list_theme_variants() {
-    # Arg (optional): <base_dir>; default = ~/.config/waybar/themes
     local base="${1:-$HOME/.config/waybar/themes}"
-    find "$base" -mindepth 1 -maxdepth 2 -type f \( -name 'style.css' -o -name 'style-custom.css' \) -printf '%P\n' 2>/dev/null \
-        | sed -E 's#/style(-custom)?\.css$##' \
-        | sort -u
+
+    [[ -d "$base" ]] || return 0
+
+    # Follow symlinks (-L) and look exactly one level below each theme (depth 2 total)
+    # for files named style.css or style-custom.css; print the parent dir of those files.
+    local IFS=$'\n'
+    local hits=()
+    mapfile -t hits < <(find -L "$base" \
+        -mindepth 2 -maxdepth 2 -type f \( -name 'style.css' -o -name 'style-custom.css' \) \
+        -printf '%h\n' | sort -u)
+
+    # Emit relative paths "theme/variant"
+    local dir rel
+    for dir in "${hits[@]}"; do
+        rel="${dir#$base/}"
+        # Skip anything that doesn’t look like theme/variant (defensive)
+        [[ "$rel" == */* ]] || continue
+        printf '%s\n' "$rel"
+    done
 }
 
 ensure_theme_variant() {
@@ -36,16 +54,6 @@ ensure_theme_variant() {
         return 1
     fi
 }
-
-_pick_first() {
-    # Echo the first existing path among args.
-    local p
-    for p in "$@"; do
-        [[ -e "$p" ]] && { printf '%s\n' "$p"; return 0; }
-    done
-    return 1
-}
-
 
 switch_theme() {
     # Args: <theme/variant>; populates ~/.config/waybar/current/* with best-available targets.
@@ -115,20 +123,19 @@ switch_theme() {
 
     # Always produce a safe, preprocessed CSS:
     # 1) remove any @import url(...colors.css),
-    # 2) rewrite absolute/tilde colors.css to relative,
-    # 3) prepend exactly one safe import to local palette.
-    # Always produce a safe, preprocessed CSS
+    # 2) rewrite parent-relative imports to the theme dir (avoid recursion),
+    # 3) prepend exactly one safe import to the local palette.
     if [[ -n "$css_src" && -e "$css_src" ]]; then
         cp -f "$css_src" "$cur/style.resolved.css"
 
         # Remove ANY @import of colors.css (url(...), '...', "...")
         perl -0777 -pe 's/^\s*@import[^\n]*colors\.css[^\n]*\n//gmi' -i "$cur/style.resolved.css"
 
-        # Rewrite parent-relative imports to live under the theme dir, to avoid recursion via ~/.config/waybar/style.css
+        # Rewrite parent-relative imports to live under the theme dir
         # ../style.css  ->  <theme_dir>/style.css
-        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\\.{2}/style\\.css['\"]?\\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\"]?\\.{2}/style\\.css['\"]?\\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
         # ../whatever.css  ->  <theme_dir>/whatever.css
-        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\\.{2}/([^'\"\)]+)['\"]?\\)?;#@import url(\"$theme_dir/\\2\");#g" "$cur/style.resolved.css"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\"]?\\.{2}/([^'\"\\)]+)['\"]?\\)?;#@import url(\"$theme_dir/\\2\");#g" "$cur/style.resolved.css"
 
         # Prepend exactly one safe import to the local palette
         printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
@@ -136,10 +143,16 @@ switch_theme() {
     else
         printf '@import url("colors.css");\n' > "$cur/style.resolved.css"
     fi
-    chmod 0644 "$cur/style.resolved.css"
-
 
     chmod 0644 "$cur/style.resolved.css"
-    systemctl --user restart waybar.service
+
+    # Prefer systemd service; otherwise try hot-reload a direct Waybar process
+    if systemctl --user is-enabled waybar.service >/dev/null 2>&1 || systemctl --user is-active waybar.service >/dev/null 2>&1; then
+        systemctl --user restart waybar.service || true
+    else
+        pkill -USR2 waybar 2>/dev/null || true
+    fi
+
     notify "Waybar theme" "Applied: $theme"
 }
+

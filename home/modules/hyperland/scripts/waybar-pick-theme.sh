@@ -11,6 +11,7 @@ HELPER_CANDIDATES=(
     "${XDG_DATA_HOME:-$HOME/.local/share}/waybar-theme/helper-functions.sh"
     "$(dirname -- "${BASH_SOURCE[0]}")/helper-functions.sh"
 )
+
 FOUND=""
 for f in "${HELPER_CANDIDATES[@]}"; do
     if [[ -r "$f" ]]; then
@@ -25,9 +26,28 @@ if [[ -z "$FOUND" ]]; then
     exit 1
 fi
 
-BASE="$HOME/.config/waybar/themes"
+# Base themes directory (allow optional override as first arg)
+BASE="${1:-$HOME/.config/waybar/themes}"
 
-mapfile -t OPTIONS < <(list_theme_variants "$BASE")
+# Local fallback scanner: find theme/variant dirs that contain style.css or style-custom.css
+scan_variants_fallback() {
+    local base="$1"
+    [[ -d "$base" ]] || return 0
+    find -L "$base" \
+        -mindepth 2 -maxdepth 2 -type f \( -name 'style.css' -o -name 'style-custom.css' \) \
+        -printf '%h\n' | sed "s|^$base/||" | sort -u
+}
+
+# Collect options:
+# 1) If helper provided list_theme_variants, use it
+# 2) If empty, run the local fallback scanner
+OPTIONS=()
+if command -v list_theme_variants >/dev/null 2>&1; then
+    mapfile -t OPTIONS < <(list_theme_variants "$BASE")
+fi
+if [[ ${#OPTIONS[@]} -eq 0 ]]; then
+    mapfile -t OPTIONS < <(scan_variants_fallback "$BASE")
+fi
 if [[ ${#OPTIONS[@]} -eq 0 ]]; then
     echo "No theme variants found under $BASE"
     exit 1
@@ -42,6 +62,7 @@ pick_with_menu() {
     elif command -v fzf >/dev/null 2>&1; then
         printf '%s\n' "${OPTIONS[@]}" | fzf --prompt "$prompt> "
     else
+        # No menu program; default to the first option
         printf '%s\n' "${OPTIONS[0]}"
     fi
 }
@@ -52,5 +73,14 @@ if [[ -z "${SEL:-}" ]]; then
     exit 1
 fi
 
+# Ensure switch_theme exists (provided by the helper)
+if ! command -v switch_theme >/dev/null 2>&1; then
+    echo "switch_theme not found in helper: $FOUND" >&2
+    exit 1
+fi
+
 switch_theme "$SEL"
+
+# Optional terminal echo (switch_theme typically does notify-send already)
+echo "Waybar theme applied: $SEL"
 
