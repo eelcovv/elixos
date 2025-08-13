@@ -158,30 +158,53 @@ in {
   # Waybar via systemd user service (do NOT autostart via Hyprland exec-once)
   programs.waybar.enable = true;
   programs.waybar.systemd.enable = true;
-
   ################################
   # Rofi (pure + CWD-proof imports)
   ################################
   # Expose the theme tree (so sub-imports remain available)
   xdg.configFile."rofi/themes".source = "${rofiRoot}/themes";
 
-  # Ensure these two exist (theme version if available, else safe stubs)
+  # Local fallbacks (use theme files if present, else safe stubs)
   xdg.configFile."rofi/wallpaper.rasi" =
     if builtins.pathExists "${rofiThemePath}/wallpaper.rasi"
     then {source = "${rofiThemePath}/wallpaper.rasi";}
-    else {text = "* {}\n";};
+    else {text = ''* { current-image: none; }'';};
 
   xdg.configFile."rofi/font.rasi" =
     if builtins.pathExists "${rofiThemePath}/font.rasi"
     then {source = "${rofiThemePath}/font.rasi";}
     else {text = ''* { font: "Inter 10"; }'';};
 
+  xdg.configFile."rofi/colors.rasi" =
+    if builtins.pathExists "${rofiThemePath}/colors.rasi"
+    then {source = "${rofiThemePath}/colors.rasi";}
+    else {
+      text = ''
+        * {
+          background: #1e1e2e;
+          foreground: #cdd6f4;
+          color5:     #89b4fa;
+          color11:    #f9e2af;
+        }
+      '';
+    };
+
+  xdg.configFile."rofi/border.rasi" =
+    if builtins.pathExists "${rofiThemePath}/border.rasi"
+    then {source = "${rofiThemePath}/border.rasi";}
+    else {text = ''* { border-width: 2; }'';};
+
+  xdg.configFile."rofi/border-radius.rasi" =
+    if builtins.pathExists "${rofiThemePath}/border-radius.rasi"
+    then {source = "${rofiThemePath}/border-radius.rasi";}
+    else {text = ''* { border-radius: 8px; }'';};
+
   # Top-level config: always import the patched theme config below
   xdg.configFile."rofi/config.rasi".text = ''
     @import "${config.xdg.configHome}/rofi/_patched/config.rasi"
   '';
 
-  # Patch the theme's config.rasi so all imports resolve predictably
+  # Patch the theme's config.rasi so imports resolve to local copies or the theme dir in the store
   home.activation.rofiPatch = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
     CFG="$HOME/.config/rofi"
@@ -191,18 +214,24 @@ in {
     if [ -e "$SRC" ]; then
         cp -f "$SRC" "$CFG/_patched/config.rasi"
 
-        # 1) Force wallpaper/font imports to ~/.config/rofi/… (works even without theme-provided files)
+        # Force known fragments to ~/.config/rofi/…
         sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*wallpaper\\.rasi['\\\"]?\\)?;#@import \"$CFG/wallpaper.rasi\";#g" "$CFG/_patched/config.rasi"
-        sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*font\\.rasi['\\\"]?\\)?;#@import \"$CFG/font.rasi\";#g" "$CFG/_patched/config.rasi"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*font\\.rasi['\\\"]?\\)?;#@import \"$CFG/font.rasi\";#g"         "$CFG/_patched/config.rasi"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*colors\\.rasi['\\\"]?\\)?;#@import \"$CFG/colors.rasi\";#g"     "$CFG/_patched/config.rasi"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*border\\.rasi['\\\"]?\\)?;#@import \"$CFG/border.rasi\";#g"     "$CFG/_patched/config.rasi"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*border-radius\\.rasi['\\\"]?\\)?;#@import \"$CFG/border-radius.rasi\";#g" "$CFG/_patched/config.rasi"
 
-        # 2) Rewrite any other *bare* .rasi import (no slash) to the theme directory in the Nix store,
-        #    e.g. @import "colors.rasi"; -> @import "<store>/colors.rasi";
+        # For any other *bare* .rasi (no slash), rewrite to the theme dir in the store
         sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?([^/][^'\\\")]*\\.rasi)['\\\"]?\\)?;#@import \"${rofiThemePath}/\\2\";#g" "$CFG/_patched/config.rasi"
     else
-        # Minimal fallback if the theme has no config.rasi
         printf '@theme \"gruvbox-dark\"\\n' > "$CFG/_patched/config.rasi"
     fi
   '';
+
+  # (Optional but recommended) ensure Rofi uses our config
+  home.sessionVariables = {
+    ROFI_CONFIG = "${config.xdg.configHome}/rofi/config.rasi";
+  };
 
   ################################
   # Hyprpaper defaults
