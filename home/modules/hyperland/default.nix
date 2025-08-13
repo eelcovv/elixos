@@ -70,7 +70,7 @@ in {
 
   # Global fallbacks (used if a theme/variant lacks these files)
   xdg.configFile."waybar/modules.jsonc".source = "${waybarDir}/modules.jsonc";
-  xdg.configFile."waybar/colors.css".source = "${waybarDir}/colors.css";
+  xdg.configFile."waybar/colors.css".source    = "${waybarDir}/colors.css";
 
   # Stable top-level config that includes the *resolved* files in current/
   xdg.configFile."waybar/config.jsonc".text = ''
@@ -83,89 +83,57 @@ in {
     }
   '';
 
-  # Stable stylesheet that imports from current/
+  # IMPORTANT: only import the resolved CSS (never raw variant CSS)
   xdg.configFile."waybar/style.css".text = ''
-    /* Delegate styling to the resolved current files */
-    @import url("current/style.css");
-    @import url("current/colors.css");
+    /* Always use the preprocessed CSS produced in ~/.config/waybar/current/ */
+    @import url("current/style.resolved.css");
   '';
 
-  # Ensure ~/.config/waybar/current/ is a directory (not a symlink).
-  # Create it if missing, or replace a legacy symlink with a directory.
-  # Also seed it with default fallbacks on first install to avoid a broken bar.
-  home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  # Ensure ~/.config/waybar/current/ is a directory (not a symlink) and seed safe defaults.
+  home.activation.initWaybarCurrent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     CFG="$HOME/.config/waybar"
     BASE="$CFG/themes"
     CUR="$CFG/current"
 
     mkdir -p "$CFG"
-
+    # Replace legacy symlink with a directory
     if [ -L "$CUR" ]; then
       rm -f "$CUR"
     fi
     mkdir -p "$CUR"
 
-    # Seed defaults only if files are not present yet
-    pick_first() {
-      # echo the first existing path among arguments
-      for p in "$@"; do
-        [ -e "$p" ] && { printf '%s\n' "$p"; return 0; }
-      done
-      return 1
-    }
+    pick_first() { for p in "$@"; do [ -e "$p" ] && { printf '%s\n' "$p"; return 0; }; done; return 1; }
 
-    # Defaults
     DEF="$BASE/default"
     MOD_GLOBAL="$CFG/modules.jsonc"
     COL_GLOBAL="$CFG/colors.css"
 
-    # Populate missing links with safe fallbacks
-    [ -e "$CUR/config.jsonc" ] || ln -sfn "$(pick_first "$DEF/config.jsonc")" "$CUR/config.jsonc" || true
-    [ -e "$CUR/modules.jsonc" ] || ln -sfn "$(pick_first "$DEF/modules.jsonc" "$MOD_GLOBAL")" "$CUR/modules.jsonc" || true
-    [ -e "$CUR/style.css"    ] || ln -sfn "$(pick_first "$DEF/style.css" "$DEF/style-custom.css")" "$CUR/style.css" || true
-    [ -e "$CUR/colors.css"   ] || ln -sfn "$(pick_first "$DEF/colors.css" "$COL_GLOBAL")" "$CUR/colors.css" || true
+    CFG_SRC="$(pick_first "$DEF/config.jsonc")"
+    MOD_SRC="$(pick_first "$DEF/modules.jsonc" "$MOD_GLOBAL")"
+    CSS_SRC="$(pick_first "$DEF/style.css" "$DEF/style-custom.css")"
+    COL_SRC="$(pick_first "$DEF/colors.css" "$COL_GLOBAL")"
+
+    [ -n "$CFG_SRC" ] && ln -sfn "$CFG_SRC" "$CUR/config.jsonc"
+    [ -n "$MOD_SRC" ] && ln -sfn "$MOD_SRC" "$CUR/modules.jsonc"
+    [ -n "$COL_SRC" ] && ln -sfn "$COL_SRC" "$CUR/colors.css" || : > "$CUR/colors.css"
+
+    # Build a safe resolved CSS that never references ~/colors.css
+    if [ -n "$CSS_SRC" ]; then
+      sed -E '
+        s#@import[[:space:]]+url\((["'"'"']?)~/colors\.css\1\);[[:space:]]*##g;
+        s#~/colors\.css#colors.css#g;
+      ' "$CSS_SRC" > "$CUR/style.resolved.css"
+      # Ensure the palette is available even if the original CSS never imported it
+      if ! grep -Eq '(^|[/"'\''])colors\.css([/"'\'']|$)' "$CUR/style.resolved.css"; then
+        printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css" && mv "$CUR/.tmp.css" "$CUR/style.resolved.css"
+      fi
+    else
+      : > "$CUR/style.resolved.css"
+    fi
   '';
 
   # Waybar via systemd user service (do NOT autostart via Hyprland exec-once)
   programs.waybar.enable = true;
   programs.waybar.systemd.enable = true;
 
-  ################################
-  # Rofi (static default; pure)
-  ################################
-  xdg.configFile."rofi/config.rasi".source = "${rofiThemePath}/config.rasi";
-  xdg.configFile."rofi/colors.rasi".source = "${rofiThemePath}/colors.rasi";
-
-  ################################
-  # Hyprpaper defaults
-  ################################
-  xdg.configFile."hypr/hyprpaper.conf".text = ''
-    preload = ${wallpaperTargetDir}/default.png
-    wallpaper = ,${wallpaperTargetDir}/default.png
-    splash = false
-  '';
-
-  # Default wallpaper + waypaper
-  xdg.configFile."wallpapers/default.png".source = "${wallpaperDir}/nixos.png";
-  xdg.configFile."waypaper".source = "${hyprDir}/waypaper";
-
-  ################################
-  # Scripts & helper installation
-  ################################
-  # Add ~/.local/bin to PATH
-  home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
-
-  # Helper under ~/.local/lib/waybar-theme/
-  home.file.".local/lib/waybar-theme/helper-functions.sh".text =
-    builtins.readFile ./scripts/helper-functions.sh;
-  home.file.".local/lib/waybar-theme/helper-functions.sh".executable = true;
-
-  # Switch/pick scripts under ~/.local/bin/
-  home.file.".local/bin/waybar-switch-theme".text =
-    builtins.readFile ./scripts/waybar-switch-theme.sh;
-  home.file.".local/bin/waybar-switch-theme".executable = true;
-
-  home.file.".local/bin/waybar-pick-theme".text =
-    builtins.readFile ./scripts/waybar-pick-theme.sh;
-  home.file.".local/bin/waybar-pick-theme".executable = true;
 }
