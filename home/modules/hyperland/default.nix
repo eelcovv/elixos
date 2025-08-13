@@ -165,7 +165,7 @@ in {
   # Expose the theme tree (so sub-imports remain available)
   xdg.configFile."rofi/themes".source = "${rofiRoot}/themes";
 
-  # Ensure these two exist (use theme-provided file if present; otherwise safe stubs)
+  # Ensure these two exist (theme version if available, else safe stubs)
   xdg.configFile."rofi/wallpaper.rasi" =
     if builtins.pathExists "${rofiThemePath}/wallpaper.rasi"
     then {source = "${rofiThemePath}/wallpaper.rasi";}
@@ -183,6 +183,7 @@ in {
 
   # Patch the theme's config.rasi so all imports resolve predictably
   home.activation.rofiPatch = lib.hm.dag.entryAfter ["linkGeneration"] ''
+    set -eu
     CFG="$HOME/.config/rofi"
     mkdir -p "$CFG/_patched"
     SRC="${rofiThemePath}/config.rasi"
@@ -191,15 +192,15 @@ in {
         cp -f "$SRC" "$CFG/_patched/config.rasi"
 
         # 1) Force wallpaper/font imports to ~/.config/rofi/… (works even without theme-provided files)
-        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?[^'\"\\)]*wallpaper\\.rasi['\"]?\\)?;#@import \"$CFG/wallpaper.rasi\";#g" "$CFG/_patched/config.rasi"
-        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?[^'\"\\)]*font\\.rasi['\"]?\\)?;#@import \"$CFG/font.rasi\";#g" "$CFG/_patched/config.rasi"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*wallpaper\\.rasi['\\\"]?\\)?;#@import \"$CFG/wallpaper.rasi\";#g" "$CFG/_patched/config.rasi"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?[^'\\\")]*font\\.rasi['\\\"]?\\)?;#@import \"$CFG/font.rasi\";#g" "$CFG/_patched/config.rasi"
 
         # 2) Rewrite any other *bare* .rasi import (no slash) to the theme directory in the Nix store,
         #    e.g. @import "colors.rasi"; -> @import "<store>/colors.rasi";
-        sed -i -E "s#@import[[:space:]]+(url\\()?['\"]?([^/'\"\\)]+\\.rasi)['\"]?\\)?;#@import \"${rofiThemePath}/\\2\";#g" "$CFG/_patched/config.rasi"
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\\\"]?([^/][^'\\\")]*\\.rasi)['\\\"]?\\)?;#@import \"${rofiThemePath}/\\2\";#g" "$CFG/_patched/config.rasi"
     else
         # Minimal fallback if the theme has no config.rasi
-        printf '@theme \"gruvbox-dark\"\n' > "$CFG/_patched/config.rasi"
+        printf '@theme \"gruvbox-dark\"\\n' > "$CFG/_patched/config.rasi"
     fi
   '';
 
