@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-# Interactive picker: choose a variant, then delegate to switch_theme.
+# Two-step picker: pick theme family, then variant; delegate to switch_theme.
 # shellcheck shell=bash
 set -euo pipefail
 
 # Prefer installed helper; fall back to repo-local during development.
-# Tell ShellCheck where to find it in-repo:
 # shellcheck source=./helper-functions.sh
 HELPER_CANDIDATES=(
     "$HOME/.local/lib/waybar-theme/helper-functions.sh"
     "${XDG_DATA_HOME:-$HOME/.local/share}/waybar-theme/helper-functions.sh"
     "$(dirname -- "${BASH_SOURCE[0]}")/helper-functions.sh"
 )
-
 FOUND=""
 for f in "${HELPER_CANDIDATES[@]}"; do
     if [[ -r "$f" ]]; then
@@ -26,65 +24,66 @@ if [[ -z "$FOUND" ]]; then
     exit 1
 fi
 
-# Base themes directory (allow optional override as first arg)
-BASE="${1:-$HOME/.config/waybar/themes}"
+BASE="$HOME/.config/waybar/themes"
+[[ -d "$BASE" ]] || { echo "No themes dir at $BASE"; exit 1; }
 
-# Local fallback scanner: find theme/variant dirs that contain style.css or style-custom.css
-scan_variants_fallback() {
-    local base="$1"
-    [[ -d "$base" ]] || return 0
-    find -L "$base" \
-        -mindepth 2 -maxdepth 2 -type f \( -name 'style.css' -o -name 'style-custom.css' \) \
-        -printf '%h\n' | sed "s|^$base/||" | sort -u
-}
-
-# Collect options:
-# 1) If helper provided list_theme_variants, use it
-# 2) If empty, run the local fallback scanner
-OPTIONS=()
-if command -v list_theme_variants >/dev/null 2>&1; then
-    mapfile -t OPTIONS < <(list_theme_variants "$BASE")
-fi
-if [[ ${#OPTIONS[@]} -eq 0 ]]; then
-    mapfile -t OPTIONS < <(scan_variants_fallback "$BASE")
-fi
-if [[ ${#OPTIONS[@]} -eq 0 ]]; then
-    echo "No theme variants found under $BASE"
-    exit 1
-fi
-
-pick_with_menu() {
-    local prompt="Waybar theme"
+# --- helpers for menu ---
+menu_pick() {
+    # args: prompt
+    local prompt="$1"
     if command -v rofi >/dev/null 2>&1; then
-        # Use rofi in "clean" mode (ignore user config), show 30 lines, no icons.
-        printf '%s\n' "${OPTIONS[@]}" \
-        | rofi -no-config -dmenu -p "$prompt" -i \
-                -show-icons - \
-                -theme-str 'window { width: 40ch; } listview { lines: 30; }'
+        rofi -dmenu -p "$prompt" -i
     elif command -v wofi >/dev/null 2>&1; then
-        printf '%s\n' "${OPTIONS[@]}" | wofi --dmenu -p "$prompt"
+        wofi --dmenu -p "$prompt"
     elif command -v fzf >/dev/null 2>&1; then
-        printf '%s\n' "${OPTIONS[@]}" | fzf --prompt "$prompt> "
+        fzf --prompt "$prompt> "
     else
-        printf '%s\n' "${OPTIONS[0]}"
+        # dumb fallback: pick the first line
+        head -n1
     fi
 }
 
-
-SEL="$(pick_with_menu || true)"
-if [[ -z "${SEL:-}" ]]; then
-    echo "No selection made."
+# 1) families = alle directe submappen
+mapfile -t FAMILIES < <(find -L "$BASE" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+if [[ ${#FAMILIES[@]} -eq 0 ]]; then
+    echo "No theme families found under $BASE"
     exit 1
 fi
 
-# Ensure switch_theme exists (provided by the helper)
-if ! command -v switch_theme >/dev/null 2>&1; then
-    echo "switch_theme not found in helper: $FOUND" >&2
-    exit 1
+SEL_FAMILY="$(printf '%s\n' "${FAMILIES[@]}" | menu_pick "Waybar theme")"
+[[ -n "${SEL_FAMILY:-}" ]] || { echo "No selection made."; exit 1; }
+
+FAM_DIR="$BASE/$SEL_FAMILY"
+
+# 2) varianten = submappen met style.css of style-custom.css
+VARIANTS=()
+while IFS= read -r -d '' d; do
+    b="$(basename "$d")"
+    VARIANTS+=("$b")
+done < <(find -L "$FAM_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
+
+# filter op aanwezigheid style.css / style-custom.css
+FILTERED=()
+for v in "${VARIANTS[@]}"; do
+    if [[ -f "$FAM_DIR/$v/style.css" || -f "$FAM_DIR/$v/style-custom.css" ]]; then
+        FILTERED+=("$v")
+    fi
+done
+
+if [[ ${#FILTERED[@]} -eq 0 ]]; then
+    # geen sub-varianten → gebruik root (family) als “variant” als daar style.css(-custom) staat
+    if [[ -f "$FAM_DIR/style.css" || -f "$FAM_DIR/style-custom.css" ]]; then
+        switch_theme "$SEL_FAMILY"
+        exit 0
+    else
+        echo "Theme '$SEL_FAMILY' has no variants and no root style.css"
+        exit 1
+    fi
 fi
 
-switch_theme "$SEL"
+SEL_VARIANT="$(printf '%s\n' "${FILTERED[@]}" | menu_pick "$SEL_FAMILY variant")"
+[[ -n "${SEL_VARIANT:-}" ]] || { echo "No selection made."; exit 1; }
 
-# Optional terminal echo (switch_theme typically does notify-send already)
-echo "Waybar theme applied: $SEL"
+# 3) switch
+switch_theme "$SEL_FAMILY/$SEL_VARIANT"
 

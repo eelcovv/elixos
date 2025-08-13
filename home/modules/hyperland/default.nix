@@ -173,7 +173,15 @@ in {
   xdg.configFile."rofi/font.rasi" =
     if builtins.pathExists "${rofiThemePath}/font.rasi"
     then {source = "${rofiThemePath}/font.rasi";}
-    else {text = ''* { font: "Inter 10"; }'';};
+    else {text = ''* { font: "Fira Sans 11"; }'';};
+
+  xdg.configFile."rofi/spacing.rasi".text = ''
+    * {
+      spacing: 2px;
+      padding: 2px;
+      margin: 0px;
+    }
+  '';
 
   xdg.configFile."rofi/colors.rasi" =
     if builtins.pathExists "${rofiThemePath}/colors.rasi"
