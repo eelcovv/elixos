@@ -89,8 +89,6 @@ in {
 
   # Ensure ~/.config/waybar/current/ is a directory and seed safe defaults.
   # Run AFTER linkGeneration so ~/.config/waybar/themes exists.
-  # Ensure ~/.config/waybar/current/ is a directory and seed safe defaults.
-  # Run AFTER linkGeneration so ~/.config/waybar/themes exists.
   home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["linkGeneration"] ''
     CFG="$HOME/.config/waybar"
     BASE="$CFG/themes"
@@ -139,23 +137,22 @@ in {
     if [ -n "$CSS_SRC" ]; then
         cp -f "$CSS_SRC" "$CUR/style.resolved.css"
 
-        # Prevent recursion during rebuilds
+        # Prevent recursion during rebuilds (parent import back to top-level style)
         sed -i -E '/@import.*\.\.\/style\.css/d' "$CUR/style.resolved.css"
 
-        # 1) Remove ANY @import of colors.css (handles url(...), '...', "...")
+        # Remove ANY @import of colors.css (handles url(...), '...', "...")
         sed -i -E '/@import.*colors\.css/d' "$CUR/style.resolved.css"
 
         # (Optional) also drop other parent imports in the seed to be extra safe
         # sed -i -E '/@import.*\.\.\//d' "$CUR/style.resolved.css"
 
-        # 2) Prepend exactly one safe import to the local palette
+        # Prepend exactly one safe import to the local palette
         printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css"
         mv -f "$CUR/.tmp.css" "$CUR/style.resolved.css"
     else
         printf '@import url("colors.css");\n' > "$CUR/style.resolved.css"
     fi
     chmod 0644 "$CUR/style.resolved.css"
-
   '';
 
   # Waybar via systemd user service (do NOT autostart via Hyprland exec-once)
@@ -163,10 +160,43 @@ in {
   programs.waybar.systemd.enable = true;
 
   ################################
-  # Rofi (static default; pure)
+  # Rofi (pure + CWD-proof imports)
   ################################
-  xdg.configFile."rofi/config.rasi".source = "${rofiThemePath}/config.rasi";
-  xdg.configFile."rofi/colors.rasi".source = "${rofiThemePath}/colors.rasi";
+  # Expose the theme tree (so sub-imports remain available)
+  xdg.configFile."rofi/themes".source = "${rofiRoot}/themes";
+
+  # Ensure these two exist (use theme-provided file if present; otherwise safe stubs)
+  xdg.configFile."rofi/wallpaper.rasi" =
+    if builtins.pathExists "${rofiThemePath}/wallpaper.rasi"
+    then {source = "${rofiThemePath}/wallpaper.rasi";}
+    else {text = "* {}\n";};
+
+  xdg.configFile."rofi/font.rasi" =
+    if builtins.pathExists "${rofiThemePath}/font.rasi"
+    then {source = "${rofiThemePath}/font.rasi";}
+    else {text = ''* { font: "Inter 10"; }'';};
+
+  # Top-level config: always import the patched theme config below
+  xdg.configFile."rofi/config.rasi".text = ''
+    @import "${config.xdg.configHome}/rofi/_patched/config.rasi"
+  '';
+
+  # Patch the theme's config.rasi so any wallpaper/font imports point to ~/.config/rofi/...
+  home.activation.rofiPatch = lib.hm.dag.entryAfter ["linkGeneration"] ''
+    CFG="$HOME/.config/rofi"
+    mkdir -p "$CFG/_patched"
+    SRC="${rofiThemePath}/config.rasi"
+
+    if [ -e "$SRC" ]; then
+        cp -f "$SRC" "$CFG/_patched/config.rasi"
+        # Rewrite any import of wallpaper.rasi / font.rasi (url(...), '...', "...")
+        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?[^'\"\\)]*wallpaper\\.rasi['\"]?\\)?;#@import \"$CFG/wallpaper.rasi\";#g" "$CFG/_patched/config.rasi"
+        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?[^'\"\\)]*font\\.rasi['\"]?\\)?;#@import \"$CFG/font.rasi\";#g" "$CFG/_patched/config.rasi"
+    else
+        # Fallback minimal config if the theme has no config.rasi
+        printf '@theme "gruvbox-dark"\n' > "$CFG/_patched/config.rasi"
+    fi
+  '';
 
   ################################
   # Hyprpaper defaults
