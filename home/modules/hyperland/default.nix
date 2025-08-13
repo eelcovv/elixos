@@ -63,19 +63,18 @@ in {
   xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
   ################################
-  # Waybar (pure: variant picked at runtime via ~/.config/waybar/current/)
+  # Waybar (pure: select variant at runtime via ~/.config/waybar/current/)
   ################################
-  # Install the complete themes tree (read-only link to store)
+  # Read-only themes tree from the Nix store
   xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
 
   # Global fallbacks (used if a theme/variant lacks these files)
   xdg.configFile."waybar/modules.jsonc".source = "${waybarDir}/modules.jsonc";
-  xdg.configFile."waybar/colors.css".source    = "${waybarDir}/colors.css";
+  xdg.configFile."waybar/colors.css".source = "${waybarDir}/colors.css";
 
-  # Stable top-level config that includes the *resolved* files in current/
+  # Top-level config includes the *resolved* files in current/
   xdg.configFile."waybar/config.jsonc".text = ''
     {
-      // Load files that our helper populates inside ~/.config/waybar/current/
       "include": [
         "~/.config/waybar/current/config.jsonc",
         "~/.config/waybar/current/modules.jsonc"
@@ -83,57 +82,65 @@ in {
     }
   '';
 
-  # IMPORTANT: only import the resolved CSS (never raw variant CSS)
+  # IMPORTANT: always import the preprocessed CSS produced in ~/.config/waybar/current/
   xdg.configFile."waybar/style.css".text = ''
-    /* Always use the preprocessed CSS produced in ~/.config/waybar/current/ */
     @import url("current/style.resolved.css");
   '';
 
   # Ensure ~/.config/waybar/current/ is a directory (not a symlink) and seed safe defaults.
-  home.activation.initWaybarCurrent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  # We also create a valid style.resolved.css that never references ~/colors.css,
+  # so Waybar cannot crash during rebuilds.
+  home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["writeBoundary"] ''
     CFG="$HOME/.config/waybar"
     BASE="$CFG/themes"
     CUR="$CFG/current"
 
     mkdir -p "$CFG"
-    # Replace legacy symlink with a directory
-    if [ -L "$CUR" ]; then
-      rm -f "$CUR"
-    fi
+    # Replace any legacy symlink with a real directory
+    [ -L "$CUR" ] && rm -f "$CUR"
     mkdir -p "$CUR"
 
-    pick_first() { for p in "$@"; do [ -e "$p" ] && { printf '%s\n' "$p"; return 0; }; done; return 1; }
-
+    # Pick default sources (best effort)
     DEF="$BASE/default"
     MOD_GLOBAL="$CFG/modules.jsonc"
     COL_GLOBAL="$CFG/colors.css"
 
-    CFG_SRC="$(pick_first "$DEF/config.jsonc")"
-    MOD_SRC="$(pick_first "$DEF/modules.jsonc" "$MOD_GLOBAL")"
-    CSS_SRC="$(pick_first "$DEF/style.css" "$DEF/style-custom.css")"
-    COL_SRC="$(pick_first "$DEF/colors.css" "$COL_GLOBAL")"
+    CFG_SRC="$DEF/config.jsonc"
+    [ -e "$CFG_SRC" ] && ln -sfn "$CFG_SRC" "$CUR/config.jsonc"
 
-    [ -n "$CFG_SRC" ] && ln -sfn "$CFG_SRC" "$CUR/config.jsonc"
-    [ -n "$MOD_SRC" ] && ln -sfn "$MOD_SRC" "$CUR/modules.jsonc"
-    [ -n "$COL_SRC" ] && ln -sfn "$COL_SRC" "$CUR/colors.css" || : > "$CUR/colors.css"
+    MOD_SRC="$DEF/modules.jsonc"
+    [ -e "$MOD_SRC" ] || MOD_SRC="$MOD_GLOBAL"
+    [ -n "$MOD_SRC" ] && [ -e "$MOD_SRC" ] && ln -sfn "$MOD_SRC" "$CUR/modules.jsonc"
 
-    # Build a safe resolved CSS that never references ~/colors.css
-    if [ -n "$CSS_SRC" ]; then
-      sed -E '
-        s#@import[[:space:]]+url\((["'"'"']?)~/colors\.css\1\);[[:space:]]*##g;
-        s#~/colors\.css#colors.css#g;
-      ' "$CSS_SRC" > "$CUR/style.resolved.css"
-      # Ensure the palette is available even if the original CSS never imported it
-      if ! grep -Eq '(^|[/"'\''])colors\.css([/"'\'']|$)' "$CUR/style.resolved.css"; then
-        printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css" && mv "$CUR/.tmp.css" "$CUR/style.resolved.css"
-      fi
+    COL_SRC="$DEF/colors.css"
+    [ -e "$COL_SRC" ] || COL_SRC="$COL_GLOBAL"
+    if [ -n "$COL_SRC" ] && [ -e "$COL_SRC" ]; then
+        ln -sfn "$COL_SRC" "$CUR/colors.css"
     else
-      : > "$CUR/style.resolved.css"
+        : > "$CUR/colors.css"
+    fi
+
+    CSS_SRC=""
+    if [ -e "$DEF/style.css" ]; then
+        CSS_SRC="$DEF/style.css"
+    elif [ -e "$DEF/style-custom.css" ]; then
+        CSS_SRC="$DEF/style-custom.css"
+    fi
+
+    if [ -n "$CSS_SRC" ]; then
+        # Build a resolved CSS:
+        #   1) copy the chosen CSS,
+        #   2) replace literal ~/colors.css -> colors.css,
+        #   3) always prepend an import for colors.css
+        cp "$CSS_SRC" "$CUR/style.resolved.css"
+        sed -i -e 's#~/colors\.css#colors.css#g' "$CUR/style.resolved.css"
+        printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css" && mv "$CUR/.tmp.css" "$CUR/style.resolved.css"
+    else
+        printf '@import url("colors.css");\n' > "$CUR/style.resolved.css"
     fi
   '';
 
   # Waybar via systemd user service (do NOT autostart via Hyprland exec-once)
   programs.waybar.enable = true;
   programs.waybar.systemd.enable = true;
-
 }
