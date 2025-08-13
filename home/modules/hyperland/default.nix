@@ -181,7 +181,7 @@ in {
     @import "${config.xdg.configHome}/rofi/_patched/config.rasi"
   '';
 
-  # Patch the theme's config.rasi so any wallpaper/font imports point to ~/.config/rofi/...
+  # Patch the theme's config.rasi so all imports resolve predictably
   home.activation.rofiPatch = lib.hm.dag.entryAfter ["linkGeneration"] ''
     CFG="$HOME/.config/rofi"
     mkdir -p "$CFG/_patched"
@@ -189,12 +189,17 @@ in {
 
     if [ -e "$SRC" ]; then
         cp -f "$SRC" "$CFG/_patched/config.rasi"
-        # Rewrite any import of wallpaper.rasi / font.rasi (url(...), '...', "...")
+
+        # 1) Force wallpaper/font imports to ~/.config/rofi/… (works even without theme-provided files)
         sed -i -E "s#@import[[:space:]]+(url\()?['\"]?[^'\"\\)]*wallpaper\\.rasi['\"]?\\)?;#@import \"$CFG/wallpaper.rasi\";#g" "$CFG/_patched/config.rasi"
         sed -i -E "s#@import[[:space:]]+(url\()?['\"]?[^'\"\\)]*font\\.rasi['\"]?\\)?;#@import \"$CFG/font.rasi\";#g" "$CFG/_patched/config.rasi"
+
+        # 2) Rewrite any other *bare* .rasi import (no slash) to the theme directory in the Nix store,
+        #    e.g. @import "colors.rasi"; -> @import "<store>/colors.rasi";
+        sed -i -E "s#@import[[:space:]]+(url\\()?['\"]?([^/'\"\\)]+\\.rasi)['\"]?\\)?;#@import \"${rofiThemePath}/\\2\";#g" "$CFG/_patched/config.rasi"
     else
-        # Fallback minimal config if the theme has no config.rasi
-        printf '@theme "gruvbox-dark"\n' > "$CFG/_patched/config.rasi"
+        # Minimal fallback if the theme has no config.rasi
+        printf '@theme \"gruvbox-dark\"\n' > "$CFG/_patched/config.rasi"
     fi
   '';
 
