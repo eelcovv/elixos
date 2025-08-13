@@ -89,6 +89,8 @@ in {
 
   # Ensure ~/.config/waybar/current/ is a directory and seed safe defaults.
   # Run AFTER linkGeneration so ~/.config/waybar/themes exists.
+  # Ensure ~/.config/waybar/current/ is a directory and seed safe defaults.
+  # Run AFTER linkGeneration so ~/.config/waybar/themes exists.
   home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["linkGeneration"] ''
     CFG="$HOME/.config/waybar"
     BASE="$CFG/themes"
@@ -133,10 +135,17 @@ in {
         CSS_SRC="$DEF/style-custom.css"
     fi
 
-    # Build a safe resolved CSS that never references ~/colors.css
+    # Build a safe resolved CSS that never pulls from ~/colors.css or /home/*/colors.css
     if [ -n "$CSS_SRC" ]; then
         cp -f "$CSS_SRC" "$CUR/style.resolved.css"
-        sed -i -e 's#~/colors\.css#colors.css#g' "$CUR/style.resolved.css"
+
+        # 1) Remove ANY @import url(...colors.css) line (tilde or absolute path)
+        sed -i -E "/@import[[:space:]]+url\\((['\\\"]?)[^)]*colors\\.css\\1\\)/d" "$CUR/style.resolved.css"
+
+        # 2) Rewrite stray references to colors.css under ~ or /home/* to relative
+        sed -i -E 's#~/colors\.css#colors.css#g; s#/home/[^/]+/colors\.css#colors.css#g' "$CUR/style.resolved.css"
+
+        # 3) Prepend exactly one safe import to the local palette
         printf '@import url("colors.css");\n' | cat - "$CUR/style.resolved.css" > "$CUR/.tmp.css"
         mv -f "$CUR/.tmp.css" "$CUR/style.resolved.css"
     else

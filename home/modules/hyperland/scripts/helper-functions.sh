@@ -113,21 +113,21 @@ switch_theme() {
         : > "$cur/colors.css"
     fi
 
-    # Always build a safe, preprocessed CSS:
-    #   1) copy the chosen CSS,
-    #   2) replace literal ~/colors.css -> colors.css,
-    #   3) always prepend an import for colors.css
+    # Always produce a safe, preprocessed CSS:
+    # 1) remove any @import url(...colors.css),
+    # 2) rewrite absolute/tilde colors.css to relative,
+    # 3) prepend exactly one safe import to local palette.
     if [[ -n "$css_src" && -e "$css_src" ]]; then
-    # Always build a safe, preprocessed CSS
         cp -f "$css_src" "$cur/style.resolved.css"
-        sed -i -e 's#~/colors\.css#colors.css#g' "$cur/style.resolved.css"
+        sed -i -E "/@import[[:space:]]+url\\((['\\\"]?)[^)]*colors\\.css\\1\\)/d" "$cur/style.resolved.css"
+        sed -i -E 's#~/colors\.css#colors.css#g; s#/home/[^/]+/colors\.css#colors.css#g' "$cur/style.resolved.css"
         printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
         mv -f "$cur/.tmp.css" "$cur/style.resolved.css"
-        chmod 0644 "$cur/style.resolved.css"
     else
         printf '@import url("colors.css");\n' > "$cur/style.resolved.css"
     fi
 
+    chmod 0644 "$cur/style.resolved.css"
     systemctl --user restart waybar.service
     notify "Waybar theme" "Applied: $theme"
 }
