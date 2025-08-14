@@ -37,6 +37,21 @@ in {
       waypaper
     ];
 
+    # A custom target we can start from Hyprland to tell systemd-user "the session is up"
+    systemd.user.targets."hyprland-session" = {
+      Unit = {
+        Description = "Hyprland graphical session (user)";
+        Requires = ["graphical-session.target"];
+        After = ["graphical-session.target"];
+      };
+      Install = {
+        WantedBy = ["default.target"];
+      };
+    };
+
+    # Ensure the Waybar service also wants this target (in addition to graphical-session.target)
+    systemd.user.services.waybar.Install.WantedBy = lib.mkAfter ["hyprland-session.target"];
+
     ################################
     # Session environment variables
     ################################
