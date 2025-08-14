@@ -17,6 +17,7 @@
     texlab
     nil
     polkit_gnome
-    p7zip-rar
+    p7zip
+    rar
   ];
 }
