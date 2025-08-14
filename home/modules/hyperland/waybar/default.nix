@@ -1,29 +1,35 @@
-{ config, pkgs, lib, ... }:
-
-let
-  waybarDir  = ./.;           # Root of the Waybar module (themes, colors.css, modules.jsonc)
-  scriptsDir = ./scripts;     # Directory containing Waybar scripts
-  rofiRoot   = ./rofi;        # Optional: Rofi themes for Waybar
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
+  waybarDir = ./.; # Root of the Waybar module (themes, colors.css, modules.jsonc)
+  scriptsDir = ./scripts; # Directory containing Waybar scripts
+  rofiRoot = ./rofi; # Optional: Rofi themes for Waybar
 
   rofiThemePath =
     if builtins.pathExists "${rofiRoot}/themes/default"
     then "${rofiRoot}/themes/default"
     else rofiRoot;
 
-  # Patch scripts to source the shared Hyprland helper
-  patchHelper = path:
-    let orig = builtins.readFile path;
-    in lib.replaceStrings
-      [
-        'source "~/.local/lib/waybar-theme/helper-functions.sh"'
-        'source "$HOME/.local/lib/waybar-theme/helper-functions.sh"'
-        'source ~/.local/lib/waybar-theme/helper-functions.sh'
-      ]
-      (lib.replicate 3 'source "$HOME/.config/hypr/scripts/helper-functions.sh"')
-      orig;
-
-in
-{
+  # Patch scripts so they source the shared Hyprland helper
+  patchHelper = path: let
+    orig = builtins.readFile path;
+  in
+    lib.replaceStrings
+    [
+      "source \"~/.local/lib/waybar-theme/helper-functions.sh\""
+      "source \"$HOME/.local/lib/waybar-theme/helper-functions.sh\""
+      "source ~/.local/lib/waybar-theme/helper-functions.sh"
+    ]
+    [
+      "source \"$HOME/.config/hypr/scripts/helper-functions.sh\""
+      "source \"$HOME/.config/hypr/scripts/helper-functions.sh\""
+      "source \"$HOME/.config/hypr/scripts/helper-functions.sh\""
+    ]
+    orig;
+in {
   ################################
   # Packages for Waybar, Rofi, and notifications
   ################################
@@ -36,9 +42,9 @@ in
   ################################
   # Waybar themes and configuration
   ################################
-  xdg.configFile."waybar/themes".source        = "${waybarDir}/themes";
+  xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
   xdg.configFile."waybar/modules.jsonc".source = "${waybarDir}/modules.jsonc";
-  xdg.configFile."waybar/colors.css".source    = "${waybarDir}/colors.css";
+  xdg.configFile."waybar/colors.css".source = "${waybarDir}/colors.css";
 
   # Top-level Waybar config includes files from current/
   xdg.configFile."waybar/config.jsonc".text = ''
@@ -55,7 +61,7 @@ in
   '';
 
   # Initialize ~/.config/waybar/current/
-  home.activation.initWaybarCurrent = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+  home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["linkGeneration"] ''
     CFG="$HOME/.config/waybar"
     BASE="$CFG/themes"
     CUR="$CFG/current"
@@ -110,30 +116,30 @@ in
 
   xdg.configFile."rofi/wallpaper.rasi" =
     if builtins.pathExists "${rofiThemePath}/wallpaper.rasi"
-    then { source = "${rofiThemePath}/wallpaper.rasi"; }
-    else { text = ''* { current-image: none; }''; };
+    then {source = "${rofiThemePath}/wallpaper.rasi";}
+    else {text = ''* { current-image: none; }'';};
 
   xdg.configFile."rofi/font.rasi" =
     if builtins.pathExists "${rofiThemePath}/font.rasi"
-    then { source = "${rofiThemePath}/font.rasi"; }
-    else { text = ''* { font: "Fira Sans 11"; }''; };
+    then {source = "${rofiThemePath}/font.rasi";}
+    else {text = ''* { font: "Fira Sans 11"; }'';};
 
   xdg.configFile."rofi/spacing.rasi".text = ''* { spacing: 2px; padding: 2px; margin: 0px; }'';
 
   xdg.configFile."rofi/colors.rasi" =
     if builtins.pathExists "${rofiThemePath}/colors.rasi"
-    then { source = "${rofiThemePath}/colors.rasi"; }
-    else { text = ''* { background: #1e1e2e; foreground: #cdd6f4; color5: #89b4fa; color11: #f9e2af; }''; };
+    then {source = "${rofiThemePath}/colors.rasi";}
+    else {text = ''* { background: #1e1e2e; foreground: #cdd6f4; color5: #89b4fa; color11: #f9e2af; }'';};
 
   xdg.configFile."rofi/border.rasi" =
     if builtins.pathExists "${rofiThemePath}/border.rasi"
-    then { source = "${rofiThemePath}/border.rasi"; }
-    else { text = ''* { border-width: 2; }''; };
+    then {source = "${rofiThemePath}/border.rasi";}
+    else {text = ''* { border-width: 2; }'';};
 
   xdg.configFile."rofi/border-radius.rasi" =
     if builtins.pathExists "${rofiThemePath}/border-radius.rasi"
-    then { source = "${rofiThemePath}/border-radius.rasi"; }
-    else { text = ''* { border-radius: 8px; }''; };
+    then {source = "${rofiThemePath}/border-radius.rasi";}
+    else {text = ''* { border-radius: 8px; }'';};
 
   xdg.configFile."rofi/overrides.rasi".text = ''
     * {}
@@ -142,7 +148,7 @@ in
   xdg.configFile."rofi/config.rasi".text = ''
     @import "${config.xdg.configHome}/rofi/_patched/config.rasi"
   '';
-  home.activation.rofiPatch = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+  home.activation.rofiPatch = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
     CFG="$HOME/.config/rofi"
     mkdir -p "$CFG/_patched"
@@ -174,4 +180,3 @@ in
     executable = true;
   };
 }
-
