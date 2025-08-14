@@ -74,7 +74,8 @@ in {
 
     ################################
     # Shared helper functions (used by Waybar/Waypaper)
-    ################################
+    #######################xtension = "hm-bak";
+
     home.file.".config/hypr/scripts/helper-functions.sh" = {
       source = "${hyprDir}/scripts/helper-functions.sh";
       executable = true;
