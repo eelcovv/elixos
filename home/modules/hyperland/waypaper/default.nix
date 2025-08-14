@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   # Directory that contains your wallpaper scripts:
   #   ./scripts/wallpaper.sh
   #   ./scripts/wallpaper-restore.sh
@@ -11,14 +14,13 @@ let
   scriptsDir = ./scripts;
 
   # Read and patch wallpaper.sh so it sources the shared helper/library from ~/.config:
-  patchedWallpaperSh =
-    let
-      original = builtins.readFile (scriptsDir + "/wallpaper.sh");
-    in
+  patchedWallpaperSh = let
+    original = builtins.readFile (scriptsDir + "/wallpaper.sh");
+  in
     lib.replaceStrings
-      [ 'source "./library.sh"' ]
-      [ 'source "$HOME/.config/hypr/scripts/library.sh"' ]
-      original;
+    ["source \"./library.sh\""]
+    ["source \"$HOME/.config/hypr/scripts/library.sh\""]
+    original;
 
   # Helper to install a script file from ./scripts to ~/.local/bin/<name>
   installScript = name: {
@@ -29,8 +31,8 @@ let
   };
 
   # Safe defaults for settings that the scripts expect. Users can override these later.
-  default_effect              = "off\n";
-  default_blur                = "50x30\n";
+  default_effect = "off\n";
+  default_blur = "50x30\n";
   default_automation_interval = "60\n";
 
   # Minimal fallback for library.sh (logger) — use mkDefault so your own file can override it.
@@ -38,30 +40,27 @@ let
     #!/usr/bin/env bash
     _writeLog() { echo ":: $*"; }
   '';
-in
-{
+in {
   options = {
-    # Keep the same toggle name you already used elsewhere
     hyprland.wallpaper.enable = lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
   };
 
   config = lib.mkIf config.hyprland.wallpaper.enable {
-
     ################################
     # Packages required by the scripts
     ################################
     home.packages = with pkgs; [
       waypaper
-      imagemagick           # provides `magick`
+      imagemagick # provides `magick`
       wallust
       matugen
       rofi-wayland
-      libnotify             # notify-send
+      libnotify # notify-send
       swaynotificationcenter
       git
       # optional extras
       nwg-dock-hyprland
-      (python3.withPackages (ps: [ ps.pywalfox ]))
+      (python3.withPackages (ps: [ps.pywalfox]))
     ];
 
     ################################
@@ -89,16 +88,16 @@ in
 
       # Defaults / settings that the scripts read (can be overridden later)
       {
-        ".config/hypr/settings/wallpaper-effect.sh".text      = lib.mkDefault default_effect;
-        ".config/hypr/settings/blur.sh".text                  = lib.mkDefault default_blur;
-        ".config/hypr/settings/wallpaper-automation.sh".text  = lib.mkDefault default_automation_interval;
+        ".config/hypr/settings/wallpaper-effect.sh".text = lib.mkDefault default_effect;
+        ".config/hypr/settings/blur.sh".text = lib.mkDefault default_blur;
+        ".config/hypr/settings/wallpaper-automation.sh".text = lib.mkDefault default_automation_interval;
       }
 
       # Ensure all directories the scripts expect do exist
       {
-        ".config/wallpapers/.keep".text                    = "";
-        ".config/hypr/effects/wallpaper/.keep".text        = "";
-        ".cache/hyprlock-assets/.keep".text                = "";
+        ".config/wallpapers/.keep".text = "";
+        ".config/hypr/effects/wallpaper/.keep".text = "";
+        ".cache/hyprlock-assets/.keep".text = "";
       }
     ];
 
@@ -108,14 +107,14 @@ in
     systemd.user.services."wallpaper-automation" = {
       Unit = {
         Description = "Hypr wallpaper automation (random via waypaper)";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
+        After = ["graphical-session.target"];
+        PartOf = ["graphical-session.target"];
       };
       Service = {
         ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper-automation.sh";
         Restart = "on-failure";
       };
-      Install = { WantedBy = [ "default.target" ]; };
+      Install = {WantedBy = ["default.target"];};
     };
 
     # Not auto-enabled; you can toggle via your script or enable it explicitly:
@@ -124,7 +123,6 @@ in
     ################################
     # PATH convenience
     ################################
-    home.sessionPath = lib.mkAfter [ "$HOME/.local/bin" ];
+    home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }
-
