@@ -1,21 +1,12 @@
-#!/usr/bin/env bash
-#                _ _
-# __      ____ _| | |_ __   __ _ _ __   ___ _ __
-# \ \ /\ / / _` | | | '_ \ / _` | '_ \ / _ \ '__|
-#  \ V  V / (_| | | | |_) | (_| | |_) |  __/ |
-#   \_/\_/ \__,_|_|_| .__/ \__,_| .__/ \___|_|
-#                   |_|         |_|
 
+#!/usr/bin/env bash
 set -euo pipefail
 
-# -----------------------------------------------------
-# Restore last wallpaper
-# -----------------------------------------------------
-
-# Config paths
 hypr_cache_folder="$HOME/.cache/hyprlock-assets"
-default_wallpaper="$HOME/.config/wallpapers/default.jpg"
+default_wallpaper="$HOME/.config/wallpapers/default.png"  # png
 cache_file="$hypr_cache_folder/current_wallpaper"
+# ... rest unchanged ...
+
 
 # -----------------------------------------------------
 # Determine wallpaper to use

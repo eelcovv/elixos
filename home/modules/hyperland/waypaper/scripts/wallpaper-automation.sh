@@ -1,29 +1,24 @@
 #!/usr/bin/env bash
-
-wallpaper_dir="$HOME/.config/hypr/wallpapers"
+set -euo pipefail
 automation_flag="$HOME/.cache/hyprlock-assets/wallpaper-automation"
 interval_file="$HOME/.config/hypr/settings/wallpaper-automation.sh"
 
-if [ ! -f "$interval_file" ]; then
-    echo "60" > "$interval_file"
-fi
+mkdir -p "$(dirname "$automation_flag")" "$(dirname "$interval_file")"
+[[ -f "$interval_file" ]] || echo "60" > "$interval_file"
+sec=$(<"$interval_file")
 
-sec=$(cat "$interval_file")
-
-_setWallpaperRandomly() {
-    waypaper --random
-    echo ":: Next wallpaper in $sec seconds..."
-    sleep "$sec"
-    _setWallpaperRandomly
+_loop() {
+  waypaper --random
+  echo ":: Next wallpaper in $sec seconds..."
+  sleep "$sec"
 }
 
-if [ ! -f "$automation_flag" ]; then
-    touch "$automation_flag"
-    notify-send "Wallpaper automation started" "Wallpaper will change every $sec seconds."
-    _setWallpaperRandomly
+if [[ ! -f "$automation_flag" ]]; then
+  touch "$automation_flag"
+  notify-send "Wallpaper automation started" "Wallpaper will change every $sec seconds."
+  while [[ -f "$automation_flag" ]]; do _loop; done
 else
-    rm "$automation_flag"
-    notify-send "Wallpaper automation stopped."
-    pkill -f wallpaper-automation.sh
+  rm -f "$automation_flag"
+  notify-send "Wallpaper automation stopped."
 fi
 

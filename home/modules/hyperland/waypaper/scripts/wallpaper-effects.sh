@@ -12,7 +12,8 @@ hypr_cache_folder="$HOME/.cache/hyprlock-assets"
 cache_file="$hypr_cache_folder/current_wallpaper"
 effect_file="$HOME/.config/hypr/settings/wallpaper-effect.sh"
 effects_dir="$HOME/.config/hypr/effects/wallpaper"
-rofi_config="$HOME/.config/rofi/config-themes.rasi"
+rofi_config="$HOME/.config/rofi/config.rasi"
+
 
 if [[ "${1:-}" == "reload" ]]; then
     if [[ -f "$cache_file" ]]; then

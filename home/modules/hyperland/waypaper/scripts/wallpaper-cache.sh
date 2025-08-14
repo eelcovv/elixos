@@ -1,9 +1,8 @@
-#!/usr/bin/env bash
-
+set -euo pipefail
 hypr_cache_folder="$HOME/.cache/hyprlock-assets"
-
 generated_versions="$hypr_cache_folder/wallpaper-generated"
-
-rm $generated_versions/*
+mkdir -p "$generated_versions"
+rm -f -- "$generated_versions"/* 2>/dev/null || true
 echo ":: Wallpaper cache cleared"
 notify-send "Wallpaper cache cleared"
+
