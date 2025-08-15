@@ -116,17 +116,20 @@ switch_theme() {
     [[ -n "$cfg_src" && -e "$cfg_src" ]] && ln -sfn "$cfg_src" "$cur/config.jsonc"
     [[ -n "$mod_src" && -e "$mod_src" ]] && ln -sfn "$mod_src" "$cur/modules.jsonc"
 
-    # ---- colors.css: voorkom self-symlink loops ----
-    # Als de bron precies het globale pad is (~/.config/waybar/colors.css), maak dan
-    # een echte file (kopie) in current/ i.p.v. een symlink.
-    if [[ -n "$col_src" && -e "$col_src" && "$col_src" != "$cfg/colors.css" ]]; then
-        ln -sfn "$col_src" "$cur/colors.css"
-    else
-        if [[ -n "$col_src" && -e "$col_src" ]]; then
-            cp -f "$col_src" "$cur/colors.css"
+    # ---- colors.css: voorkom loops & "same file" fouten ----
+    # Maak current/colors.css eerst los van alles; daarna:
+    # - als bron NIET het globale pad is: symlink is OK
+    # - als bron WEL het globale pad is: maak een echte kopie naar current/colors.css
+    rm -f "$cur/colors.css" 2>/dev/null || true
+    if [[ -n "$col_src" && -e "$col_src" ]]; then
+        if [[ "$col_src" != "$cfg/colors.css" ]]; then
+            ln -sfn "$col_src" "$cur/colors.css"
         else
-            : > "$cur/colors.css"
+            # Kopie i.p.v. symlink voorkomt self-loop; --remove-destination om "same file" te voorkomen
+            cp -f --remove-destination "$col_src" "$cur/colors.css"
         fi
+    else
+        : > "$cur/colors.css"
     fi
 
     # Always produce a safe, preprocessed CSS into current/style.resolved.css:
@@ -167,8 +170,8 @@ switch_theme() {
 
     # Restart or soft-reload Waybar (exactly once)
     if systemctl --user is-enabled waybar.service >/dev/null 2>&1 \
-        || systemctl --user is-active waybar.service >/dev12 2>&1; then
-            systemctl --user restart waybar.service || true
+       || systemctl --user is-active waybar.service >/dev/null 2>&1; then
+        systemctl --user restart waybar.service || true
     else
         pkill -USR2 waybar 2>/dev/null || true
     fi
