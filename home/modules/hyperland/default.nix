@@ -82,7 +82,7 @@ in {
       Service = {
         ExecStart = "${pkgs.hypridle}/bin/hypridle";
         Restart = "always";
-        RestartSec = 0.2;
+        RestartSec = "200ms";
         # Reads ~/.config/hypr/hypridle.conf by default
       };
       Install = {WantedBy = ["hyprland-session.target"];};

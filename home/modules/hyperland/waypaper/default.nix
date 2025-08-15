@@ -141,7 +141,7 @@ in {
       Service = {
         ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
         Restart = "always";
-        RestartSec = 0.2;
+        RestartSec = "200ms";
         TimeoutStartSec = "15s";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
