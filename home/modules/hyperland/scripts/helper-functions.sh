@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # Common helpers for Waybar theme switching (Hyprland setup).
-# Supports both "theme/variant" and single-level "theme" (style.css at theme root).
+# Robust against Nix-store symlinks and supports both:
+#   - "theme" (single-level, style.css at theme root)
+#   - "theme/variant" (two-level, style.css inside the variant folder)
 
-# --- Global state (must be initialized to avoid 'unbound variable' with set -u) ---
+# --- Global state (initialize to avoid 'unbound variable' with set -u) ---
 _theme_dir=""   # e.g., $BASE/ml4w
 _var_dir=""     # e.g., $BASE/ml4w/dark
 _def_dir=""     # e.g., $BASE/default
+
+# Enable extra logging by exporting:  WAYBAR_THEME_DEBUG=1
+_debug() { [[ "${WAYBAR_THEME_DEBUG:-0}" == "1" ]] && printf 'DEBUG: %s\n' "$*" >&2 || true; }
 
 notify() {
   # Args: <title> [body...]
@@ -20,10 +25,30 @@ notify() {
   fi
 }
 
-# List selectable themes:
-# - Single-level themes:   base/<theme>/style.css
-# - Two-level variants:    base/<theme>/<variant>/style.css
-# Excludes any "assets" directory.
+# Safely check for file existence through symlinks (Nix store etc.)
+_have_file() {
+  # Args: <path>
+  local p="$1"
+  [[ -e "$p" || -L "$p" ]] && return 0
+  local r
+  r="$(readlink -f -- "$p" 2>/dev/null || true)"
+  [[ -n "$r" && -e "$r" ]] && return 0
+  return 1
+}
+
+# Return first existing file from the given candidates (echo path; 0 if found)
+_pick_first_existing() {
+  local cand
+  for cand in "$@"; do
+    if _have_file "$cand"; then
+      printf '%s\n' "$cand"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# List selectable themes (single-level and two-level), excluding "assets"
 list_theme_variants() {
   local base="${1:-$HOME/.config/waybar/themes}"
   [[ -d "$base" ]] || return 0
@@ -61,6 +86,7 @@ _resolve_theme_paths() {
     _var_dir="$base/$token"
     _theme_dir="$base/${token%%/*}"
     if [[ -d "$_var_dir" ]]; then
+      _debug "_resolve: kind=variant theme_dir=$_theme_dir var_dir=$_var_dir"
       echo "variant"
       return 0
     fi
@@ -68,11 +94,13 @@ _resolve_theme_paths() {
     # single-level theme form
     _theme_dir="$base/$token"
     if [[ -d "$_theme_dir" ]]; then
+      _debug "_resolve: kind=single theme_dir=$_theme_dir"
       echo "single"
       return 0
     fi
   fi
 
+  _debug "_resolve: unknown token=$token"
   echo "unknown"
   return 1
 }
@@ -90,13 +118,13 @@ ensure_theme_variant() {
 
   case "$kind" in
     single)
-      if [[ ! -f "$_theme_dir/style.css" && ! -f "$_theme_dir/style-custom.css" ]]; then
+      if ! _have_file "$_theme_dir/style.css" && ! _have_file "$_theme_dir/style-custom.css"; then
         echo "Theme '$token' has no style.css"
         return 1
       fi
       ;;
     variant)
-      if [[ ! -f "$_var_dir/style.css" && ! -f "$_var_dir/style-custom.css" ]]; then
+      if ! _have_file "$_var_dir/style.css" && ! _have_file "$_var_dir/style-custom.css"; then
         echo "Variant '$token' has no style.css"
         return 1
       fi
@@ -131,58 +159,78 @@ switch_theme() {
 
   mkdir -p "$cur"
 
-  # Resolve config.jsonc (prefer most specific, fall back to default)
-  if [[ "$kind" == "variant" ]]; then
-    if   [[ -e "$var_dir/config.jsonc" ]];   then cfg_src="$var_dir/config.jsonc"
-    elif [[ -e "$theme_dir/config.jsonc" ]]; then cfg_src="$theme_dir/config.jsonc"
-    else                                           cfg_src="$def_dir/config.jsonc"; fi
-  else
-    if   [[ -e "$theme_dir/config.jsonc" ]]; then cfg_src="$theme_dir/config.jsonc"
-    else                                           cfg_src="$def_dir/config.jsonc"; fi
-  fi
+  _debug "kind=$kind token=$token"
+  _debug "theme_dir=$theme_dir var_dir=$var_dir def_dir=$def_dir"
 
-  # Resolve modules.jsonc (specific -> theme -> default -> global)
+  # Resolve config.jsonc
   if [[ "$kind" == "variant" ]]; then
-    if   [[ -e "$var_dir/modules.jsonc" ]];   then mod_src="$var_dir/modules.jsonc"
-    elif [[ -e "$theme_dir/modules.jsonc" ]]; then mod_src="$theme_dir/modules.jsonc"
-    elif [[ -e "$def_dir/modules.jsonc" ]];   then mod_src="$def_dir/modules.jsonc"
-    else                                           mod_src="$mod_global"; fi
+    cfg_src="$(_pick_first_existing \
+      "$var_dir/config.jsonc" \
+      "$theme_dir/config.jsonc" \
+      "$def_dir/config.jsonc")"
   else
-    if   [[ -e "$theme_dir/modules.jsonc" ]]; then mod_src="$theme_dir/modules.jsonc"
-    elif [[ -e "$def_dir/modules.jsonc" ]];   then mod_src="$def_dir/modules.jsonc"
-    else                                           mod_src="$mod_global"; fi
+    cfg_src="$(_pick_first_existing \
+      "$theme_dir/config.jsonc" \
+      "$def_dir/config.jsonc")"
   fi
+  [[ -n "${cfg_src:-}" ]] || cfg_src=""
 
-  # Resolve style.css (prefer most specific; fallback to default)
+  # Resolve modules.jsonc
   if [[ "$kind" == "variant" ]]; then
-    if   [[ -e "$var_dir/style.css" ]];        then css_src="$var_dir/style.css"
-    elif [[ -e "$var_dir/style-custom.css" ]]; then css_src="$var_dir/style-custom.css"
-    elif [[ -e "$def_dir/style.css" ]];        then css_src="$def_dir/style.css"
-    else                                             css_src="$def_dir/style-custom.css"; fi
+    mod_src="$(_pick_first_existing \
+      "$var_dir/modules.jsonc" \
+      "$theme_dir/modules.jsonc" \
+      "$def_dir/modules.jsonc" \
+      "$mod_global")"
   else
-    if   [[ -e "$theme_dir/style.css" ]];        then css_src="$theme_dir/style.css"
-    elif [[ -e "$theme_dir/style-custom.css" ]]; then css_src="$theme_dir/style-custom.css"
-    elif [[ -e "$def_dir/style.css" ]];          then css_src="$def_dir/style.css"
-    else                                               css_src="$def_dir/style-custom.css"; fi
+    mod_src="$(_pick_first_existing \
+      "$theme_dir/modules.jsonc" \
+      "$def_dir/modules.jsonc" \
+      "$mod_global")"
   fi
+  [[ -n "${mod_src:-}" ]] || mod_src=""
 
-  # Resolve colors.css (specific -> theme -> global)
+  # Resolve style.css
   if [[ "$kind" == "variant" ]]; then
-    if   [[ -e "$var_dir/colors.css" ]];   then col_src="$var_dir/colors.css"
-    elif [[ -e "$theme_dir/colors.css" ]]; then col_src="$theme_dir/colors.css"
-    else                                        col_src="$col_global"; fi
+    css_src="$(_pick_first_existing \
+      "$var_dir/style.css" \
+      "$var_dir/style-custom.css" \
+      "$def_dir/style.css" \
+      "$def_dir/style-custom.css")"
   else
-    if   [[ -e "$theme_dir/colors.css" ]]; then col_src="$theme_dir/colors.css"
-    else                                        col_src="$col_global"; fi
+    css_src="$(_pick_first_existing \
+      "$theme_dir/style.css" \
+      "$theme_dir/style-custom.css" \
+      "$def_dir/style.css" \
+      "$def_dir/style-custom.css")"
   fi
+  [[ -n "${css_src:-}" ]] || css_src=""
+
+  # Resolve colors.css
+  if [[ "$kind" == "variant" ]]; then
+    col_src="$(_pick_first_existing \
+      "$var_dir/colors.css" \
+      "$theme_dir/colors.css" \
+      "$col_global")"
+  else
+    col_src="$(_pick_first_existing \
+      "$theme_dir/colors.css" \
+      "$col_global")"
+  fi
+  [[ -n "${col_src:-}" ]] || col_src=""
+
+  _debug "cfg_src=$cfg_src"
+  _debug "mod_src=$mod_src"
+  _debug "css_src=$css_src"
+  _debug "col_src=$col_src"
 
   # Link config/modules into current/
-  [[ -n "$cfg_src" && -e "$cfg_src" ]] && ln -sfn "$cfg_src" "$cur/config.jsonc"
-  [[ -n "$mod_src" && -e "$mod_src" ]] && ln -sfn "$mod_src" "$cur/modules.jsonc"
+  [[ -n "$cfg_src" ]] && ln -sfn "$cfg_src" "$cur/config.jsonc"
+  [[ -n "$mod_src" ]] && ln -sfn "$mod_src" "$cur/modules.jsonc"
 
   # Make current/colors.css safe (avoid self-symlink to $cfg/colors.css)
   rm -f "$cur/colors.css" 2>/dev/null || true
-  if [[ -n "$col_src" && -e "$col_src" ]]; then
+  if [[ -n "$col_src" ]]; then
     if [[ "$col_src" != "$cfg/colors.css" ]]; then
       ln -sfn "$col_src" "$cur/colors.css"
     else
@@ -193,7 +241,7 @@ switch_theme() {
   fi
 
   # Build current/style.resolved.css (prepend one colors import; strip nested imports)
-  if [[ -n "$css_src" && -e "$css_src" ]]; then
+  if [[ -n "$css_src" ]]; then
     cp -f "$css_src" "$cur/style.resolved.css"
     if command -v perl >/dev/null 2>&1; then
       perl -0777 -pe 's/^\s*@import[^\n]*colors\.css[^\n]*\n//gmi' -i "$cur/style.resolved.css"
@@ -203,10 +251,10 @@ switch_theme() {
     # Rewrite any "../foo.css" imports to the theme root we resolved
     sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./style\.css['\"]?\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
     sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./([^'\"\\)]+)['\"]?\)?;#@import url(\"$theme_dir/\2\");#g" "$cur/style.resolved.css"
-    printf '@import url(\"colors.css\");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
+    printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
     mv -f "$cur/.tmp.css" "$cur/style.resolved.css"
   else
-    printf '@import url(\"colors.css\");\n' > "$cur/style.resolved.css"
+    printf '@import url("colors.css");\n' > "$cur/style.resolved.css"
   fi
 
   chmod 0644 "$cur/style.resolved.css"
