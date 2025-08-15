@@ -1,5 +1,9 @@
-{ config, pkgs, lib, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   hyprDir = ./.;
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
@@ -37,28 +41,28 @@ in {
     systemd.user.targets."hyprland-session" = {
       Unit = {
         Description = "Hyprland graphical session (user)";
-        Requires = [ "graphical-session.target" ];
-        After = [ "graphical-session.target" ];
+        Requires = ["graphical-session.target"];
+        After = ["graphical-session.target"];
       };
-      Install = { WantedBy = [ "default.target" ]; };
+      Install = {WantedBy = ["default.target"];};
     };
 
     ################################
     # Import Hyprland environment into systemd --user
-    # (required so hyprpaper sees WAYLAND_DISPLAY / HYPRLAND_INSTANCE_SIGNATURE)
+    # (so hyprpaper sees WAYLAND_DISPLAY / HYPRLAND_INSTANCE_SIGNATURE)
     ################################
     systemd.user.services."hyprland-env" = {
       Unit = {
         Description = "Import Hyprland session environment into systemd --user";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "hyprland-session.target" ];
+        After = ["graphical-session.target"];
+        PartOf = ["hyprland-session.target"];
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE";
-        ExecStart += "${pkgs.dbus}/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE";
+        # Run both commands in one ExecStart (Nix doesn't support += on attrs)
+        ExecStart = "${pkgs.bash}/bin/bash -lc '${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE; ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE'";
       };
-      Install = { WantedBy = [ "hyprland-session.target" ]; };
+      Install = {WantedBy = ["hyprland-session.target"];};
     };
 
     ################################
@@ -67,15 +71,15 @@ in {
     systemd.user.services."hyprpaper" = {
       Unit = {
         Description = "Hyprland wallpaper daemon (hyprpaper)";
-        After = [ "hyprland-env.service" ];
-        PartOf = [ "hyprland-session.target" ];
+        After = ["hyprland-env.service"];
+        PartOf = ["hyprland-session.target"];
       };
       Service = {
         ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
         ExecStartPost = "${pkgs.waypaper}/bin/waypaper --backend hyprpaper --restore";
         Restart = "always";
       };
-      Install = { WantedBy = [ "hyprland-session.target" ]; };
+      Install = {WantedBy = ["hyprland-session.target"];};
     };
 
     ################################
@@ -114,7 +118,7 @@ in {
     };
 
     # Sanity check: ensure helper exists after linking
-    home.activation.checkHyprHelper = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
       if [ ! -r "$HOME/.config/hypr/scripts/helper-functions.sh" ]; then
         echo "ERROR: missing helper at ~/.config/hypr/scripts/helper-functions.sh" >&2
         exit 1
@@ -137,7 +141,6 @@ in {
     ################################
     # Ensure ~/.local/bin is in PATH
     ################################
-    home.sessionPath = lib.mkAfter [ "$HOME/.local/bin" ];
+    home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }
-
