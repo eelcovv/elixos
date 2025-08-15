@@ -107,13 +107,14 @@ in {
     # Hyprpaper defaults (base wallpaper)
     ################################
     xdg.configFile."hypr/hyprpaper.conf".text = ''
-      preload = ${wallpaperTargetDir}/default.png
-      wallpaper = ,${wallpaperTargetDir}/default.png
+      ipc = on
       splash = false
+      # preload kan blijven (snellere switch), maar laat wallpaper weg zodat Waypaper de controle heeft:
+      preload = ${wallpaperTargetDir}/default.png
     '';
 
     # Provide a default wallpaper image
-    xdg.configFile."wallpapers/default.png".source = "${wallpaperDir}/nixos.png";
+    xdg.configFile."${wallpaperTargetDir}/default.png".source = "${wallpaperDir}/nixos.png";
 
     ################################
     # Ensure ~/.local/bin is in PATH
