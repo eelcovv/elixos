@@ -8,7 +8,6 @@
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
-  # Import submodules (Waybar + Waypaper integration)
   imports = [
     ./waybar
     ./waypaper
@@ -20,7 +19,7 @@ in {
     ################################
     home.packages = with pkgs; [
       kitty
-      hyprpaper # backend used by Waypaper
+      hyprpaper
       hyprshot
       hyprlock
       hypridle
@@ -29,7 +28,6 @@ in {
       pavucontrol
       wl-clipboard
       cliphist
-      # Wallpaper / theme helpers
       matugen
       wallust
       waypaper
@@ -76,7 +74,7 @@ in {
     ################################
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
-      SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh"; # keep literal for runtime expansion
+      SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
     };
 
     ################################

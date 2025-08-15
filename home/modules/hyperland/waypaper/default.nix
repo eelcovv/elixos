@@ -6,17 +6,7 @@
 }: let
   scriptsDir = ./scripts;
 
-  # Patch waypaper.sh to source the shared helper in ~/.config/hypr/scripts/
-  patchedWallpaperSh = let
-    original = builtins.readFile (scriptsDir + "/waypaper.sh");
-  in
-    lib.replaceStrings
-    ["source \"$HOME/.config/hypr/scripts/helper-functions.sh\""] # idempotent
-    
-    ["source \"$HOME/.config/hypr/scripts/helper-functions.sh\""]
-    original;
-
-  # Install ./scripts/<name> -> ~/.local/bin/<name>
+  # Helper om scripts te installeren naar ~/.local/bin
   installScript = name: {
     ".local/bin/${name}" = {
       source = scriptsDir + "/${name}";
@@ -26,7 +16,7 @@
 
   default_effect = "off\n";
   default_blur = "50x30\n";
-  default_automation_interval = "300\n"; # used only if you opt into the legacy loop script
+  default_automation_interval = "300\n"; # alleen gebruikt door legacy toggle-script
 in {
   options = {
     hyprland.wallpaper.enable =
@@ -39,42 +29,37 @@ in {
     ############################
     home.packages = with pkgs; [
       waypaper
-      hyprpaper # backend
-      imagemagick # provides `magick`
+      hyprpaper
+      imagemagick
       wallust
       matugen
       rofi-wayland
-      libnotify # notify-send
+      libnotify
       swaynotificationcenter
       git
-      # optional extras
       nwg-dock-hyprland
       (python3.withPackages (ps: [ps.pywalfox]))
     ];
 
     ############################
-    # Scripts to ~/.local/bin
+    # Scripts naar ~/.local/bin (namen overeenkomend met jouw map)
     ############################
     home.file = lib.mkMerge [
-      {
-        ".local/bin/waypaper.sh".text = patchedWallpaperSh;
-        ".local/bin/waypaper.sh".executable = true;
-      }
-
-      (installScript "waypaper-restore.sh")
-      (installScript "waypaper-effects.sh")
-      (installScript "waypaper-cache.sh")
-      (installScript "waypaper-automation.sh") # legacy loop (optional)
+      (installScript "wallpaper.sh")
+      (installScript "wallpaper-restore.sh")
+      (installScript "wallpaper-effects.sh")
+      (installScript "wallpaper-cache.sh")
+      (installScript "wallpaper-automation.sh") # legacy toggle (optioneel)
       (installScript "fetch-wallpapers.sh")
 
-      # Defaults / settings the scripts read (overridable elsewhere)
+      # Defaults / settings die je scripts lezen
       {
         ".config/hypr/settings/wallpaper-effect.sh".text = lib.mkDefault default_effect;
         ".config/hypr/settings/blur.sh".text = lib.mkDefault default_blur;
         ".config/hypr/settings/wallpaper-automation.sh".text = lib.mkDefault default_automation_interval;
       }
 
-      # Ensure expected directories exist
+      # Verwachte directories
       {
         ".config/wallpapers/.keep".text = "";
         ".config/hypr/effects/wallpaper/.keep".text = "";
@@ -83,7 +68,7 @@ in {
     ];
 
     ############################
-    # Waypaper restore on session start (recommended)
+    # Waypaper restore bij sessiestart
     ############################
     systemd.user.services."waypaper-restore" = {
       Unit = {
@@ -99,7 +84,7 @@ in {
     };
 
     ############################
-    # Random rotation using a systemd timer (clean + robust)
+    # Random rotatie via systemd timer
     ############################
     systemd.user.services."waypaper-random" = {
       Unit = {
@@ -118,15 +103,12 @@ in {
       Unit = {Description = "Random wallpaper timer";};
       Timer = {
         OnBootSec = "1min";
-        OnUnitActiveSec = "5min"; # change interval as you prefer
+        OnUnitActiveSec = "5min"; # pas aan naar smaak
         Unit = "waypaper-random.service";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    ############################
-    # PATH
-    ############################
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }
