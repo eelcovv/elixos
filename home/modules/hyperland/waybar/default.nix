@@ -3,194 +3,59 @@
   pkgs,
   lib,
   ...
-}: let
-  scriptsDir = ./scripts;
+}: {
+  config = {
+    ##########################################################################
+    # Waybar — run it exactly once via systemd, bound to the Hyprland session
+    #
+    # Important:
+    # - Do NOT start Waybar from hyprland.conf (no `exec`/`exec-once`).
+    # - We only enable Waybar and let systemd handle lifecycle.
+    # - All wallpaper/theme switching is handled elsewhere (your scripts).
+    ##########################################################################
+    programs.waybar.enable = true;
 
-  installScript = name: {
-    ".local/bin/${name}" = {
-      source = scriptsDir + "/${name}";
-      executable = true;
-    };
-  };
+    # Pin package explicitly if you like; otherwise the default is fine.
+    programs.waybar.package = pkgs.waybar;
 
-  default_effect = "off\n";
-  default_blur = "50x30\n";
-  default_automation_interval = "300\n";
-in {
-  options = {
-    hyprland.wallpaper.enable =
-      lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
+    # Run Waybar as a user service and tie it to the Hyprland user target.
+    # Your Hyprland module defines `systemd.user.targets."hyprland-session"`.
+    programs.waybar.systemd.enable = true;
+    programs.waybar.systemd.target = "hyprland-session.target";
 
-    # Random rotation
-    hyprland.wallpaper.random.enable = lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
-    hyprland.wallpaper.random.intervalSeconds = lib.mkOption {
-      type = lib.types.int;
-      default = 300;
-      description = "Interval (seconds) for the random wallpaper timer.";
-    };
+    ##########################################################################
+    # (Optional) Provide Waybar config/theme files via Home Manager.
+    #
+    # If you keep your Waybar theme files in your repo, you can expose them
+    # here. Leave this block commented if you already manage them elsewhere
+    # (e.g. your theme switcher writes to ~/.config/waybar/current/*).
+    #
+    # Example layout:
+    #   home/modules/hyperland/waybar/themes/<theme>/(config.jsonc, modules.jsonc, style.css, colors.css)
+    #
+    # Uncomment and adjust paths as needed.
+    ##########################################################################
+    # xdg.configFile."waybar/themes/ml4w/config.jsonc".source =
+    #   ./themes/ml4w/config.jsonc;
+    # xdg.configFile."waybar/themes/ml4w/modules.jsonc".source =
+    #   ./themes/ml4w/modules.jsonc;
+    # xdg.configFile."waybar/themes/ml4w/dark/style.css".source =
+    #   ./themes/ml4w/dark/style.css;
+    # xdg.configFile."waybar/themes/ml4w/dark/colors.css".source =
+    #   ./themes/ml4w/dark/colors.css;
 
-    # Fetch wallpapers from repo (optional)
-    hyprland.wallpaper.fetch.enable = lib.mkEnableOption "Periodically fetch wallpapers using fetch-wallpapers.sh";
-    hyprland.wallpaper.fetch.onCalendar = lib.mkOption {
-      type = lib.types.str;
-      default = "weekly"; # e.g. "daily", "Mon,Fri 08:00", or "00/30:00"
-      description = "systemd OnCalendar schedule for wallpaper fetch timer.";
-    };
-  };
+    ##########################################################################
+    # (Optional) Ship a minimal "current" scaffold if you want Waybar to have
+    # something to load on very first boot. Your theme-switcher will later
+    # replace these symlinks/files. Safe to omit if you already seed them in
+    # another module.
+    ##########################################################################
+    # xdg.configFile."waybar/current/.keep".text = "";
 
-  config = lib.mkIf config.hyprland.wallpaper.enable {
-    ############################
-    # Start user units on activation
-    ############################
-    systemd.user.startServices = "sd-switch";
-
-    ############################
-    # Packages
-    ############################
-    home.packages =
-      (with pkgs; [
-        waypaper
-        hyprpaper
-        imagemagick
-        wallust
-        matugen
-        rofi-wayland
-        libnotify
-        swaynotificationcenter
-        git
-        nwg-dock-hyprland
-      ])
-      ++ lib.optionals (pkgs ? pywalfox) [pkgs.pywalfox];
-
-    ############################
-    # Scripts -> ~/.local/bin
-    ############################
-    home.file = lib.mkMerge [
-      (installScript "wallpaper.sh")
-      (installScript "wallpaper-restore.sh")
-      (installScript "wallpaper-effects.sh")
-      (installScript "wallpaper-cache.sh")
-      (installScript "wallpaper-automation.sh")
-      (installScript "fetch-wallpapers.sh")
-      (installScript "wallpaper-set.sh")
-      (installScript "wallpaper-list.sh")
-      (installScript "wallpaper-random.sh")
-      (installScript "wallpaper-pick.sh")
-
-      # Only real writable directories
-      {
-        ".config/wallpapers/.keep".text = "";
-        ".cache/hyprlock-assets/.keep".text = "";
-      }
-    ];
-
-    ############################
-    # Seed writable settings
-    ############################
-    home.activation.wallpaperSettingsSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
-      set -eu
-      S="$HOME/.config/hypr/settings"
-      mkdir -p "$S"
-
-      seed_file() {
-        local path="$1" default="$2"
-        if [ -L "$path" ]; then rm -f "$path"; fi
-        if [ ! -f "$path" ]; then printf "%s\n" "$default" > "$path"; chmod 0644 "$path"; fi
-      }
-
-      seed_file "$S/wallpaper-effect.sh" "off"
-      seed_file "$S/blur.sh" "50x30"
-      seed_file "$S/wallpaper-automation.sh" "300"
-    '';
-
-    ############################
-    # Seed wallpapers once if empty (on activation)
-    ############################
-    home.activation.wallpapersSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
-      set -eu
-      WALLS="$HOME/.config/wallpapers"
-      if [ -z "$(find "$WALLS" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) | head -n1)" ]; then
-        echo ":: No wallpapers found; fetching..."
-        "$HOME/.local/bin/fetch-wallpapers.sh" || true
-      fi
-    '';
-
-    ############################
-    # Pre-clean Waybar top-level files to avoid HM clobber errors
-    ############################
-    home.activation.waybarPreClean = lib.hm.dag.entryBefore ["linkGeneration"] ''
-      set -eu
-      rm -f "$HOME/.config/waybar/config" \
-            "$HOME/.config/waybar/config.jsonc" \
-            "$HOME/.config/waybar/style.css" \
-            "$HOME/.config/waybar/modules.jsonc" \
-            "$HOME/.config/waybar/colors.css" || true
-    '';
-
-    ############################
-    # Restore last wallpaper on session start — SINGLE source of truth
-    ############################
-    systemd.user.services."waypaper-restore" = {
-      Unit = {
-        Description = "Restore last wallpaper via wallpaper.sh (effect-aware)";
-        After = ["hyprland-env.service" "hyprpaper.service"];
-        PartOf = ["hyprland-session.target"];
-      };
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper.sh";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    ############################
-    # Random rotation (delayed, not part of hyprland-session)
-    ############################
-    systemd.user.services."waypaper-random" = {
-      Unit = {Description = "Set a random wallpaper (pipeline)";};
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper-random.sh";
-      };
-    };
-
-    systemd.user.timers."waypaper-random" = lib.mkIf config.hyprland.wallpaper.random.enable {
-      Unit = {Description = "Random wallpaper timer";};
-      Timer = {
-        OnBootSec = "5min"; # delay to avoid boot races
-        OnUnitActiveSec = "${toString config.hyprland.wallpaper.random.intervalSeconds}s";
-        Unit = "waypaper-random.service";
-      };
-      Install = {WantedBy = ["default.target"];};
-    };
-
-    ############################
-    # Periodic fetch via systemd timer (optional, safe schedule)
-    ############################
-    systemd.user.services."waypaper-fetch" = {
-      Unit = {
-        Description = "Fetch wallpapers from remote repo";
-      };
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${config.home.homeDirectory}/.local/bin/fetch-wallpapers.sh";
-        SuccessExitStatus = "0";
-      };
-    };
-
-    systemd.user.timers."waypaper-fetch" = lib.mkIf config.hyprland.wallpaper.fetch.enable {
-      Unit = {Description = "Periodic wallpaper fetch";};
-      Timer = {
-        OnCalendar = config.hyprland.wallpaper.fetch.onCalendar;
-        Persistent = true;
-        Unit = "waypaper-fetch.service";
-      };
-      Install = {WantedBy = ["default.target"];};
-    };
-
-    ############################
-    # PATH
-    ############################
-    home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
+    ##########################################################################
+    # ⚠️ Do not declare *any* wallpaper-related options in this module.
+    # The wallpaper options (hyprland.wallpaper.*) live exclusively in:
+    #   home/modules/hyperland/waypaper/default.nix
+    ##########################################################################
   };
 }
