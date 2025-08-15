@@ -21,11 +21,20 @@ in {
     hyprland.wallpaper.enable =
       lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
 
+    # Random rotation
     hyprland.wallpaper.random.enable = lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
     hyprland.wallpaper.random.intervalSeconds = lib.mkOption {
       type = lib.types.int;
       default = 300;
       description = "Interval (seconds) for the random wallpaper timer.";
+    };
+
+    # Fetch wallpapers from repo
+    hyprland.wallpaper.fetch.enable = lib.mkEnableOption "Periodically fetch wallpapers using fetch-wallpapers.sh";
+    hyprland.wallpaper.fetch.onCalendar = lib.mkOption {
+      type = lib.types.str;
+      default = "weekly"; # e.g. "daily", "hourly", "Mon,Fri 08:00", "00/30:00" (every 30 min)
+      description = "systemd OnCalendar schedule for wallpaper fetch timer.";
     };
   };
 
@@ -70,11 +79,25 @@ in {
         ".config/hypr/settings/wallpaper-automation.sh".text = lib.mkDefault default_automation_interval;
       }
 
+      # Real (writable) dirs only — géén .keep in Nix-store-symlinks
       {
         ".config/wallpapers/.keep".text = "";
         ".cache/hyprlock-assets/.keep".text = "";
       }
     ];
+
+    ############################
+    # Seed wallpapers once if empty (on activation)
+    ############################
+    home.activation.wallpapersSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
+      set -eu
+      WALLS="$HOME/.config/wallpapers"
+      # fetch alleen als er nog geen .png/.jpg/.jpeg staan
+      if [ -z "$(find "$WALLS" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) | head -n1)" ]; then
+        echo ":: No wallpapers found; fetching..."
+        "$HOME/.local/bin/fetch-wallpapers.sh" || true
+      fi
+    '';
 
     ############################
     # Restore last wallpaper on session start
@@ -120,6 +143,37 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
+    ############################
+    # Periodic fetch via systemd timer (conditional)
+    ############################
+    systemd.user.services."waypaper-fetch" = {
+      Unit = {
+        Description = "Fetch wallpapers from remote repo";
+        After = ["hyprland-env.service"];
+        PartOf = ["hyprland-session.target"];
+      };
+      Service = {
+        Type = "oneshot";
+        # Laat falen geen error geven (offline?); logs blijven zichtbaar
+        ExecStart = "${config.home.homeDirectory}/.local/bin/fetch-wallpapers.sh";
+        SuccessExitStatus = "0";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    systemd.user.timers."waypaper-fetch" = lib.mkIf config.hyprland.wallpaper.fetch.enable {
+      Unit = {Description = "Periodic wallpaper fetch";};
+      Timer = {
+        OnCalendar = config.hyprland.wallpaper.fetch.onCalendar;
+        Persistent = true;
+        Unit = "waypaper-fetch.service";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    ############################
+    # PATH
+    ############################
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }
