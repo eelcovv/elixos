@@ -70,6 +70,15 @@ in {
     programs.waybar.systemd.enable = true;
     programs.waybar.systemd.target = "hyprland-session.target";
 
+    home.activation.waybarPreClean = lib.hm.dag.entryBefore ["linkGeneration"] ''
+      set -eu
+      rm -f "$HOME/.config/waybar/config" \
+            "$HOME/.config/waybar/config.jsonc" \
+            "$HOME/.config/waybar/style.css" \
+            "$HOME/.config/waybar/modules.jsonc" \
+            "$HOME/.config/waybar/colors.css" || true
+    '';
+
     ################################
     # Run hypridle as a robust user service
     ################################
