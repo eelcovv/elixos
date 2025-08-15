@@ -472,3 +472,23 @@ switch-theme theme:
     HOME_THEME={{theme}} home-manager switch --flake ".#eelco@$(hostname)"
     pkill waybar && waybar &
 
+
+# Set a specific wallpaper by path (must be in ~/.config/wallpapers or pass full path)
+wp-set FILE?=~/.config/wallpapers/default.png:
+	waypaper --backend hyprpaper --folder "$$HOME/.config/wallpapers" --wallpaper "{{FILE}}"
+
+# Random switch now (one-shot)
+wp-random:
+	waypaper --backend hyprpaper --folder "$$HOME/.config/wallpapers" --random
+
+# Force restore
+wp-restore:
+	waypaper --backend hyprpaper --restore
+
+# Pick an effect via your script (writes choice, then reapplies current)
+wp-effect:
+	~/.local/bin/wallpaper-effects.sh
+
+# Clear generated cache
+wp-cache-clear:
+	~/.local/bin/wallpaper-cache.sh
