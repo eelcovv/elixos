@@ -8,7 +8,6 @@
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
-  # Pull in submodules (Waybar + Waypaper integration)
   imports = [
     ./waybar
     ./waypaper
@@ -47,8 +46,7 @@ in {
     };
 
     ################################
-    # Import Wayland/Hypr env into systemd --user
-    # (so Waypaper/Hyprpaper see WAYLAND_DISPLAY / HYPRLAND_INSTANCE_SIGNATURE)
+    # Import Hyprland environment into systemd --user
     ################################
     systemd.user.services."hyprland-env" = {
       Unit = {
@@ -64,45 +62,33 @@ in {
     };
 
     ################################
-    # Waybar via systemd user (bound to hyprland-session target)
+    # hyprpaper backend via systemd (NO restore here)
     ################################
-    programs.waybar.enable = true;
-    programs.waybar.systemd.enable = true;
-    programs.waybar.systemd.target = "hyprland-session.target";
-
-    home.activation.waybarPreClean = lib.hm.dag.entryBefore ["linkGeneration"] ''
-      set -eu
-      rm -f "$HOME/.config/waybar/config" \
-            "$HOME/.config/waybar/config.jsonc" \
-            "$HOME/.config/waybar/style.css" \
-            "$HOME/.config/waybar/modules.jsonc" \
-            "$HOME/.config/waybar/colors.css" || true
-    '';
-
-    ################################
-    # Run hypridle as a robust user service
-    ################################
-    systemd.user.services."hypridle" = {
+    systemd.user.services."hyprpaper" = {
       Unit = {
-        Description = "Hyprland idle daemon";
+        Description = "Hyprland wallpaper daemon (hyprpaper)";
         After = ["hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
       };
       Service = {
-        ExecStart = "${pkgs.hypridle}/bin/hypridle";
+        ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
         Restart = "always";
-        RestartSec = "200ms";
-        # Reads ~/.config/hypr/hypridle.conf by default
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
+
+    ################################
+    # Waybar via systemd user
+    ################################
+    programs.waybar.enable = true;
+    programs.waybar.systemd.enable = true;
+    programs.waybar.systemd.target = "hyprland-session.target";
 
     ################################
     # Session environment variables
     ################################
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
-      # keep literal for runtime expansion:
       SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
     };
 
@@ -115,8 +101,15 @@ in {
     xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
     xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
     xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
-    # Install all helper scripts (including hypridle.sh, helper-functions.sh, etc.)
     xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
+
+    ################################
+    # Shared helper functions (used by Waybar/Waypaper)
+    ################################
+    home.file.".config/hypr/scripts/helper-functions.sh" = {
+      source = "${hyprDir}/scripts/helper-functions.sh";
+      executable = true;
+    };
 
     # Sanity check: ensure helper exists after linking
     home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
@@ -127,14 +120,15 @@ in {
     '';
 
     ################################
-    # hyprpaper config + default wallpaper
-    # (Waypaper/our module drives hyprpaper; we just provide config/default image)
+    # hyprpaper config + default wallpaper (Waypaper will drive the backend)
     ################################
     xdg.configFile."hypr/hyprpaper.conf".text = ''
       ipc = on
       splash = false
       preload = ${wallpaperTargetDir}/default.png
     '';
+
+    # Place the default wallpaper using the same target dir variable
     xdg.configFile."${wallpaperTargetDir}/default.png".source = "${wallpaperDir}/nixos.png";
 
     ################################
@@ -147,7 +141,7 @@ in {
     ################################
     hyprland.wallpaper.enable = true;
 
-    # Random rotation settings (comment out to disable)
+    # Random rotation (optional; can disable if you want silence at boot)
     hyprland.wallpaper.random.enable = true;
     hyprland.wallpaper.random.intervalSeconds = 300; # seconds
   };

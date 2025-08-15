@@ -35,7 +35,6 @@ list_theme_variants() {
     local dir rel
     for dir in "${hits[@]}"; do
         rel="${dir#$base/}"
-        # Skip anything that doesn’t look like theme/variant (defensive)
         [[ "$rel" == */* ]] || continue
         printf '%s\n' "$rel"
     done
@@ -116,44 +115,31 @@ switch_theme() {
     [[ -n "$cfg_src" && -e "$cfg_src" ]] && ln -sfn "$cfg_src" "$cur/config.jsonc"
     [[ -n "$mod_src" && -e "$mod_src" ]] && ln -sfn "$mod_src" "$cur/modules.jsonc"
 
-    # ---- colors.css: voorkom loops & "same file" fouten ----
-    # Maak current/colors.css eerst los van alles; daarna:
-    # - als bron NIET het globale pad is: symlink is OK
-    # - als bron WEL het globale pad is: maak een echte kopie naar current/colors.css
+    # ---- colors.css: avoid loops & "same file" errors ----
     rm -f "$cur/colors.css" 2>/dev/null || true
     if [[ -n "$col_src" && -e "$col_src" ]]; then
         if [[ "$col_src" != "$cfg/colors.css" ]]; then
             ln -sfn "$col_src" "$cur/colors.css"
         else
-            # Kopie i.p.v. symlink voorkomt self-loop; --remove-destination om "same file" te voorkomen
             cp -f --remove-destination "$col_src" "$cur/colors.css"
         fi
     else
         : > "$cur/colors.css"
     fi
 
-    # Always produce a safe, preprocessed CSS into current/style.resolved.css:
-    # 1) remove any @import of colors.css,
-    # 2) rewrite parent-relative imports to the theme dir (avoid recursion),
-    # 3) prepend exactly one safe import to the local palette.
+    # Produce safe preprocessed CSS into current/style.resolved.css
     if [[ -n "$css_src" && -e "$css_src" ]]; then
         cp -f "$css_src" "$cur/style.resolved.css"
 
         if command -v perl >/dev/null 2>&1; then
-            # Remove ANY @import of colors.css (url(...), '...', "...")
             perl -0777 -pe 's/^\s*@import[^\n]*colors\.css[^\n]*\n//gmi' -i "$cur/style.resolved.css"
         else
-            # Fallback (minder precies, maar prima)
             sed -i -E '/@import.*colors\.css/d' "$cur/style.resolved.css"
         fi
 
-        # Rewrite parent-relative imports to live under the theme dir
-        # ../style.css  ->  <theme_dir>/style.css
         sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./style\.css['\"]?\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
-        # ../whatever.css  ->  <theme_dir>/whatever.css
         sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./([^'\"\\)]+)['\"]?\)?;#@import url(\"$theme_dir/\2\");#g" "$cur/style.resolved.css"
 
-        # Prepend exactly one safe import to the local palette
         printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
         mv -f "$cur/.tmp.css" "$cur/style.resolved.css"
     else
