@@ -107,6 +107,7 @@ in {
     ################################
     programs.waybar.enable = true;
     programs.waybar.systemd.enable = true;
+    programs.waybar.systemd.target = "hyprland-session.target";
 
     ################################
     # Rofi (theme management for Waybar), robust if ./rofi is missing

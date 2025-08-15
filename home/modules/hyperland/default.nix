@@ -37,7 +37,6 @@ in {
       waypaper
     ];
 
-    # A custom target we can start from Hyprland to tell systemd-user "the session is up"
     systemd.user.targets."hyprland-session" = {
       Unit = {
         Description = "Hyprland graphical session (user)";
@@ -49,8 +48,9 @@ in {
       };
     };
 
-    # Ensure the Waybar service also wants this target (in addition to graphical-session.target)
-    systemd.user.services.waybar.Install.WantedBy = lib.mkAfter ["hyprland-session.target"];
+    programs.waybar.enable = true;
+    programs.waybar.systemd.enable = true;
+    programs.waybar.systemd.target = "hyprland-session.target";
 
     ################################
     # Session environment variables
@@ -74,7 +74,7 @@ in {
 
     ################################
     # Shared helper functions (used by Waybar/Waypaper)
-    #######################xtension = "hm-bak";
+    ################################
 
     home.file.".config/hypr/scripts/helper-functions.sh" = {
       source = "${hyprDir}/scripts/helper-functions.sh";
