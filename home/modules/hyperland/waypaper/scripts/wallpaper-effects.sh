@@ -1,36 +1,51 @@
 #!/usr/bin/env bash
-# Pick an effect and re-apply the current wallpaper via wallpaper.sh (so effects are generated)
 set -euo pipefail
+HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"; [[ -r "$HELPER" ]] && source "$HELPER" || true
+notify(){ type notify >/dev/null 2>&1 || { notify(){ printf '%s: %s\n' "wallpaper-effects" "$*"; }; }; notify "$@"; }
 
-hypr_cache_folder="$HOME/.cache/hyprlock-assets"
-cache_file="$hypr_cache_folder/current_wallpaper"
-effect_file="$HOME/.config/hypr/settings/wallpaper-effect.sh"
 effects_dir="$HOME/.config/hypr/effects/wallpaper"
+effect_file="$HOME/.config/hypr/settings/wallpaper-effect.sh"
+cache_file="$HOME/.cache/hyprlock-assets/current_wallpaper"
 rofi_config="${ROFI_CONFIG:-$HOME/.config/rofi/config.rasi}"
 
-usage() { echo "Usage: $(basename "$0") [reload]"; exit 0; }
-
-if [[ "${1:-}" == "reload" ]]; then
+apply_current() {
+  local wp
   if [[ -f "$cache_file" ]]; then
     wp="$(sed 's|~|'"$HOME"'|g' "$cache_file")"
     exec "$HOME/.local/bin/wallpaper.sh" "$wp"
   else
-    notify-send "Wallpaper Effect" "No cached wallpaper found."
-    exit 1
+    exit 0
   fi
+}
+
+if [[ $# -gt 0 ]]; then
+  arg="$1"; [[ "$arg" == ~* ]] && arg="${arg/#\~/$HOME}"
+  if [[ -f "$arg" ]] && echo "$arg" | grep -Eiq '\.(png|jpg)$'; then
+    printf '%s\n' "$arg" > "$cache_file"; exec "$HOME/.local/bin/wallpaper.sh" "$arg"
+  fi
+  case "$arg" in
+    none|off|disable) printf 'off\n' > "$effect_file"; apply_current ;;
+    reload)           apply_current ;;
+    *) if [[ -r "$effects_dir/$arg" ]]; then printf '%s\n' "$arg" > "$effect_file"; apply_current
+       else notify "Unknown effect '$arg'"; exit 2; fi ;;
+  esac
+  exit 0
 fi
 
-opts="$(ls -1 "$effects_dir" 2>/dev/null)$'\n'off"
-choice="$(printf "%s\n" "$opts" | rofi -dmenu -config "$rofi_config" -i -no-show-icons -l 12 -p "Effect")"
-[[ -n "${choice:-}" ]] || exit 0
+mapfile -t options < <( { printf 'None (no effect)\n'; ls -1 "$effects_dir" 2>/dev/null; } | sed '/^\s*$/d' | sort -f )
+current="off"; [[ -f "$effect_file" ]] && current="$(<"$effect_file")"
 
-printf "%s\n" "$choice" > "$effect_file"
-notify-send "Wallpaper Effect" "Applying: $choice"
+annotated=(); for opt in "${options[@]}"; do val="$opt"; [[ "$opt" == "None (no effect)" ]] && val="off"
+  label="$opt"; [[ "$val" == "$current" ]] && label="$label  [current]"; annotated+=("$label"); done
 
-if [[ -f "$cache_file" ]]; then
-  wp="$(sed 's|~|'"$HOME"'|g' "$cache_file")"
-  exec "$HOME/.local/bin/wallpaper.sh" "$wp"
+if command -v rofi >/dev/null 2>&1; then
+  choice="$(printf '%s\n' "${annotated[@]}" | rofi -dmenu -i -no-show-icons -l 12 -p "Effect" -config "$rofi_config")"
+elif command -v wofi >/dev/null 2>&1; then
+  choice="$(printf '%s\n' "${annotated[@]}" | wofi --dmenu --prompt "Effect" --allow-markup)"
 else
-  notify-send "Wallpaper Effect" "Saved. Will apply on next change."
+  choice="$(printf '%s\n' "${annotated[@]}" | fzf --prompt="Effect> " || true)"
 fi
+[[ -n "${choice:-}" ]] || exit 0
+choice="${choice%%  [current]*}"; new="$choice"; [[ "$choice" == "None (no effect)" ]] && new="off"
+printf '%s\n' "$new" > "$effect_file"; apply_current
 
