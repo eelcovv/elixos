@@ -146,6 +146,22 @@ switch_theme() {
 
     chmod 0644 "$cur/style.resolved.css"
 
+    # Link top-level Waybar paths to the active theme output
+    ln -sfn "$cur/config.jsonc"        "$cfg/config.jsonc"
+    ln -sfn "$cur/modules.jsonc"       "$cfg/modules.jsonc"
+    ln -sfn "$cur/style.resolved.css"  "$cfg/style.css"
+    ln -sfn "$cur/colors.css"          "$cfg/colors.css"
+
+    # Restart or soft-reload Waybar
+    if systemctl --user is-enabled waybar.service >/dev/null 2>&1 \
+    || systemctl --user is-active waybar.service >/dev/null 2>&1; then
+    systemctl --user restart waybar.service || true
+    else
+    pkill -USR2 waybar 2>/dev/null || true
+    fi
+
+    notify "Waybar theme" "Applied: $theme"
+
     # Prefer systemd service; otherwise try hot-reload a direct Waybar process
     if systemctl --user is-enabled waybar.service >/dev/null 2>&1 || systemctl --user is-active waybar.service >/dev/null 2>&1; then
         systemctl --user restart waybar.service || true
