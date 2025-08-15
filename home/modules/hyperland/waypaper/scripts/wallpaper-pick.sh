@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Pick a wallpaper from a menu (rofi with wofi fallback) and apply via wallpaper.sh.
-# - Lists ~/.config/wallpapers/*.png and *.jpg
-# - Shows one row per basename, annotates available extensions
-# - Marks current with [current]
-# - Prefers .png, then .jpg when applying
+# Pick a wallpaper from a menu (rofi with wofi fallback) and apply via wallpaper-set.sh.
+# Falls back to calling wallpaper.sh with a resolved path if wallpaper-set.sh is missing.
 set -euo pipefail
 
 DIR="${WALLPAPER_DIR:-$HOME/.config/wallpapers}"
@@ -26,8 +23,7 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
       cat <<EOF
 Usage: $(basename "$0") [--dir DIR]
-
-Pick a wallpaper from DIR (default: $DIR) and apply it via wallpaper.sh.
+Pick a wallpaper from DIR (default: $DIR) and apply it via wallpaper-set.sh.
 EOF
       exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
@@ -56,10 +52,9 @@ if [[ -f "$CACHE_FILE" ]]; then
   current_base="${bn%.*}"
 fi
 
-# Build label->base map (preserve spaces safely)
+# Build label->base map
 labels=()
 bases=()
-# unique union of keys
 mapfile -t all_bases < <(printf '%s\n' "${!have_png[@]}" "${!have_jpg[@]}" | sort -fu)
 for b in "${all_bases[@]}"; do
   exts=""
@@ -95,7 +90,7 @@ if [[ "$choice" == "Random" ]]; then
   exec "$HOME/.local/bin/wallpaper-random.sh"
 fi
 
-# Resolve selected base name safely
+# Resolve selected base
 sel_base=""
 for i in "${!labels[@]}"; do
   if [[ "${labels[$i]}" == "$choice" ]]; then
@@ -105,15 +100,25 @@ for i in "${!labels[@]}"; do
 done
 [[ -n "$sel_base" ]] || { notify "Selection not recognized"; exit 1; }
 
-# Prefer .png, then .jpg
-file=""
+# Prefer .png, then .jpg (for fallback path-mode)
+resolved=""
 if [[ -f "$DIR/$sel_base.png" ]]; then
-  file="$DIR/$sel_base.png"
+  resolved="$DIR/$sel_base.png"
 elif [[ -f "$DIR/$sel_base.jpg" ]]; then
-  file="$DIR/$sel_base.jpg"
-else
-  notify "Missing files for '$sel_base' in $DIR (.png/.jpg)"; exit 1
+  resolved="$DIR/$sel_base.jpg"
 fi
 
-notify "Applying $file"
-exec "$HOME/.local/bin/wallpaper.sh" "$file"
+# Primary: use wallpaper-set.sh with basename (lets it resolve png/jpg itself)
+if [[ -x "$HOME/.local/bin/wallpaper-set.sh" ]]; then
+  notify "Applying (via wallpaper-set.sh): $sel_base"
+  exec "$HOME/.local/bin/wallpaper-set.sh" "$sel_base"
+fi
+
+# Fallback: call wallpaper.sh with the resolved full path
+if [[ -n "$resolved" ]]; then
+  notify "Applying (via wallpaper.sh): $resolved"
+  exec "$HOME/.local/bin/wallpaper.sh" "$resolved"
+fi
+
+notify "Missing files for '$sel_base' in $DIR (.png/.jpg)"; exit 1
+

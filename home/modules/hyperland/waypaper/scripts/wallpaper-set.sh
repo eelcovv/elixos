@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
-# Set a wallpaper via Waypaper; extension is optional.
+# Set a wallpaper by name or path.
 # - Without extension: try .png first, then .jpg
 # - With path or extension: use exactly that file
+# Default: route via wallpaper.sh (effects + theming). Use --raw to call waypaper directly.
 set -euo pipefail
 
 DIR="${WALLPAPER_DIR:-$HOME/.config/wallpapers}"
 BACKEND="${WALLPAPER_BACKEND:-hyprpaper}"
+RAW=0
 
 usage() {
-  echo "Usage: $(basename "$0") [--dir DIR] [--backend BACKEND] <name|path>"
+  cat <<EOF
+Usage: $(basename "$0") [--dir DIR] [--backend BACKEND] [--raw] <name|path>
+
+--raw   Bypass pipeline and call waypaper directly (no effects/matugen/wallust).
+EOF
   exit 1
 }
 
@@ -17,6 +23,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --dir)      [[ $# -ge 2 ]] || usage; DIR="$2"; shift 2 ;;
     --backend)  [[ $# -ge 2 ]] || usage; BACKEND="$2"; shift 2 ;;
+    --raw)      RAW=1; shift ;;
     -h|--help)  usage ;;
     *)          break ;;
   esac
@@ -26,11 +33,9 @@ done
 INPUT="$1"
 
 # Expand ~
-if [[ "$INPUT" == ~* ]]; then
-  INPUT="${INPUT/#\~/$HOME}"
-fi
+[[ "$INPUT" == ~* ]] && INPUT="${INPUT/#\~/$HOME}"
 
-# Decide final file F
+# Resolve final file F
 if [[ "$INPUT" == /* || "$INPUT" == ./* || "$INPUT" == ../* ]]; then
   # Treat as path
   if [[ "$INPUT" == *.* ]]; then
@@ -61,5 +66,14 @@ else
   fi
 fi
 
-echo ":: Setting wallpaper: $F"
-waypaper --backend "$BACKEND" --folder "$DIR" --wallpaper "$F"
+# Prefer pipeline (effects + theming)
+if [[ "$RAW" -eq 0 ]]; then
+  echo ":: Setting via pipeline: $F"
+  exec "$HOME/.local/bin/wallpaper.sh" "$F"
+fi
+
+# Raw mode: direct waypaper
+echo ":: Setting (raw) wallpaper: $F"
+WP_DIR="$(dirname "$F")"
+waypaper --backend "$BACKEND" --folder "$WP_DIR" --wallpaper "$F"
+
