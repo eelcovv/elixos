@@ -486,6 +486,10 @@ wp-list:
 wp-effect:
 	~/.local/bin/wallpaper-effects.sh
 
+
+wp-effect-none:
+	~/.local/bin/wallpaper-effects.sh none
+
 wp-random:
 	~/.local/bin/wallpaper-random.sh
 

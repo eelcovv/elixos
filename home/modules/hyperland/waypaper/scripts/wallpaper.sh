@@ -1,151 +1,90 @@
 #!/usr/bin/env bash
-# Apply a wallpaper (met optioneel effect), genereer blurred/square versies
-# en draai thema-tools. Gebruikt overal de 'notify' helper (met fallback).
+# Pick/apply a wallpaper effect via rofi, with a "None (no effect)" option.
+# Also supports CLI:  wallpaper-effects.sh none|off|disable | <effect-name> | reload
 set -euo pipefail
 
-# ---------- Helper laden + fallback notify ----------
+# ---- helper + notify fallback ----
 HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"
 if [[ -r "$HELPER" ]]; then
   # shellcheck disable=SC1090
   source "$HELPER" || true
 fi
-# Fallback als notify niet bestaat
 if [[ "$(type -t notify 2>/dev/null)" != "function" ]]; then
   notify() {
     local title="$1"; shift
     local body="${*:-}"
     printf '%s: %s\n' "$title" "$body"
-    if command -v logger >/dev/null 2>&1; then
-      logger -t waybar-theme -- "$title: $body"
-    fi
-    if command -v notify-send >/dev/null 2>&1; then
-      notify-send "$title" "$body" || true
-    fi
+    command -v logger >/dev/null 2>&1 && logger -t wallpaper-effects -- "$title: $body" || true
+    command -v notify-send >/dev/null 2>&1 && notify-send "$title" "$body" || true
   }
 fi
 
-# ---------- Even wachten tot Hyprland monitors heeft ----------
-_waitForHypr() {
-  if command -v hyprctl >/dev/null 2>&1; then
-    for _ in {1..20}; do
-      hyprctl monitors -j >/dev/null 2>&1 && return 0
-      sleep 0.1
-    done
+effects_dir="$HOME/.config/hypr/effects/wallpaper"
+effect_file="$HOME/.config/hypr/settings/wallpaper-effect.sh"
+cache_file="$HOME/.cache/hyprlock-assets/current_wallpaper"
+rofi_config="${ROFI_CONFIG:-$HOME/.config/rofi/config.rasi}"
+
+current="off"
+[[ -f "$effect_file" ]] && current="$(<"$effect_file")"
+
+apply_current_wallpaper() {
+  if [[ -f "$cache_file" ]]; then
+    # expand ~ if present
+    local wp
+    wp="$(sed 's|~|'"$HOME"'|g' "$cache_file")"
+    exec "$HOME/.local/bin/wallpaper.sh" "$wp"
   else
-    sleep 0.4
+    notify "Wallpaper Effect" "Saved '$1'. Will apply on next change."
+    exit 0
   fi
 }
 
-# ---------- Cache & paden ----------
-settings_dir="$HOME/.config/hypr/settings"
-hypr_cache_folder="$HOME/.cache/hyprlock-assets"
-mkdir -p "$hypr_cache_folder"
-generatedversions="$hypr_cache_folder/wallpaper-generated"
-mkdir -p "$generatedversions"
-
-waypaperrunning="$hypr_cache_folder/waypaper-running"
-[[ -f "$waypaperrunning" ]] && rm -f "$waypaperrunning" && exit 0
-
-force_generate=0
-cachefile="$hypr_cache_folder/current_wallpaper"
-last_applied="$hypr_cache_folder/last_applied"
-blurredwallpaper="$hypr_cache_folder/blurred_wallpaper.png"
-squarewallpaper="$hypr_cache_folder/square_wallpaper.png"
-rasifile="$hypr_cache_folder/current_wallpaper.rasi"
-blurfile="$settings_dir/blur.sh"
-effectfile="$settings_dir/wallpaper-effect.sh"
-defaultwallpaper="$HOME/.config/wallpapers/default.png"
-
-blur="50x30"
-[[ -f "$blurfile" ]] && blur="$(<"$blurfile")"
-
-# Aan/uit via presence van settings/wallpaper_cache
-use_cache=0
-if [[ -f "$settings_dir/wallpaper_cache" ]]; then
-  use_cache=1; notify "Wallpaper" "Using cache"
-else
-  notify "Wallpaper" "Cache disabled"
+# ---- CLI mode ----
+if [[ $# -gt 0 ]]; then
+  case "$1" in
+    none|off|disable)
+      printf '%s\n' "off" > "$effect_file"
+      notify "Wallpaper Effect" "Applying: off"
+      apply_current_wallpaper "off"
+      ;;
+    reload)
+      apply_current_wallpaper "reload"
+      ;;
+    *)
+      if [[ -r "$effects_dir/$1" ]]; then
+        printf '%s\n' "$1" > "$effect_file"
+        notify "Wallpaper Effect" "Applying: $1"
+        apply_current_wallpaper "$1"
+      else
+        notify "Wallpaper Effect" "Unknown effect '$1'"; exit 2
+      fi
+      ;;
+  esac
+  exit 0
 fi
 
-# ---------- Bron-wallpaper bepalen ----------
-if [[ "${1:-}" == "" ]]; then
-  wallpaper="$defaultwallpaper"
-  [[ -f "$cachefile" ]] && wallpaper="$(<"$cachefile")"
-else
-  wallpaper="$1"
-fi
+# ---- Menu mode (rofi) ----
+mapfile -t options < <( { printf 'None (no effect)\n'; ls -1 "$effects_dir" 2>/dev/null; } | sed '/^\s*$/d' | sort -f )
 
-echo "$wallpaper" > "$cachefile"
-tmpwallpaper="$wallpaper"
-wallpaperfilename="$(basename "$wallpaper")"
-notify "Wallpaper" "Source image: $wallpaperfilename"
+# annotate current
+annotated=()
+for opt in "${options[@]}"; do
+  val="$opt"
+  [[ "$opt" == "None (no effect)" ]] && val="off"
+  label="$opt"
+  [[ "$val" == "$current" ]] && label="$label  [current]"
+  annotated+=("$label")
+done
 
-# ---------- Effect toepassen (indien gekozen) ----------
-effect="off"
-[[ -f "$effectfile" ]] && effect="$(<"$effectfile")"
+choice="$(printf '%s\n' "${annotated[@]}" | rofi -dmenu -i -no-show-icons -l 12 -p "Effect" -config "$rofi_config")"
+[[ -n "${choice:-}" ]] || exit 0
 
-used_wallpaper="$wallpaper"
-if [[ "$effect" != "off" ]]; then
-  used_wallpaper="$generatedversions/$effect-$wallpaperfilename"
-  if [[ -f "$used_wallpaper" && "$force_generate" == "0" && "$use_cache" == "1" ]]; then
-    notify "Effect" "Use cached: $effect-$wallpaperfilename"
-  else
-    notify "Effect" "Generate: $effect-$wallpaperfilename"
-    # shellcheck disable=SC1090
-    source "$HOME/.config/hypr/effects/wallpaper/$effect"
-  fi
-else
-  notify "Effect" "off"
-fi
+# strip decoration
+choice="${choice%%  [current]*}"
+new="$choice"
+[[ "$choice" == "None (no effect)" ]] && new="off"
 
-# ---------- Thema alleen bij wijziging ----------
-state_key="$effect|$used_wallpaper"
-run_theme=1
-if [[ -f "$last_applied" ]] && [[ "$state_key" == "$(cat "$last_applied")" ]]; then
-  notify "Wallpaper" "Same as last time → skip matugen/wallust"
-  run_theme=0
-else
-  echo "$state_key" > "$last_applied"
-fi
-
-# ---------- Wallpaper zetten via Waypaper/Hyprpaper ----------
-_waitForHypr
-notify "Wallpaper" "Setting: $used_wallpaper"
-touch "$waypaperrunning"
-waypaper --backend hyprpaper --wallpaper "$used_wallpaper" || notify "Wallpaper" "waypaper failed (ignored)"
-
-# ---------- Matugen & Wallust ----------
-if [[ "$run_theme" == "1" ]]; then
-  notify "Matugen" "Generating palette from image"
-  matugen image "$used_wallpaper" -m dark || notify "Matugen" "failed (ignored)"
-  notify "Wallust" "Applying scheme"
-  wallust run "$used_wallpaper" || notify "Wallust" "failed (ignored)"
-fi
-
-# ---------- Bar/dock/notifications reload ----------
-sleep 0.5
-[ -x "$HOME/.config/waybar/launch.sh" ] && "$HOME/.config/waybar/launch.sh" || true
-[ -x "$HOME/.config/nwg-dock-hyprland/launch.sh" ] && "$HOME/.config/nwg-dock-hyprland/launch.sh" &>/dev/null &
-command -v pywalfox >/dev/null 2>&1 && pywalfox update || true
-command -v swaync-client >/dev/null 2>&1 && swaync-client -rs || true
-
-# ---------- Blur preview (met cache) ----------
-blurred_cache="$generatedversions/blur-$blur-$effect-$wallpaperfilename.png"
-if [[ -f "$blurred_cache" && "$force_generate" == "0" && "$use_cache" == "1" ]]; then
-  notify "Blur" "Use cached preview"
-else
-  notify "Blur" "Generating preview ($blur)"
-  magick "$used_wallpaper" -resize 75% "$blurredwallpaper"
-  [[ "$blur" != "0x0" ]] && magick "$blurredwallpaper" -blur "$blur" "$blurredwallpaper"
-  cp "$blurredwallpaper" "$blurred_cache"
-fi
-cp "$blurred_cache" "$blurredwallpaper"
-
-# ---------- Rofi preview ----------
-echo "* { current-image: url(\"$blurredwallpaper\", height); }" > "$rasifile"
-
-# ---------- Vierkante preview ----------
-notify "Square" "Generating square-cropped preview"
-magick "$tmpwallpaper" -gravity Center -extent 1:1 "$squarewallpaper"
-cp "$squarewallpaper" "$generatedversions/square-$wallpaperfilename.png"
+printf '%s\n' "$new" > "$effect_file"
+notify "Wallpaper Effect" "Applying: $new"
+apply_current_wallpaper "$new"
 
