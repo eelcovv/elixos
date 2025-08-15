@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # Common helpers for Waybar theme switching (Hyprland setup).
-# Supports both "theme/variant" and single-level "theme" with style.css at the theme root.
+# Supports both "theme/variant" and single-level "theme" (style.css at theme root).
+
+# --- Global state (must be initialized to avoid 'unbound variable' with set -u) ---
+_theme_dir=""   # e.g., $BASE/ml4w
+_var_dir=""     # e.g., $BASE/ml4w/dark
+_def_dir=""     # e.g., $BASE/default
 
 notify() {
+  # Args: <title> [body...]
   local title="$1"; shift
   local body="${*:-}"
   printf '%s: %s\n' "$title" "$body"
@@ -22,7 +28,6 @@ list_theme_variants() {
   local base="${1:-$HOME/.config/waybar/themes}"
   [[ -d "$base" ]] || return 0
 
-  # Find both depths: 1 (single-level) and 2 (variant-level)
   local IFS=$'\n'
   mapfile -t hits < <(
     { find -L "$base" -mindepth 1 -maxdepth 1 -type f -name 'style.css';
@@ -34,22 +39,22 @@ list_theme_variants() {
   local f rel
   for f in "${hits[@]}"; do
     rel="${f#$base/}"
-    # Drop trailing "/style.css"
     rel="${rel%/style.css}"
-    # Only print non-empty
     [[ -n "$rel" ]] && printf '%s\n' "$rel"
   done
 }
 
-# Resolve whether the user provided "theme/variant" or just "theme".
-# Outputs: type ("single" or "variant"), and sets globals: _var_dir, _theme_dir, _def_dir.
+# Resolve whether token is "theme/variant" or just "theme".
+# Side effects: sets global _theme_dir, _var_dir, _def_dir.
+# Output (stdout): "single" | "variant" | "unknown"
 _resolve_theme_paths() {
   local base="$1"
   local token="$2"
 
-  _def_dir="$base/default"
+  # Reset globals to safe values every call
   _theme_dir=""
   _var_dir=""
+  _def_dir="$base/default"
 
   if [[ "$token" == */* ]]; then
     # theme/variant form
@@ -115,16 +120,16 @@ switch_theme() {
   local mod_global="$cfg/modules.jsonc"
   local col_global="$cfg/colors.css"
 
+  # Ensure and resolve (fills _theme_dir/_var_dir/_def_dir)
   ensure_theme_variant "$base" "$token" || return 1
+  kind="$(_resolve_theme_paths "$base" "$token")" || return 1
+
+  # Copy resolved paths from globals to locals (clarity)
+  local theme_dir="$_theme_dir"
+  local var_dir="$_var_dir"
+  local def_dir="$_def_dir"
+
   mkdir -p "$cur"
-
-  kind="$(_resolve_theme_paths "$base" "$token")"
-
-  # Choose source folders according to kind
-  local var_dir theme_dir def_dir
-  theme_dir="$_theme_dir"
-  var_dir="$_var_dir"
-  def_dir="$_def_dir"
 
   # Resolve config.jsonc (prefer most specific, fall back to default)
   if [[ "$kind" == "variant" ]]; then
@@ -198,10 +203,10 @@ switch_theme() {
     # Rewrite any "../foo.css" imports to the theme root we resolved
     sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./style\.css['\"]?\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
     sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./([^'\"\\)]+)['\"]?\)?;#@import url(\"$theme_dir/\2\");#g" "$cur/style.resolved.css"
-    printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
+    printf '@import url(\"colors.css\");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
     mv -f "$cur/.tmp.css" "$cur/style.resolved.css"
   else
-    printf '@import url("colors.css");\n' > "$cur/style.resolved.css"
+    printf '@import url(\"colors.css\");\n' > "$cur/style.resolved.css"
   fi
 
   chmod 0644 "$cur/style.resolved.css"
