@@ -27,6 +27,15 @@ rofi_config="${ROFI_CONFIG:-$HOME/.config/rofi/config.rasi}"
 current="off"
 [[ -f "$effect_file" ]] && current="$(<"$effect_file")"
 
+# Validate effect: only "off" or a file in effects dir is allowed
+effects_dir="$HOME/.config/hypr/effects/wallpaper"
+[[ "$effect" == ~* ]] && effect="${effect/#\~/$HOME}"
+if [[ "$effect" != "off" && ! -r "$effects_dir/$effect" ]]; then
+  notify "Effect" "Invalid effect '$effect' → using off"
+  effect="off"
+fi
+
+
 apply_current_wallpaper() {
   if [[ -f "$cache_file" ]]; then
     # expand ~ if present
