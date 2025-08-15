@@ -148,7 +148,7 @@ in {
     hyprland.wallpaper.enable = true;
 
     # Random rotation settings (comment out to disable)
-    hyprland.wallpaper.random.enable = true;
-    hyprland.wallpaper.random.intervalSeconds = 300; # seconds
+    #hyprland.wallpaper.random.enable = true;
+    #hyprland.wallpaper.random.intervalSeconds = 300; # seconds
   };
 }
