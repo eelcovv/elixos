@@ -6,7 +6,6 @@
 }: let
   scriptsDir = ./scripts;
 
-  # Helper om scripts te installeren naar ~/.local/bin
   installScript = name: {
     ".local/bin/${name}" = {
       source = scriptsDir + "/${name}";
@@ -16,7 +15,7 @@
 
   default_effect = "off\n";
   default_blur = "50x30\n";
-  default_automation_interval = "300\n"; # alleen gebruikt door legacy toggle-script
+  default_automation_interval = "300\n";
 in {
   options = {
     hyprland.wallpaper.enable =
@@ -27,39 +26,38 @@ in {
     ############################
     # Packages
     ############################
-    home.packages = with pkgs; [
-      waypaper
-      hyprpaper
-      imagemagick
-      wallust
-      matugen
-      rofi-wayland
-      libnotify
-      swaynotificationcenter
-      git
-      nwg-dock-hyprland
-      (python3.withPackages (ps: [ps.pywalfox]))
-    ];
+    home.packages =
+      (with pkgs; [
+        waypaper
+        hyprpaper
+        imagemagick
+        wallust
+        matugen
+        rofi-wayland
+        libnotify
+        swaynotificationcenter
+        git
+        nwg-dock-hyprland
+      ])
+      ++ lib.optionals (pkgs ? pywalfox) [pkgs.pywalfox];
 
     ############################
-    # Scripts naar ~/.local/bin (namen overeenkomend met jouw map)
+    # Scripts -> ~/.local/bin
     ############################
     home.file = lib.mkMerge [
       (installScript "wallpaper.sh")
       (installScript "wallpaper-restore.sh")
       (installScript "wallpaper-effects.sh")
       (installScript "wallpaper-cache.sh")
-      (installScript "wallpaper-automation.sh") # legacy toggle (optioneel)
+      (installScript "wallpaper-automation.sh")
       (installScript "fetch-wallpapers.sh")
 
-      # Defaults / settings die je scripts lezen
       {
         ".config/hypr/settings/wallpaper-effect.sh".text = lib.mkDefault default_effect;
         ".config/hypr/settings/blur.sh".text = lib.mkDefault default_blur;
         ".config/hypr/settings/wallpaper-automation.sh".text = lib.mkDefault default_automation_interval;
       }
 
-      # Verwachte directories
       {
         ".config/wallpapers/.keep".text = "";
         ".config/hypr/effects/wallpaper/.keep".text = "";
@@ -103,7 +101,7 @@ in {
       Unit = {Description = "Random wallpaper timer";};
       Timer = {
         OnBootSec = "1min";
-        OnUnitActiveSec = "5min"; # pas aan naar smaak
+        OnUnitActiveSec = "5min";
         Unit = "waypaper-random.service";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
