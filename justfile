@@ -483,9 +483,6 @@ wp-set FILE="default":
 wp-list:
 	~/.local/bin/wallpaper-list.sh
 
-wp-random:
-	~/.local/bin/wallpaper-random.sh
-
 wp-effect:
 	~/.local/bin/wallpaper-effects.sh
 
