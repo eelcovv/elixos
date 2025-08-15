@@ -77,6 +77,7 @@ in {
       (installScript "wallpaper-set.sh")
       (installScript "wallpaper-list.sh")
       (installScript "wallpaper-random.sh")
+      (installScript "wallpaper-pick.sh")
 
       # Only real writable directories (never under Nix store symlinks)
       {
