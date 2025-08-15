@@ -41,8 +41,8 @@ in {
 
   config = lib.mkIf config.hyprland.wallpaper.enable {
     ############################
-    # Do NOT auto-start user units during `nixos-rebuild switch`
-    # This avoids HM blocking on GUI units (Wayland not ready yet).
+    # Do NOT auto-start user units during `nixos-rebuild switch`.
+    # Avoids HM blocking when Wayland/session isn't ready yet.
     ############################
     systemd.user.startServices = false;
 
@@ -117,7 +117,7 @@ in {
     '';
 
     ############################
-    # Seed wallpapers once if empty (non-blocking)
+    # Seed wallpapers once if empty (non-blocking):
     # If empty, *defer* actual fetch to the user service to avoid blocking HM.
     ############################
     home.activation.wallpapersSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
@@ -130,18 +130,37 @@ in {
     '';
 
     ############################
-    # Restore last wallpaper on session start — via generator (effect + theming)
-    # Small delay + timeout so it never blocks HM or session startup.
+    # hyprpaper daemon (persistent backend)
     ############################
-    systemd.user.services."waypaper-restore" = {
+    systemd.user.services."hyprpaper" = {
       Unit = {
-        Description = "Restore last wallpaper via wallpaper.sh (effect-aware)";
+        Description = "Hyprland wallpaper daemon (hyprpaper)";
         After = ["hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
       };
       Service = {
+        ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
+        Restart = "always";
+        RestartSec = 0.2;
+        TimeoutStartSec = "15s";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    ############################
+    # Restore last wallpaper on session start — via generator (effect + theming)
+    # Wait for hyprpaper & Wayland; give a short timeout so it never blocks.
+    ############################
+    systemd.user.services."waypaper-restore" = {
+      Unit = {
+        Description = "Restore last wallpaper via wallpaper.sh (effect-aware)";
+        After = ["hyprland-env.service" "hyprpaper.service"];
+        Requires = ["hyprpaper.service"];
+        PartOf = ["hyprland-session.target"];
+      };
+      Service = {
         Type = "oneshot";
-        ExecStartPre = "${pkgs.coreutils}/bin/sleep 1"; # wait a bit for Wayland/monitors
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 1"; # small delay for monitors
         ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper.sh";
         TimeoutStartSec = "20s";
       };
@@ -150,12 +169,12 @@ in {
 
     ############################
     # Random rotation service — via random script (calls wallpaper.sh)
-    # Short timeout to avoid blocking on slow operations.
     ############################
     systemd.user.services."waypaper-random" = {
       Unit = {
         Description = "Set a random wallpaper (effect-aware)";
-        After = ["hyprland-env.service"];
+        After = ["hyprland-env.service" "hyprpaper.service"];
+        Requires = ["hyprpaper.service"];
         PartOf = ["hyprland-session.target"];
       };
       Service = {
@@ -192,7 +211,7 @@ in {
         Type = "oneshot";
         ExecStart = "${config.home.homeDirectory}/.local/bin/fetch-wallpapers.sh";
         SuccessExitStatus = "0";
-        # Make fetch nice/idle and bounded so it never stalls HM
+        # nice/idle & bounded so it never stalls HM
         Nice = 19;
         IOSchedulingClass = "idle";
         TimeoutStartSec = "30s";
