@@ -20,9 +20,21 @@ in {
   options = {
     hyprland.wallpaper.enable =
       lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
+
+    hyprland.wallpaper.random.enable = lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
+    hyprland.wallpaper.random.intervalSeconds = lib.mkOption {
+      type = lib.types.int;
+      default = 300;
+      description = "Interval (seconds) for the random wallpaper timer.";
+    };
   };
 
   config = lib.mkIf config.hyprland.wallpaper.enable {
+    ############################
+    # Ensure user units start on switch
+    ############################
+    systemd.user.startServices = "sd-switch";
+
     ############################
     # Packages
     ############################
@@ -52,14 +64,12 @@ in {
       (installScript "wallpaper-automation.sh")
       (installScript "fetch-wallpapers.sh")
 
-      # Defaults / settings die je scripts lezen
       {
         ".config/hypr/settings/wallpaper-effect.sh".text = lib.mkDefault default_effect;
         ".config/hypr/settings/blur.sh".text = lib.mkDefault default_blur;
         ".config/hypr/settings/wallpaper-automation.sh".text = lib.mkDefault default_automation_interval;
       }
 
-      # Alleen directories die NIET onder de Nix-store-symlink vallen
       {
         ".config/wallpapers/.keep".text = "";
         ".cache/hyprlock-assets/.keep".text = "";
@@ -67,7 +77,7 @@ in {
     ];
 
     ############################
-    # Waypaper restore bij sessiestart
+    # Restore last wallpaper on session start
     ############################
     systemd.user.services."waypaper-restore" = {
       Unit = {
@@ -83,8 +93,9 @@ in {
     };
 
     ############################
-    # Random rotatie via systemd timer
+    # Random rotation via systemd timer (conditional)
     ############################
+    # Service always defined (lightweight); timer only if enabled.
     systemd.user.services."waypaper-random" = {
       Unit = {
         Description = "Set a random wallpaper with Waypaper";
@@ -98,11 +109,12 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    systemd.user.timers."waypaper-random" = {
+    # Timer only if the option is enabled
+    systemd.user.timers."waypaper-random" = lib.mkIf config.hyprland.wallpaper.random.enable {
       Unit = {Description = "Random wallpaper timer";};
       Timer = {
         OnBootSec = "1min";
-        OnUnitActiveSec = "5min";
+        OnUnitActiveSec = "${toString config.hyprland.wallpaper.random.intervalSeconds}s";
         Unit = "waypaper-random.service";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
