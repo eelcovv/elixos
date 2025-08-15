@@ -6,10 +6,14 @@
 }: let
   waybarDir = ./.;
   scriptsDir = ./scripts;
+  cfgPath = "${config.xdg.configHome}/waybar";
 in {
-  home.packages = with pkgs; [rofi-wayland swaynotificationcenter dunst];
+  home.packages = with pkgs; [
+    rofi-wayland
+    swaynotificationcenter
+    dunst
+  ];
 
-  # CLI scripts
   home.file.".local/bin/waybar-switch-theme" = {
     source = scriptsDir + "/waybar-switch-theme.sh";
     executable = true;
@@ -19,19 +23,23 @@ in {
     executable = true;
   };
 
-  # Config & thema’s
   xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
   xdg.configFile."waybar/modules.jsonc".source = "${waybarDir}/modules.jsonc";
   xdg.configFile."waybar/colors.css".source = "${waybarDir}/colors.css";
 
-  # Top-level config importeert altijd current/
   xdg.configFile."waybar/config.jsonc".text = ''
-    { "include": [ "~/.config/waybar/current/config.jsonc",
-                   "~/.config/waybar/current/modules.jsonc" ] }
+    {
+      "include": [
+        "${cfgPath}/current/config.jsonc",
+        "${cfgPath}/current/modules.jsonc"
+      ]
+    }
   '';
-  xdg.configFile."waybar/style.css".text = ''@import url("current/style.resolved.css");'';
 
-  # Bootstrap current/ éénmalig en voorspelbaar
+  xdg.configFile."waybar/style.css".text = ''
+    @import url("${cfgPath}/current/style.resolved.css");
+  '';
+
   home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
     CFG="$HOME/.config/waybar"; BASE="$CFG/themes"; CUR="$CFG/current"
@@ -57,5 +65,5 @@ in {
   '';
 
   programs.waybar.enable = true;
-  programs.waybar.systemd.enable = false; # <— belangrijk
+  programs.waybar.systemd.enable = false;
 }
