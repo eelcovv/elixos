@@ -4,13 +4,11 @@
 # shellcheck shell=bash
 set -euo pipefail
 
-# Prefer installed helper; fall back to repo-local during development.
-# shellcheck source=./helper-functions.sh
 HELPER_CANDIDATES=(
-    "$HOME/.local/lib/waybar-theme/helper-functions.sh"
-    "${XDG_DATA_HOME:-$HOME/.local/share}/waybar-theme/helper-functions.sh"
-    "$(dirname -- "${BASH_SOURCE[0]}")/helper-functions.sh"
+    "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/scripts/helper-functions.sh" # geïnstalleerde helper
+    "$(dirname -- "${BASH_SOURCE[0]}")/helper-functions.sh" # dev-fallback naast het script
 )
+
 FOUND=""
 for f in "${HELPER_CANDIDATES[@]}"; do
     if [[ -r "$f" ]]; then

@@ -81,6 +81,14 @@ in {
       executable = true;
     };
 
+    # Sanity check: ensure helper exists after linking
+    home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
+      if [ ! -r "$HOME/.config/hypr/scripts/helper-functions.sh" ]; then
+        echo "ERROR: missing helper at ~/.config/hypr/scripts/helper-functions.sh" >&2
+        exit 1
+      fi
+    '';
+
     ################################
     # Hyprpaper defaults (base wallpaper)
     ################################

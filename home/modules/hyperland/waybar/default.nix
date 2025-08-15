@@ -10,23 +10,6 @@
   # If you have a Rofi theme tree under ./rofi/, we’ll use it; otherwise we’ll fall back safely.
   haveRofiTree = builtins.pathExists (waybarDir + "/rofi");
   rofiThemeDefault = waybarDir + "/rofi/themes/default";
-
-  # Patch scripts to source the shared Hyprland helper
-  patchHelper = path: let
-    orig = builtins.readFile path;
-  in
-    lib.replaceStrings
-    [
-      "source \"~/.local/lib/waybar-theme/helper-functions.sh\""
-      "source \"$HOME/.local/lib/waybar-theme/helper-functions.sh\""
-      "source ~/.local/lib/waybar-theme/helper-functions.sh"
-    ]
-    [
-      "source \"$HOME/.config/hypr/scripts/helper-functions.sh\""
-      "source \"$HOME/.config/hypr/scripts/helper-functions.sh\""
-      "source \"$HOME/.config/hypr/scripts/helper-functions.sh\""
-    ]
-    orig;
 in {
   ################################
   # Packages for Waybar, Rofi, and notifications
@@ -190,17 +173,5 @@ in {
         printf '@theme "gruvbox-dark"\n' > "$CFG/_patched/config.rasi"
       fi
     '';
-
-    ################################
-    # Waybar scripts (patched to use shared Hyprland helper)
-    ################################
-    home.file.".local/bin/waybar-switch-theme" = {
-      text = patchHelper (scriptsDir + "/waybar-switch-theme.sh");
-      executable = true;
-    };
-    home.file.".local/bin/waybar-pick-theme" = {
-      text = patchHelper (scriptsDir + "/waybar-pick-theme.sh");
-      executable = true;
-    };
   };
 }
