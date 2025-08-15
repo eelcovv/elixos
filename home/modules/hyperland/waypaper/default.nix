@@ -44,7 +44,7 @@ in {
     # Do NOT auto-start user units during `nixos-rebuild switch`
     # This avoids HM blocking on GUI units (Wayland not ready yet).
     ############################
-    systemd.user.startServices = "none";
+    systemd.user.startServices = false;
 
     ############################
     # Packages
