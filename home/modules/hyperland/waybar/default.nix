@@ -28,9 +28,7 @@ in {
       executable = true;
     };
     home.file.".local/bin/waybar-pick-theme" = {
-      # kies de juiste bestandsnaam uit je repo:
-      # source = scriptsDir + "/waybar-pick-theme.sh";
-      source = scriptsDir + "/waybar-pick.sh";
+      source = scriptsDir + "/waybar-pick-theme.sh";
       executable = true;
     };
 
