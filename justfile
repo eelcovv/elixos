@@ -484,15 +484,13 @@ wp-list:
 	~/.local/bin/wallpaper-list.sh
 
 wp-random:
-	waypaper --backend hyprpaper --folder "$HOME/.config/wallpapers" --random
+	~/.local/bin/wallpaper-random.sh
 
-# Force restore
-wp-restore:
-	waypaper --backend hyprpaper --restore
-
-# Pick an effect via your script (writes choice, then reapplies current)
 wp-effect:
 	~/.local/bin/wallpaper-effects.sh
+
+wp-random:
+	~/.local/bin/wallpaper-random.sh
 
 # Clear generated cache
 wp-cache-clear:
