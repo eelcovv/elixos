@@ -4,10 +4,8 @@
   lib,
   ...
 }: let
-  # Path to this module directory (must contain ./themes, ./colors.css, ./modules.jsonc, ./scripts)
+  # Module root must contain ./themes, ./colors.css, ./modules.jsonc, ./scripts
   waybarDir = ./.;
-
-  # Directory in this module that contains our two theme scripts
   scriptsDir = ./scripts;
 
   # Resolves to "~/.config/waybar" at runtime
@@ -23,7 +21,7 @@ in {
   ];
 
   ##########################################################################
-  # Install the theme-switcher scripts declaratively into ~/.local/bin
+  # Install the theme-switcher scripts into ~/.local/bin
   ##########################################################################
   home.file.".local/bin/waybar-switch-theme" = {
     source = scriptsDir + "/waybar-switch-theme.sh";
@@ -58,8 +56,7 @@ in {
   '';
 
   ##########################################################################
-  # Initialize ~/.config/waybar/current on each activation
-  # - Do NOT delete the directory; clean and relink its contents safely.
+  # Initialize ~/.config/waybar/current only if missing (do NOT overwrite)
   ##########################################################################
   home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
@@ -67,11 +64,15 @@ in {
     BASE="$CFG/themes"
     CUR="$CFG/current"
 
-    # Ensure directory exists (do not try to rm it)
-    mkdir -p "$CUR"
+    mkdir -p "$CFG"
+    if [ ! -d "$CUR" ]; then
+      mkdir -p "$CUR"
+    fi
 
-    # Clean known files we manage inside current/
-    rm -f "$CUR/config.jsonc" "$CUR/modules.jsonc" "$CUR/colors.css" "$CUR/style.resolved.css"
+    # If already initialized (style.resolved.css exists), leave as-is
+    if [ -f "$CUR/style.resolved.css" ]; then
+      exit 0
+    fi
 
     DEF="$BASE/default"
     MOD_GLOBAL="$CFG/modules.jsonc"
@@ -115,7 +116,7 @@ in {
   '';
 
   ##########################################################################
-  # Waybar is enabled but NOT managed by systemd (Hyprland starts it)
+  # Waybar enabled, not started by systemd (Hyprland handles it)
   ##########################################################################
   programs.waybar.enable = true;
   programs.waybar.systemd.enable = false;
