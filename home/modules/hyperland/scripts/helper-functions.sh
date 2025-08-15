@@ -112,30 +112,43 @@ switch_theme() {
         col_src="$col_global"
     fi
 
+    # Link resolved config & modules naar current/
     [[ -n "$cfg_src" && -e "$cfg_src" ]] && ln -sfn "$cfg_src" "$cur/config.jsonc"
     [[ -n "$mod_src" && -e "$mod_src" ]] && ln -sfn "$mod_src" "$cur/modules.jsonc"
 
-    if [[ -n "$col_src" && -e "$col_src" ]]; then
+    # ---- colors.css: voorkom self-symlink loops ----
+    # Als de bron precies het globale pad is (~/.config/waybar/colors.css), maak dan
+    # een echte file (kopie) in current/ i.p.v. een symlink.
+    if [[ -n "$col_src" && -e "$col_src" && "$col_src" != "$cfg/colors.css" ]]; then
         ln -sfn "$col_src" "$cur/colors.css"
     else
-        : > "$cur/colors.css"
+        if [[ -n "$col_src" && -e "$col_src" ]]; then
+            cp -f "$col_src" "$cur/colors.css"
+        else
+            : > "$cur/colors.css"
+        fi
     fi
 
-    # Always produce a safe, preprocessed CSS:
-    # 1) remove any @import url(...colors.css),
+    # Always produce a safe, preprocessed CSS into current/style.resolved.css:
+    # 1) remove any @import of colors.css,
     # 2) rewrite parent-relative imports to the theme dir (avoid recursion),
     # 3) prepend exactly one safe import to the local palette.
     if [[ -n "$css_src" && -e "$css_src" ]]; then
         cp -f "$css_src" "$cur/style.resolved.css"
 
-        # Remove ANY @import of colors.css (url(...), '...', "...")
-        perl -0777 -pe 's/^\s*@import[^\n]*colors\.css[^\n]*\n//gmi' -i "$cur/style.resolved.css"
+        if command -v perl >/dev/null 2>&1; then
+            # Remove ANY @import of colors.css (url(...), '...', "...")
+            perl -0777 -pe 's/^\s*@import[^\n]*colors\.css[^\n]*\n//gmi' -i "$cur/style.resolved.css"
+        else
+            # Fallback (minder precies, maar prima)
+            sed -i -E '/@import.*colors\.css/d' "$cur/style.resolved.css"
+        fi
 
         # Rewrite parent-relative imports to live under the theme dir
         # ../style.css  ->  <theme_dir>/style.css
-        sed -i -E "s#@import[[:space:]]+(url\\()?['\"]?\\.{2}/style\\.css['\"]?\\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
+        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./style\.css['\"]?\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
         # ../whatever.css  ->  <theme_dir>/whatever.css
-        sed -i -E "s#@import[[:space:]]+(url\\()?['\"]?\\.{2}/([^'\"\\)]+)['\"]?\\)?;#@import url(\"$theme_dir/\\2\");#g" "$cur/style.resolved.css"
+        sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./([^'\"\\)]+)['\"]?\)?;#@import url(\"$theme_dir/\2\");#g" "$cur/style.resolved.css"
 
         # Prepend exactly one safe import to the local palette
         printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
@@ -152,19 +165,10 @@ switch_theme() {
     ln -sfn "$cur/style.resolved.css"  "$cfg/style.css"
     ln -sfn "$cur/colors.css"          "$cfg/colors.css"
 
-    # Restart or soft-reload Waybar
+    # Restart or soft-reload Waybar (exactly once)
     if systemctl --user is-enabled waybar.service >/dev/null 2>&1 \
-    || systemctl --user is-active waybar.service >/dev/null 2>&1; then
-    systemctl --user restart waybar.service || true
-    else
-    pkill -USR2 waybar 2>/dev/null || true
-    fi
-
-    notify "Waybar theme" "Applied: $theme"
-
-    # Prefer systemd service; otherwise try hot-reload a direct Waybar process
-    if systemctl --user is-enabled waybar.service >/dev/null 2>&1 || systemctl --user is-active waybar.service >/dev/null 2>&1; then
-        systemctl --user restart waybar.service || true
+        || systemctl --user is-active waybar.service >/dev12 2>&1; then
+            systemctl --user restart waybar.service || true
     else
         pkill -USR2 waybar 2>/dev/null || true
     fi
