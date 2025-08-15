@@ -492,3 +492,13 @@ wp-effect:
 # Clear generated cache
 wp-cache-clear:
 	~/.local/bin/wallpaper-cache.sh
+
+wp-fetch:
+	~/.local/bin/fetch-wallpapers.sh
+
+wp-fetch-now:   # start de systemd service handmatig
+	systemctl --user start waypaper-fetch.service
+
+wp-fetch-logs:
+	journalctl --user -u waypaper-fetch -e --no-pager
+
