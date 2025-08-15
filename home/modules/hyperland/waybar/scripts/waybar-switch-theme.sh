@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
-# Pure switch: update ~/.config/waybar/current symlink and restart user service.
-# shellcheck shell=bash
+# Switch Waybar theme via helper-functions.sh
+# Usage: waybar-switch-theme <theme> <variant>
+# Example: waybar-switch-theme ml4w-minimal light
 set -euo pipefail
 
-HELPER_CANDIDATES=(
-    "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/scripts/helper-functions.sh" # geïnstalleerde helper
-    "$(dirname -- "${BASH_SOURCE[0]}")/helper-functions.sh" # dev-fallback naast het script
-)
-FOUND=""
-for f in "${HELPER_CANDIDATES[@]}"; do
-    if [[ -r "$f" ]]; then
-        # shellcheck disable=SC1090
-        . "$f"
-        FOUND="$f"
-        break
-    fi
-done
-if [[ -z "$FOUND" ]]; then
-    echo "helper-functions.sh not found. Tried: ${HELPER_CANDIDATES[*]}" >&2
-    exit 1
+if [[ $# -lt 2 ]]; then
+  echo "Usage: $(basename "$0") <theme> <variant>"
+  exit 1
 fi
 
-THEME="${1:-}"  # e.g. ml4w/light
-if [[ -z "$THEME" ]]; then
-    echo "Usage: waybar-switch-theme <theme-path>  (e.g., ml4w/light)"
-    exit 2
+theme="$1"
+variant="$2"
+combo="${theme}/${variant}"
+
+HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"
+if [[ -r "$HELPER" ]]; then
+  # shellcheck disable=SC1090
+  source "$HELPER"
+else
+  echo "ERROR: helper not found at $HELPER" >&2
+  exit 1
 fi
 
-switch_theme "$THEME"
+if ! type -t switch_theme >/dev/null 2>&1; then
+  echo "ERROR: switch_theme() not found in helper" >&2
+  exit 1
+fi
+
+switch_theme "$combo"
 
