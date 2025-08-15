@@ -125,5 +125,9 @@ in {
     # Enable the Waypaper integration module
     ################################
     hyprland.wallpaper.enable = true;
+
+    # comment these lines if you dont want a random wall paper
+    hyprland.wallpaper.random.enable = true;
+    hyprland.wallpaper.random.intervalSeconds = 300; # time in seconds
   };
 }
