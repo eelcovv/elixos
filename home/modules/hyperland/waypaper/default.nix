@@ -11,7 +11,8 @@
     original = builtins.readFile (scriptsDir + "/waypaper.sh");
   in
     lib.replaceStrings
-    ["source \"./library.sh\""]
+    ["source \"$HOME/.config/hypr/scripts/helper-functions.sh\""] # idempotent
+    
     ["source \"$HOME/.config/hypr/scripts/helper-functions.sh\""]
     original;
 
@@ -25,7 +26,7 @@
 
   default_effect = "off\n";
   default_blur = "50x30\n";
-  default_automation_interval = "60\n";
+  default_automation_interval = "300\n"; # used only if you opt into the legacy loop script
 in {
   options = {
     hyprland.wallpaper.enable =
@@ -33,8 +34,12 @@ in {
   };
 
   config = lib.mkIf config.hyprland.wallpaper.enable {
+    ############################
+    # Packages
+    ############################
     home.packages = with pkgs; [
       waypaper
+      hyprpaper # backend
       imagemagick # provides `magick`
       wallust
       matugen
@@ -42,12 +47,14 @@ in {
       libnotify # notify-send
       swaynotificationcenter
       git
-      # optional:
+      # optional extras
       nwg-dock-hyprland
       (python3.withPackages (ps: [ps.pywalfox]))
     ];
 
+    ############################
     # Scripts to ~/.local/bin
+    ############################
     home.file = lib.mkMerge [
       {
         ".local/bin/waypaper.sh".text = patchedWallpaperSh;
@@ -57,7 +64,7 @@ in {
       (installScript "waypaper-restore.sh")
       (installScript "waypaper-effects.sh")
       (installScript "waypaper-cache.sh")
-      (installScript "waypaper-automation.sh")
+      (installScript "waypaper-automation.sh") # legacy loop (optional)
       (installScript "fetch-wallpapers.sh")
 
       # Defaults / settings the scripts read (overridable elsewhere)
@@ -75,20 +82,51 @@ in {
       }
     ];
 
-    # Optional: systemd user service for automation
-    systemd.user.services."wallpaper-automation" = {
+    ############################
+    # Waypaper restore on session start (recommended)
+    ############################
+    systemd.user.services."waypaper-restore" = {
       Unit = {
-        Description = "Hypr wallpaper automation (random via waypaper)";
-        After = ["graphical-session.target"];
-        PartOf = ["graphical-session.target"];
+        Description = "Restore last wallpaper via Waypaper";
+        After = ["hyprland-env.service"];
+        PartOf = ["hyprland-session.target"];
       };
       Service = {
-        ExecStart = "${config.home.homeDirectory}/.local/bin/waypaper-automation.sh";
-        Restart = "on-failure";
+        Type = "oneshot";
+        ExecStart = "${pkgs.waypaper}/bin/waypaper --backend hyprpaper --restore";
       };
-      Install = {WantedBy = ["default.target"];};
+      Install = {WantedBy = ["hyprland-session.target"];};
     };
 
+    ############################
+    # Random rotation using a systemd timer (clean + robust)
+    ############################
+    systemd.user.services."waypaper-random" = {
+      Unit = {
+        Description = "Set a random wallpaper with Waypaper";
+        After = ["hyprland-env.service"];
+        PartOf = ["hyprland-session.target"];
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.waypaper}/bin/waypaper --backend hyprpaper --folder ${config.xdg.configHome}/wallpapers --random";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    systemd.user.timers."waypaper-random" = {
+      Unit = {Description = "Random wallpaper timer";};
+      Timer = {
+        OnBootSec = "1min";
+        OnUnitActiveSec = "5min"; # change interval as you prefer
+        Unit = "waypaper-random.service";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    ############################
+    # PATH
+    ############################
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }

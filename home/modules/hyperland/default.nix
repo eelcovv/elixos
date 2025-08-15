@@ -8,7 +8,7 @@
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
-  # Import submodules unconditionally to avoid dependency cycles on `config.*`
+  # Import submodules (Waybar + Waypaper integration)
   imports = [
     ./waybar
     ./waypaper
@@ -20,7 +20,7 @@ in {
     ################################
     home.packages = with pkgs; [
       kitty
-      hyprpaper
+      hyprpaper # backend used by Waypaper
       hyprshot
       hyprlock
       hypridle
@@ -36,7 +36,7 @@ in {
     ];
 
     ################################
-    # Systemd user target for the Hyprland session
+    # User target representing the Hyprland session
     ################################
     systemd.user.targets."hyprland-session" = {
       Unit = {
@@ -49,7 +49,7 @@ in {
 
     ################################
     # Import Hyprland environment into systemd --user
-    # (so hyprpaper sees WAYLAND_DISPLAY / HYPRLAND_INSTANCE_SIGNATURE)
+    # (so Waypaper/hyprpaper see WAYLAND_DISPLAY / HYPRLAND_INSTANCE_SIGNATURE)
     ################################
     systemd.user.services."hyprland-env" = {
       Unit = {
@@ -59,25 +59,7 @@ in {
       };
       Service = {
         Type = "oneshot";
-        # Run both commands in one ExecStart (Nix doesn't support += on attrs)
         ExecStart = "${pkgs.bash}/bin/bash -lc '${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE; ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE'";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    ################################
-    # hyprpaper via systemd (Waypaper restores last wallpaper)
-    ################################
-    systemd.user.services."hyprpaper" = {
-      Unit = {
-        Description = "Hyprland wallpaper daemon (hyprpaper)";
-        After = ["hyprland-env.service"];
-        PartOf = ["hyprland-session.target"];
-      };
-      Service = {
-        ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
-        ExecStartPost = "${pkgs.waypaper}/bin/waypaper --backend hyprpaper --restore";
-        Restart = "always";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
@@ -95,7 +77,6 @@ in {
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
       SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh"; # keep literal for runtime expansion
-      # ROFI_CONFIG is set inside the Waybar submodule (on purpose)
     };
 
     ################################
@@ -126,9 +107,8 @@ in {
     '';
 
     ################################
-    # hyprpaper config + default wallpaper
+    # hyprpaper config + default wallpaper (Waypaper will drive the backend)
     ################################
-    # Enable IPC; do not force a fixed wallpaper here (Waypaper will set it).
     xdg.configFile."hypr/hyprpaper.conf".text = ''
       ipc = on
       splash = false
@@ -142,5 +122,10 @@ in {
     # Ensure ~/.local/bin is in PATH
     ################################
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
+
+    ################################
+    # Enable the Waypaper integration module
+    ################################
+    hyprland.wallpaper.enable = true;
   };
 }
