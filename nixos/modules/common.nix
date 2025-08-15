@@ -20,9 +20,6 @@ This NixOS configuration module defines common system settings:
     lib/conditional-secrets.nix
   ];
 
-  # this is required to allow replacement of new scripts under /home/<user>/.config
-  home-manager.backupFileExtension = "hm-bak";
-
   options = {
     globalSshClientUsers = lib.mkOption {
       type = lib.types.listOf lib.types.str;
@@ -44,6 +41,9 @@ This NixOS configuration module defines common system settings:
   };
 
   config = {
+    # this is required to allow replacement of new scripts under /home/<user>/.config
+    home-manager.backupFileExtension = "hm-bak";
+
     # create the group 'elixos' which we use to allow access to our repo for all users belonging to this group
     users.groups.elixos = {};
 
