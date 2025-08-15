@@ -478,12 +478,6 @@ switch-theme theme:
 wp-set FILE="default.png":
 	FP="{{FILE}}"; case "$FP" in /*|.*) ;; ~*) FP="$HOME/${FP#\~}" ;; *) FP="$HOME/.config/wallpapers/$FP" ;; esac; waypaper --backend hyprpaper --folder "$HOME/.config/wallpapers" --wallpaper "$FP"
 
-
-# Random switch (one-shot)
-wp-random:
-	waypaper --backend hyprpaper --folder "$HOME/.config/wallpapers" --random
-
-
 # Random switch now (one-shot)
 wp-random:
 	waypaper --backend hyprpaper --folder "$HOME/.config/wallpapers" --random
