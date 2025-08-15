@@ -10,7 +10,7 @@
   # Directory in this module that contains our two theme scripts
   scriptsDir = ./scripts;
 
-  # Resolve to "~/.config/waybar" at runtime
+  # Resolves to "~/.config/waybar" at runtime
   cfgPath = "${config.xdg.configHome}/waybar";
 in {
   ##########################################################################
@@ -53,16 +53,13 @@ in {
     }
   '';
 
-  # Always import the preprocessed CSS in current/
   xdg.configFile."waybar/style.css".text = ''
     @import url("${cfgPath}/current/style.resolved.css");
   '';
 
   ##########################################################################
   # Initialize ~/.config/waybar/current on each activation
-  # - Links config.jsonc / modules.jsonc / colors.css from the selected theme
-  #   (or from global fallbacks) into current/
-  # - Builds a style.resolved.css that first imports colors.css
+  # - Do NOT delete the directory; clean and relink its contents safely.
   ##########################################################################
   home.activation.initWaybarCurrent = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
@@ -70,9 +67,11 @@ in {
     BASE="$CFG/themes"
     CUR="$CFG/current"
 
-    mkdir -p "$CFG"
-    rm -f "$CUR"
+    # Ensure directory exists (do not try to rm it)
     mkdir -p "$CUR"
+
+    # Clean known files we manage inside current/
+    rm -f "$CUR/config.jsonc" "$CUR/modules.jsonc" "$CUR/colors.css" "$CUR/style.resolved.css"
 
     DEF="$BASE/default"
     MOD_GLOBAL="$CFG/modules.jsonc"
