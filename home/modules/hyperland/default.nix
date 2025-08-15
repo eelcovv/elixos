@@ -78,7 +78,7 @@ in {
     };
 
     ################################
-    # Waybar via systemd user
+    # Waybar via systemd user (bound to hyprland-session target)
     ################################
     programs.waybar.enable = true;
     programs.waybar.systemd.enable = true;
@@ -99,19 +99,17 @@ in {
     xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
     xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
     xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
+
+    # Link the whole scripts directory (read-only from Nix store).
+    # IMPORTANT: Do NOT also manage individual files inside this dir with home.file,
+    # otherwise HM will try to overwrite files in a read-only store path.
     xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
     xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
     xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
     ################################
-    # Shared helper functions (used by Waybar/Waypaper)
+    # Optional sanity check: helper must exist (read-only is fine)
     ################################
-    home.file.".config/hypr/scripts/helper-functions.sh" = {
-      source = "${hyprDir}/scripts/helper-functions.sh";
-      executable = true;
-    };
-
-    # Sanity check: ensure helper exists after linking
     home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
       if [ ! -r "$HOME/.config/hypr/scripts/helper-functions.sh" ]; then
         echo "ERROR: missing helper at ~/.config/hypr/scripts/helper-functions.sh" >&2
@@ -141,7 +139,7 @@ in {
     ################################
     hyprland.wallpaper.enable = true;
 
-    # Random rotation (optional; can disable if you want silence at boot)
+    # Random rotation (optional; you can disable if you want silence at boot)
     hyprland.wallpaper.random.enable = true;
     hyprland.wallpaper.random.intervalSeconds = 300; # seconds
   };
