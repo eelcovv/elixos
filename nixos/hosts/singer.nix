@@ -8,7 +8,6 @@
   # Definine host-specifi sshUsers
   sshUsers = ["eelco" "por"];
   configuredUsers = ["eelco" "por"];
-  home-manager.backupFileExtension = "hm-bak";
 
   imports =
     # 🧱 Basic modules
