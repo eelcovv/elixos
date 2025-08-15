@@ -74,19 +74,39 @@ in {
       (installScript "fetch-wallpapers.sh")
       (installScript "wallpaper-set.sh")
       (installScript "wallpaper-list.sh")
+      (installScript "wallpaper-random.sh")
 
-      {
-        ".config/hypr/settings/wallpaper-effect.sh".text = lib.mkDefault default_effect;
-        ".config/hypr/settings/blur.sh".text = lib.mkDefault default_blur;
-        ".config/hypr/settings/wallpaper-automation.sh".text = lib.mkDefault default_automation_interval;
-      }
-
-      # Real (writable) dirs only — géén .keep in Nix-store-symlinks
+      # Only real writable directories
       {
         ".config/wallpapers/.keep".text = "";
         ".cache/hyprlock-assets/.keep".text = "";
       }
     ];
+
+    ############################
+    # Seed writable settings
+    ############################
+    home.activation.wallpaperSettingsSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
+      set -eu
+      S="$HOME/.config/hypr/settings"
+      mkdir -p "$S"
+
+      seed_file() {
+        local path="$1" default="$2"
+        if [ -L "$path" ]; then
+          rm -f "$path"
+        fi
+
+        if [ ! -f "$path" ]; then
+          printf "%s\n" "$default" > "$path"
+          chmod 0644 "$path"
+        fi
+      }
+
+      seed_file "$S/wallpaper-effect.sh" "off"
+      seed_file "$S/blur.sh" "50x30"
+      seed_file "$S/wallpaper-automation.sh" "300"
+    '';
 
     ############################
     # Seed wallpapers once if empty (on activation)
