@@ -5,7 +5,7 @@
   ...
 }: let
   # Module root must contain: ./themes, ./scripts, optional ./colors.css and ./modules.jsonc
-  waybarDir  = ./.;
+  waybarDir = ./.;
   scriptsDir = ./scripts;
 
   # Resolves to "~/.config/waybar"
@@ -24,11 +24,11 @@ in {
   # Install helper-driven switcher scripts into ~/.local/bin
   ##########################################################################
   home.file.".local/bin/waybar-switch-theme" = {
-    source     = scriptsDir + "/waybar-switch-theme.sh";
+    source = scriptsDir + "/waybar-switch-theme.sh";
     executable = true;
   };
   home.file.".local/bin/waybar-pick-theme" = {
-    source     = scriptsDir + "/waybar-pick-theme.sh";
+    source = scriptsDir + "/waybar-pick-theme.sh";
     executable = true;
   };
 
@@ -37,9 +37,8 @@ in {
   ##########################################################################
   xdg.configFile."waybar/themes".source = "${waybarDir}/themes";
 
-  # OPTIONAL: if you keep shared fallbacks in the module root, expose them:
-  # (Safe to omit if your themes provide their own)
-  xdg.configFile."waybar/colors.css"    = lib.mkIf (builtins.pathExists (waybarDir + "/colors.css")) {
+  # OPTIONAL: global fallbacks (only if present in your repo)
+  xdg.configFile."waybar/colors.css" = lib.mkIf (builtins.pathExists (waybarDir + "/colors.css")) {
     source = waybarDir + "/colors.css";
   };
   xdg.configFile."waybar/modules.jsonc" = lib.mkIf (builtins.pathExists (waybarDir + "/modules.jsonc")) {
@@ -47,11 +46,26 @@ in {
   };
 
   ##########################################################################
-  # IMPORTANT: Do NOT manage top-level Waybar files via xdg.configFile
-  # (config.jsonc, style.css, modules.jsonc, colors.css). We want your
-  # helper to freely relink them at runtime. We only bootstrap them IF MISSING.
+  # Top-level Waybar config & stylesheet (absolute paths; no "~")
   ##########################################################################
-  home.activation.bootstrapWaybarIfMissing = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+  xdg.configFile."waybar/config.jsonc".text = ''
+    {
+      "include": [
+        "${cfgPath}/current/config.jsonc",
+        "${cfgPath}/current/modules.jsonc"
+      ]
+    }
+  '';
+
+  xdg.configFile."waybar/style.css".text = ''
+    @import url("${cfgPath}/current/style.resolved.css");
+  '';
+
+  ##########################################################################
+  # Initialize ~/.config/waybar/current only if missing (do NOT overwrite)
+  # NOTE: Any Bash parameter expansion `${…}` must be escaped as `\${…}` in Nix strings.
+  ##########################################################################
+  home.activation.bootstrapWaybarIfMissing = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
     CFG="${cfgPath}"
     THEMES="$CFG/themes"
@@ -71,7 +85,7 @@ in {
       first="$(find -L "$THEMES" -mindepth 2 -maxdepth 2 -type f -name 'style.css' | head -n1 || true)"
       if [ -n "$first" ]; then
         # Strip "$THEMES/" prefix and "/style.css" suffix -> "theme/variant"
-        echo "${first#$THEMES/}" | sed 's#/style\.css$##'
+        echo "''${first#''$THEMES/}" | sed 's#/style\.css$##'
         return 0
       fi
       echo ""
@@ -84,7 +98,7 @@ in {
       if [ -n "$variant" ]; then
         # Build an initial style.resolved.css from the chosen variant
         var_dir="$THEMES/$variant"
-        theme_dir="${var_dir%/*}"    # "themes/<theme>"
+        theme_dir="''${var_dir%/*}"    # "themes/<theme>"
 
         css_src=""
         if   [ -e "$var_dir/style.css" ]; then css_src="$var_dir/style.css"
@@ -108,12 +122,12 @@ in {
 
         # Minimal config/modules to keep Waybar happy until user switches
         if   [ -e "$var_dir/config.jsonc" ]; then ln -sfn "$var_dir/config.jsonc" "$CUR/config.jsonc"
-        elif [ -e "${theme_dir}/config.jsonc" ]; then ln -sfn "${theme_dir}/config.jsonc" "$CUR/config.jsonc"
+        elif [ -e "''${theme_dir}/config.jsonc" ]; then ln -sfn "''${theme_dir}/config.jsonc" "$CUR/config.jsonc"
         elif [ -e "$THEMES/default/config.jsonc" ]; then ln -sfn "$THEMES/default/config.jsonc" "$CUR/config.jsonc"
         else printf '{ "modules-left": [], "modules-center": [], "modules-right": [] }\n' > "$CUR/config.jsonc"; fi
 
         if   [ -e "$var_dir/modules.jsonc" ]; then ln -sfn "$var_dir/modules.jsonc" "$CUR/modules.jsonc"
-        elif [ -e "${theme_dir}/modules.jsonc" ]; then ln -sfn "${theme_dir}/modules.jsonc" "$CUR/modules.jsonc"
+        elif [ -e "''${theme_dir}/modules.jsonc" ]; then ln -sfn "''${theme_dir}/modules.jsonc" "$CUR/modules.jsonc"
         elif [ -e "$CFG/modules.jsonc" ]; then ln -sfn "$CFG/modules.jsonc" "$CUR/modules.jsonc"
         else printf '{}\n' > "$CUR/modules.jsonc"; fi
       fi
@@ -136,6 +150,5 @@ in {
   ##########################################################################
   # Ensure ~/.local/bin is in PATH
   ##########################################################################
-  home.sessionPath = lib.mkAfter [ "$HOME/.local/bin" ];
+  home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
 }
-
