@@ -474,12 +474,25 @@ switch-theme theme:
 
 
 # Set a specific wallpaper by path (must be in ~/.config/wallpapers or pass full path)
-wp-set FILE?=~/.config/wallpapers/default.png:
-	waypaper --backend hyprpaper --folder "$$HOME/.config/wallpapers" --wallpaper "{{FILE}}"
+# - Works with filename (e.g. "default.png") or path ("/path/to/img.png", "~/img.png", "./img.png")
+wp-set FILE="default.png":
+	FP="{{FILE}}"
+	# Expand ~ and prepend the default directory if it is not a path
+	case "$FP" in
+		/*|.*) ;;                                  # absoluut pad of ./relatief -> laat staan
+		~*) FP="$HOME/${FP#\~}" ;;                 # ~ uitklappen naar $HOME
+		*)  FP="$HOME/.config/wallpapers/$FP" ;;   # alleen bestandsnaam -> prepend map
+	esac
+	waypaper --backend hyprpaper --folder "$HOME/.config/wallpapers" --wallpaper "$FP"
+
+# Random switch (one-shot)
+wp-random:
+	waypaper --backend hyprpaper --folder "$HOME/.config/wallpapers" --random
+
 
 # Random switch now (one-shot)
 wp-random:
-	waypaper --backend hyprpaper --folder "$$HOME/.config/wallpapers" --random
+	waypaper --backend hyprpaper --folder "$HOME/.config/wallpapers" --random
 
 # Force restore
 wp-restore:
