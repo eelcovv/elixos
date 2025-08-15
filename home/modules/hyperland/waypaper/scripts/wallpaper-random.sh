@@ -32,3 +32,7 @@ F="${files[$idx]}"
 
 echo ":: Random wallpaper: $F"
 waypaper --backend "$BACKEND" --folder "$DIR" --wallpaper "$F"
+
+# ...
+echo ":: Random wallpaper: $F"
+exec "$HOME/.local/bin/wallpaper.sh" "$F"

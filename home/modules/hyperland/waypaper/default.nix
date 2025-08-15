@@ -121,35 +121,30 @@ in {
       fi
     '';
 
-    ############################
-    # Restore last wallpaper on session start
-    ############################
+    # Restore last wallpaper on session start — via generator (effect + theming)
     systemd.user.services."waypaper-restore" = {
       Unit = {
-        Description = "Restore last wallpaper via Waypaper";
+        Description = "Restore last wallpaper via wallpaper.sh (effect-aware)";
         After = ["hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${pkgs.waypaper}/bin/waypaper --backend hyprpaper --restore";
+        ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper.sh";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    ############################
-    # Random rotation via systemd timer (conditional)
-    ############################
-    # Service always defined (lightweight); timer only if enabled.
+    # Random rotation service — via random script (dat wallpaper.sh aanroept)
     systemd.user.services."waypaper-random" = {
       Unit = {
-        Description = "Set a random wallpaper with Waypaper";
+        Description = "Set a random wallpaper (effect-aware)";
         After = ["hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${pkgs.waypaper}/bin/waypaper --backend hyprpaper --folder ${config.xdg.configHome}/wallpapers --random";
+        ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper-random.sh";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
