@@ -72,6 +72,8 @@ in {
       (installScript "wallpaper-cache.sh")
       (installScript "wallpaper-automation.sh")
       (installScript "fetch-wallpapers.sh")
+      (installScript "wallpaper-set.sh")
+      (installScript "wallpaper-list.sh")
 
       {
         ".config/hypr/settings/wallpaper-effect.sh".text = lib.mkDefault default_effect;
