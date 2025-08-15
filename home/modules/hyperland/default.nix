@@ -76,10 +76,10 @@ in {
     # Shared helper functions (used by Waybar/Waypaper)
     ################################
 
-    home.file.".config/hypr/scripts/helper-functions.sh" = {
-      source = "${hyprDir}/scripts/helper-functions.sh";
-      executable = true;
-    };
+    # home.file.".config/hypr/scripts/helper-functions.sh" = {
+    #   source = "${hyprDir}/scripts/helper-functions.sh";
+    #   executable = true;
+    # };
 
     ################################
     # Hyprpaper defaults (base wallpaper)
