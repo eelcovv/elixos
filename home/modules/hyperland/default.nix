@@ -8,6 +8,7 @@
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
+  # Pull in submodules (Waybar + Waypaper integration)
   imports = [
     ./waybar
     ./waypaper
@@ -46,8 +47,8 @@ in {
     };
 
     ################################
-    # Import Hyprland environment into systemd --user
-    # (so Waypaper/hyprpaper see WAYLAND_DISPLAY / HYPRLAND_INSTANCE_SIGNATURE)
+    # Import Wayland/Hypr env into systemd --user
+    # (so Waypaper/Hyprpaper see WAYLAND_DISPLAY / HYPRLAND_INSTANCE_SIGNATURE)
     ################################
     systemd.user.services."hyprland-env" = {
       Unit = {
@@ -70,10 +71,29 @@ in {
     programs.waybar.systemd.target = "hyprland-session.target";
 
     ################################
+    # Run hypridle as a robust user service
+    ################################
+    systemd.user.services."hypridle" = {
+      Unit = {
+        Description = "Hyprland idle daemon";
+        After = ["hyprland-env.service"];
+        PartOf = ["hyprland-session.target"];
+      };
+      Service = {
+        ExecStart = "${pkgs.hypridle}/bin/hypridle";
+        Restart = "always";
+        RestartSec = 0.2;
+        # Reads ~/.config/hypr/hypridle.conf by default
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    ################################
     # Session environment variables
     ################################
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
+      # keep literal for runtime expansion:
       SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
     };
 
@@ -86,15 +106,8 @@ in {
     xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
     xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
     xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
+    # Install all helper scripts (including hypridle.sh, helper-functions.sh, etc.)
     xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
-
-    ################################
-    # Shared helper functions (used by Waybar/Waypaper)
-    ################################
-    home.file.".config/hypr/scripts/helper-functions.sh" = {
-      source = "${hyprDir}/scripts/helper-functions.sh";
-      executable = true;
-    };
 
     # Sanity check: ensure helper exists after linking
     home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
@@ -105,15 +118,14 @@ in {
     '';
 
     ################################
-    # hyprpaper config + default wallpaper (Waypaper will drive the backend)
+    # hyprpaper config + default wallpaper
+    # (Waypaper/our module drives hyprpaper; we just provide config/default image)
     ################################
     xdg.configFile."hypr/hyprpaper.conf".text = ''
       ipc = on
       splash = false
       preload = ${wallpaperTargetDir}/default.png
     '';
-
-    # Place the default wallpaper using the same target dir variable
     xdg.configFile."${wallpaperTargetDir}/default.png".source = "${wallpaperDir}/nixos.png";
 
     ################################
@@ -126,8 +138,8 @@ in {
     ################################
     hyprland.wallpaper.enable = true;
 
-    # comment these lines if you dont want a random wall paper
+    # Random rotation settings (comment out to disable)
     hyprland.wallpaper.random.enable = true;
-    hyprland.wallpaper.random.intervalSeconds = 300; # time in seconds
+    hyprland.wallpaper.random.intervalSeconds = 300; # seconds
   };
 }
