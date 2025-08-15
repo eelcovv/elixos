@@ -48,14 +48,15 @@ in {
       };
     };
 
-    systemd.user.services.hyprpaper = {
+    systemd.user.services."hyprpaper" = {
       Unit = {
         Description = "Hyprland wallpaper daemon (hyprpaper)";
-        After = ["hyprland-session.target"];
+        After = ["hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
       };
       Service = {
         ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
+        ExecStartPost = "${pkgs.waypaper}/bin/waypaper --backend hyprpaper --restore";
         Restart = "always";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
