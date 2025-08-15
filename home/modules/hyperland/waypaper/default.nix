@@ -52,15 +52,16 @@ in {
       (installScript "wallpaper-automation.sh")
       (installScript "fetch-wallpapers.sh")
 
+      # Defaults / settings die je scripts lezen
       {
         ".config/hypr/settings/wallpaper-effect.sh".text = lib.mkDefault default_effect;
         ".config/hypr/settings/blur.sh".text = lib.mkDefault default_blur;
         ".config/hypr/settings/wallpaper-automation.sh".text = lib.mkDefault default_automation_interval;
       }
 
+      # Alleen directories die NIET onder de Nix-store-symlink vallen
       {
         ".config/wallpapers/.keep".text = "";
-        ".config/hypr/effects/wallpaper/.keep".text = "";
         ".cache/hyprlock-assets/.keep".text = "";
       }
     ];
