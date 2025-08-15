@@ -20,6 +20,19 @@ in {
       swaynotificationcenter
       dunst
     ];
+    ################################
+    # Waybar CLI-scripts in PATH
+    ################################
+    home.file.".local/bin/waybar-switch-theme" = {
+      source = scriptsDir + "/waybar-switch-theme.sh";
+      executable = true;
+    };
+    home.file.".local/bin/waybar-pick-theme" = {
+      # kies de juiste bestandsnaam uit je repo:
+      # source = scriptsDir + "/waybar-pick-theme.sh";
+      source = scriptsDir + "/waybar-pick.sh";
+      executable = true;
+    };
 
     ################################
     # Waybar themes and configuration
