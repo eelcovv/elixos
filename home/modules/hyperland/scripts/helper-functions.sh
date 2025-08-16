@@ -59,7 +59,8 @@ _resolve() {
   fi
 
   _debug "_resolve: kind=$kind theme_dir=$theme_dir var_dir=$var_dir def_dir=$def_dir"
-  printf '%s\0%s\0%s\0%s\n' "$kind" "$theme_dir" "$var_dir" "$def_dir"
+  # NEW: print 4 newline-separated fields (ipv NUL-separated)
+  printf '%s\n%s\n%s\n%s\n' "$kind" "$theme_dir" "$var_dir" "$def_dir"
 }
 
 # Ensure dirs and set globals
@@ -68,9 +69,9 @@ _ensure() {
   _debug "ensure: base=$base token=$token"
 
   local parts=()
-  # Lees NUL-gescheiden velden van _resolve
-  mapfile -d '' -t parts < <(_resolve "$token")
-  # Verwacht exact 4 onderdelen: kind, theme_dir, var_dir, def_dir
+  # NEW: read the 4 lines from _resolve (newline-delimited)
+  mapfile -t parts < <(_resolve "$token")
+  # Expect exactly 4 lines: kind, theme_dir, var_dir, def_dir
   if (( ${#parts[@]} != 4 )); then
     echo "ERROR: internal resolve failed (got ${#parts[@]} parts)" >&2
     return 1
