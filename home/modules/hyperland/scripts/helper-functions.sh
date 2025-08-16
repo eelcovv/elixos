@@ -99,6 +99,22 @@ _choose_target_dir() {
   _debug "target dir chosen: $_active_target"
 }
 
+# --- Safe write helpers (unlink symlinks first) ------------------------------
+_safe_install() {
+  # _safe_install SRC DEST (overwrites files or symlinks atomically)
+  local src="$1" dest="$2"
+  rm -f -- "$dest" 2>/dev/null || true
+  install -m 0644 -- "$src" "$dest"
+}
+
+_safe_empty() {
+  # _safe_empty DEST (creates empty file, replacing symlinks)
+  local dest="$1"
+  rm -f -- "$dest" 2>/dev/null || true
+  : > "$dest"
+}
+
+
 # --- Apply files --------------------------------------------------------------
 _apply_theme_files() {
   _choose_target_dir
@@ -107,28 +123,30 @@ _apply_theme_files() {
 
   local css cfg col
   if css="$(_pick_stylesheet)"; then
-    cp -f -- "$css" "$target/style.css"
+    _safe_install "$css" "$target/style.css"
     _debug "using style: $css -> $target/style.css"
   else
-    : > "$target/style.css" || true
+    _safe_empty "$target/style.css"
     echo "WARN: no stylesheet found (variant/theme/default)" >&2
   fi
 
   if cfg="$(_pick_config)"; then
-    cp -f -- "$cfg" "$target/config"
+    # Normaliseer naar 'config'
+    _safe_install "$cfg" "$target/config"
     _debug "using config: $cfg -> $target/config"
   else
     echo "WARN: no config found (variant/theme/default). Keeping existing." >&2
   fi
 
   if col="$(_pick_colors)"; then
-    cp -f -- "$col" "$target/colors.css"
+    _safe_install "$col" "$target/colors.css"
     _debug "using colors: $col -> $target/colors.css"
   else
-    : > "$target/colors.css" || true
-    _debug "no colors.css found; wrote empty (or skipped if RO)"
+    _safe_empty "$target/colors.css"
+    _debug "no colors.css found; wrote empty"
   fi
 }
+
 
 # --- Waybar reload / restart --------------------------------------------------
 _reload_waybar() {
