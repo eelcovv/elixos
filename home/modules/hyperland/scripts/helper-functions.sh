@@ -284,4 +284,7 @@ main() {
   switch_theme "$token"
 }
 
-main "$@"
+# alleen uitvoeren als dit bestand direct is aangeroepen, niet bij 'source'
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

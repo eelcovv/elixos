@@ -9,7 +9,7 @@
 # Notes:
 # - Excludes non-theme folders like "assets"
 # - Works with read-only Nix store symlinks; we only read files
-# - Menu order preference: wofi → rofi → fzf → stdin fallback
+# - Menu order preference: rofi → wofi → fzf → stdin fallback
 
 set -euo pipefail
 
@@ -67,7 +67,6 @@ menu_pick() {
   esac
 }
 
-
 # --- 1) Build list of families that are actual themes ---
 FAMILIES=()
 # Iterate top-level directories under $BASE (follow symlinks)
@@ -102,7 +101,9 @@ if [[ ${#FAMILIES[@]} -eq 0 ]]; then
   exit 1
 fi
 
-IFS=$'\n' FAMILIES=( $(printf '%s\n' "${FAMILIES[@]}" | sort -u) ); unset IFS
+# ShellCheck SC2207: prefer mapfile over command substitution splitting
+# Sort unique families safely into the array
+mapfile -t FAMILIES < <(printf '%s\n' "${FAMILIES[@]}" | sort -u)
 
 SEL_FAMILY="$(printf '%s\n' "${FAMILIES[@]}" | menu_pick "Waybar theme")" || true
 if [[ -z "${SEL_FAMILY:-}" ]]; then
