@@ -43,17 +43,30 @@ fi
 menu_pick() {
   # Args: <prompt>; Output: single selected line
   local prompt="$1"
-  if command -v wofi >/dev/null 2>&1; then
-    wofi --dmenu --prompt="$prompt"
-  elif command -v rofi >/dev/null 2>&1; then
-    rofi -dmenu -p "$prompt" -i
-  elif command -v fzf >/dev/null 2>&1; then
-    fzf --prompt "$prompt> "
-  else
-    # Last-resort fallback: read the first line from stdin
-    head -n1
-  fi
+  case "${WAYBAR_PICKER:-auto}" in
+    rofi)
+      rofi -dmenu -p "$prompt" -i
+      ;;
+    wofi)
+      wofi --dmenu --prompt="$prompt"
+      ;;
+    fzf)
+      fzf --prompt "$prompt> "
+      ;;
+    auto)
+      if command -v rofi >/dev/null 2>&1; then
+        rofi -dmenu -p "$prompt" -i
+      elif command -v wofi >/dev/null 2>&1; then
+        wofi --dmenu --prompt="$prompt"
+      elif command -v fzf >/dev/null 2>&1; then
+        fzf --prompt "$prompt> "
+      else
+        head -n1
+      fi
+      ;;
+  esac
 }
+
 
 # --- 1) Build list of families that are actual themes ---
 FAMILIES=()
