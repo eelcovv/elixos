@@ -67,9 +67,19 @@ _ensure() {
   local base="$WAYBAR_THEMES_DIR" token="$1"
   _debug "ensure: base=$base token=$token"
 
-  # shellcheck disable=SC2034
-  local kind theme_dir var_dir def_dir
-  IFS=$'\0' read -r -d '' kind -d '' theme_dir -d '' var_dir -d '' def_dir < <(_resolve "$token")
+  local parts=()
+  # Lees NUL-gescheiden velden van _resolve
+  mapfile -d '' -t parts < <(_resolve "$token")
+  # Verwacht exact 4 onderdelen: kind, theme_dir, var_dir, def_dir
+  if (( ${#parts[@]} != 4 )); then
+    echo "ERROR: internal resolve failed (got ${#parts[@]} parts)" >&2
+    return 1
+  fi
+
+  local kind="${parts[0]}"
+  local theme_dir="${parts[1]}"
+  local var_dir="${parts[2]}"
+  local def_dir="${parts[3]}"
 
   if ! _exists_dir "$theme_dir"; then
     echo "ERROR: Theme family not found: $theme_dir" >&2
@@ -133,6 +143,7 @@ _apply_theme_files() {
   fi
 
   if cfg="$(_pick_config)"; then
+    # Waybar leest 'config' of 'config.jsonc' – normaliseer naar 'config'
     cp -f -- "$cfg" "$target/config"
     _debug "using config: $cfg -> $target/config"
   else
@@ -154,7 +165,6 @@ _reload_waybar() {
   if pgrep -x waybar >/dev/null 2>&1; then
     pkill -USR2 waybar || true
   else
-    # Start exactly one Waybar
     ( waybar >/dev/null 2>&1 & disown ) || true
   fi
 }
@@ -163,9 +173,9 @@ _reload_waybar() {
 switch_theme() {
   # Accepts: THEME[/VARIANT]  OR  THEME VARIANT
   local token
-  if [[ $# -eq 1 ]]; then
+  if [[ $# == 1 ]]; then
     token="$1"
-  elif [[ $# -eq 2 ]]; then
+  elif [[ $# == 2 ]]; then
     token="$1/$2"
   else
     echo "Usage: switch_theme THEME[/VARIANT] | switch_theme THEME VARIANT" >&2
@@ -179,7 +189,6 @@ switch_theme() {
 }
 
 list_themes() {
-  # List families and variants that actually contain styles
   local base="$WAYBAR_THEMES_DIR"
   local fam vdir
   while IFS= read -r -d '' famdir; do
@@ -192,7 +201,6 @@ list_themes() {
       marker="(root)"
     fi
 
-    # Variants
     local has_variant=0
     while IFS= read -r -d '' vdir; do
       if _pick_first_file "$vdir/style.css" "$vdir/style-custom.css" >/dev/null; then
@@ -235,19 +243,10 @@ main() {
     exit 2
   fi
   case "${1:-}" in
-    --help|-h)
-      print_help
-      ;;
-    --list)
-      list_themes
-      ;;
-    --apply)
-      shift
-      switch_theme "$@"
-      ;;
-    *)
-      switch_theme "$@"
-      ;;
+    --help|-h)  print_help ;;
+    --list)     list_themes ;;
+    --apply)    shift; switch_theme "$@" ;;
+    *)          switch_theme "$@" ;;
   esac
 }
 
