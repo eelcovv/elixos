@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Common helpers for Waybar theme switching (Hyprland setup).
-# Robust against Nix-store symlinks and supports both:
+# Robust against Nix-store symlinks. Supports:
 #   - "theme" (single-level, style.css at theme root)
-#   - "theme/variant" (two-level, style.css inside the variant folder)
+#   - "theme/variant" (two-level; variant may or may not have its own style.css)
 
 # --- Global state (initialize to avoid 'unbound variable' with set -u) ---
 _theme_dir=""   # e.g., $BASE/ml4w
@@ -27,7 +27,6 @@ notify() {
 
 # Safely check for file existence through symlinks (Nix store etc.)
 _have_file() {
-  # Args: <path>
   local p="$1"
   [[ -e "$p" || -L "$p" ]] && return 0
   local r
@@ -82,7 +81,6 @@ _resolve_theme_paths() {
   _def_dir="$base/default"
 
   if [[ "$token" == */* ]]; then
-    # theme/variant form
     _var_dir="$base/$token"
     _theme_dir="$base/${token%%/*}"
     if [[ -d "$_var_dir" ]]; then
@@ -91,7 +89,6 @@ _resolve_theme_paths() {
       return 0
     fi
   else
-    # single-level theme form
     _theme_dir="$base/$token"
     if [[ -d "$_theme_dir" ]]; then
       _debug "_resolve: kind=single theme_dir=$_theme_dir"
@@ -118,14 +115,20 @@ ensure_theme_variant() {
 
   case "$kind" in
     single)
+      # Single-level must have its own style.css
       if ! _have_file "$_theme_dir/style.css" && ! _have_file "$_theme_dir/style-custom.css"; then
         echo "Theme '$token' has no style.css"
         return 1
       fi
       ;;
     variant)
-      if ! _have_file "$_var_dir/style.css" && ! _have_file "$_var_dir/style-custom.css"; then
-        echo "Variant '$token' has no style.css"
+      # Variant is valid if EITHER variant/style.css exists OR the parent theme has style.css
+      if  ! _have_file "$_var_dir/style.css" \
+       && ! _have_file "$_var_dir/style-custom.css" \
+       && ! _have_file "$_theme_dir/style.css" \
+       && ! _have_file "$_theme_dir/style-custom.css"
+      then
+        echo "Variant '$token' has no style.css (nor parent theme style.css)"
         return 1
       fi
       ;;
@@ -152,7 +155,6 @@ switch_theme() {
   ensure_theme_variant "$base" "$token" || return 1
   kind="$(_resolve_theme_paths "$base" "$token")" || return 1
 
-  # Copy resolved paths from globals to locals (clarity)
   local theme_dir="$_theme_dir"
   local var_dir="$_var_dir"
   local def_dir="$_def_dir"
@@ -190,11 +192,14 @@ switch_theme() {
   fi
   [[ -n "${mod_src:-}" ]] || mod_src=""
 
-  # Resolve style.css
+  # Resolve style.css:
+  # - Prefer variant's style if present; otherwise fall back to the parent theme's style; then default.
   if [[ "$kind" == "variant" ]]; then
     css_src="$(_pick_first_existing \
       "$var_dir/style.css" \
       "$var_dir/style-custom.css" \
+      "$theme_dir/style.css" \
+      "$theme_dir/style-custom.css" \
       "$def_dir/style.css" \
       "$def_dir/style-custom.css")"
   else
@@ -206,7 +211,7 @@ switch_theme() {
   fi
   [[ -n "${css_src:-}" ]] || css_src=""
 
-  # Resolve colors.css
+  # Resolve colors.css (specific -> theme -> global)
   if [[ "$kind" == "variant" ]]; then
     col_src="$(_pick_first_existing \
       "$var_dir/colors.css" \
@@ -248,7 +253,7 @@ switch_theme() {
     else
       sed -i -E '/@import.*colors\.css/d' "$cur/style.resolved.css"
     fi
-    # Rewrite any "../foo.css" imports to the theme root we resolved
+    # Any "../foo.css" imports should be rewritten to the family root (theme_dir)
     sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./style\.css['\"]?\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
     sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./([^'\"\\)]+)['\"]?\)?;#@import url(\"$theme_dir/\2\");#g" "$cur/style.resolved.css"
     printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
