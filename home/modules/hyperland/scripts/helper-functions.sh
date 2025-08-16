@@ -1,85 +1,26 @@
 #!/usr/bin/env bash
-# Waybar theme helper (safe to source).
-# - Copies config/style/colors with cascade (variant -> theme -> default)
-# - If ~/.config/waybar is read-only (Home Manager), falls back to a mutable dir
-#   (XDG_STATE_HOME/waybar-theme) and restarts Waybar with -c/-s to those files.
-
+# Waybar theme helper – schrijft naar ~/.config/waybar/current/
 set -euo pipefail
 
-# --- Paths --------------------------------------------------------------------
-WAYBAR_DIR="${WAYBAR_DIR:-$HOME/.config/waybar}"
+# --- Padconfig ---------------------------------------------------------------
+WAYBAR_DIR="${WAYBAR_DIR:-$HOME/.config/waybar}"                 # -> ~/.config/waybar
 WAYBAR_THEMES_DIR="${WAYBAR_THEMES_DIR:-$HOME/.config/waybar/themes}"
 DEFAULT_FAMILY="${DEFAULT_FAMILY:-default}"
-WAYBAR_MUTABLE_DIR_DEFAULT="${XDG_STATE_HOME:-$HOME/.local/state}/waybar-theme"
-WAYBAR_MUTABLE_DIR="${WAYBAR_MUTABLE_DIR:-$WAYBAR_MUTABLE_DIR_DEFAULT}"
+STATE_BASE_DEFAULT="${XDG_STATE_HOME:-$HOME/.local/state}/waybar-theme"
+STATE_BASE="${WAYBAR_MUTABLE_DIR:-$STATE_BASE_DEFAULT}"          # fallback als ~/.config/waybar/current niet schrijfbaar
 
-# --- Globals ------------------------------------------------------------------
-_theme_dir=""
-_var_dir=""
-_def_dir=""
-_active_target="$WAYBAR_DIR"   # waar we nu naartoe schrijven (kan naar MUTABLE vallen)
+# --- Globals -----------------------------------------------------------------
+_theme_dir=""; _var_dir=""; _def_dir=""
+_target_base=""   # .../current (schrijfdoel)
 
 _debug() { [[ "${WAYBAR_THEME_DEBUG:-0}" == "1" ]] && echo "DEBUG: $*" >&2; }
-_exists_file() { [[ -f "$1" ]]; }
-_exists_dir()  { [[ -d "$1" ]]; }
 
-_pick_first_file() {
-  local f; for f in "$@"; do [[ -f "$f" ]] && { printf '%s\n' "$f"; return 0; }; done
-  return 1
-}
+# --- Utils -------------------------------------------------------------------
+_exists_file(){ [[ -f "$1" ]]; }
+_exists_dir(){  [[ -d "$1" ]]; }
 
-# --- Resolve token ------------------------------------------------------------
-_resolve() {
-  local token="$1"
-  local family variant kind
-  if [[ "$token" == */* ]]; then
-    family="${token%%/*}"; variant="${token#*/}"; kind="variant"
-  else
-    family="$token"; variant=""; kind="single"
-  fi
-  local base="$WAYBAR_THEMES_DIR"
-  local theme_dir="$base/$family"
-  local var_dir=""; [[ -n "$variant" ]] && var_dir="$theme_dir/$variant"
-  local def_dir="$base/$DEFAULT_FAMILY"
-  _debug "_resolve: kind=$kind theme_dir=$theme_dir var_dir=$var_dir def_dir=$def_dir"
-  printf '%s\n%s\n%s\n%s\n' "$kind" "$theme_dir" "$var_dir" "$def_dir"
-}
+_pick_first_file(){ local f; for f in "$@"; do [[ -f "$f" ]] && { printf '%s\n' "$f"; return 0; }; done; return 1; }
 
-_ensure() {
-  local token="$1"
-  _debug "ensure: base=$WAYBAR_THEMES_DIR token=$token"
-  local parts=(); mapfile -t parts < <(_resolve "$token")
-  (( ${#parts[@]} == 4 )) || { echo "ERROR: internal resolve failed (got ${#parts[@]} parts)" >&2; return 1; }
-  local kind="${parts[0]}"; local theme_dir="${parts[1]}"; local var_dir="${parts[2]}"; local def_dir="${parts[3]}"
-  [[ -d "$theme_dir" ]] || { echo "ERROR: Theme family not found: $theme_dir" >&2; return 1; }
-  [[ -z "$var_dir" || -d "$var_dir" ]] || { echo "ERROR: Variant not found: $var_dir" >&2; return 1; }
-  [[ -d "$def_dir" ]] || { echo "ERROR: Default theme not found: $def_dir" >&2; return 1; }
-  _theme_dir="$theme_dir"; _var_dir="$var_dir"; _def_dir="$def_dir"
-  _debug "ensure: _theme_dir=$_theme_dir"; _debug "ensure: _var_dir=$_var_dir"; _debug "ensure: _def_dir=$_def_dir"
-  _debug "kind=$kind token=$token"
-}
-
-# --- Pickers ------------------------------------------------------------------
-_pick_stylesheet() {
-  _pick_first_file \
-    "${_var_dir}/style.css" "${_var_dir}/style-custom.css" \
-    "${_theme_dir}/style.css" "${_theme_dir}/style-custom.css" \
-    "${_def_dir}/style.css" "${_def_dir}/style-custom.css"
-}
-_pick_colors() {
-  _pick_first_file \
-    "${_var_dir}/colors.css" \
-    "${_theme_dir}/colors.css" \
-    "${_def_dir}/colors.css"
-}
-_pick_config() {
-  _pick_first_file \
-    "${_var_dir}/config.jsonc" "${_var_dir}/config" \
-    "${_theme_dir}/config.jsonc" "${_theme_dir}/config" \
-    "${_def_dir}/config.jsonc" "${_def_dir}/config"
-}
-
-# --- Writable target selection ------------------------------------------------
 _is_writable_dir() {
   local d="$1"
   [[ -d "$d" ]] || return 1
@@ -88,103 +29,174 @@ _is_writable_dir() {
   return 0
 }
 
-_choose_target_dir() {
-  # Kies schrijfdoel: liefst WAYBAR_DIR, anders WAYBAR_MUTABLE_DIR
-  if _is_writable_dir "$WAYBAR_DIR"; then
-    _active_target="$WAYBAR_DIR"
-  else
-    mkdir -p "$WAYBAR_MUTABLE_DIR"
-    _active_target="$WAYBAR_MUTABLE_DIR"
-  fi
-  _debug "target dir chosen: $_active_target"
+_safe_write() { # _safe_write DEST < content
+  local dest="$1"; rm -f -- "$dest" 2>/dev/null || true
+  umask 022; local tmp; tmp="$(mktemp "${dest}.XXXXXX")"
+  cat >"$tmp"; mv -f -- "$tmp" "$dest"
 }
 
-# --- Safe write helpers (unlink symlinks first) ------------------------------
-_safe_install() {
-  # _safe_install SRC DEST (overwrites files or symlinks atomically)
-  local src="$1" dest="$2"
-  rm -f -- "$dest" 2>/dev/null || true
+_safe_install() { # _safe_install SRC DEST
+  local src="$1" dest="$2"; rm -f -- "$dest" 2>/dev/null || true
   install -m 0644 -- "$src" "$dest"
 }
 
-_safe_empty() {
-  # _safe_empty DEST (creates empty file, replacing symlinks)
-  local dest="$1"
-  rm -f -- "$dest" 2>/dev/null || true
-  : > "$dest"
+# --- Resolve -----------------------------------------------------------------
+_resolve() {
+  local token="$1" family variant kind
+  if [[ "$token" == */* ]]; then family="${token%%/*}"; variant="${token#*/}"; kind="variant"
+  else family="$token"; variant=""; kind="single"; fi
+  local base="$WAYBAR_THEMES_DIR"
+  local theme_dir="$base/$family"; local var_dir=""; [[ -n "$variant" ]] && var_dir="$theme_dir/$variant"
+  local def_dir="$base/$DEFAULT_FAMILY"
+  _debug "_resolve: kind=$kind theme_dir=$theme_dir var_dir=$var_dir def_dir=$def_dir"
+  printf '%s\n%s\n%s\n%s\n' "$kind" "$theme_dir" "$var_dir" "$def_dir"
 }
 
+_ensure() {
+  local token="$1"; _debug "ensure: base=$WAYBAR_THEMES_DIR token=$token"
+  local p=(); mapfile -t p < <(_resolve "$token")
+  (( ${#p[@]} == 4 )) || { echo "ERROR: internal resolve failed (got ${#p[@]} parts)" >&2; return 1; }
+  local kind="${p[0]}" theme_dir="${p[1]}" var_dir="${p[2]}" def_dir="${p[3]}"
+  [[ -d "$theme_dir" ]] || { echo "ERROR: Theme family not found: $theme_dir" >&2; return 1; }
+  [[ -z "$var_dir" || -d "$var_dir" ]] || { echo "ERROR: Variant not found: $var_dir" >&2; return 1; }
+  [[ -d "$def_dir" ]] || { echo "ERROR: Default theme not found: $def_dir" >&2; return 1; }
+  _theme_dir="$theme_dir"; _var_dir="$var_dir"; _def_dir="$def_dir"
+  _debug "kind=$kind theme_dir=$_theme_dir var_dir=$_var_dir def_dir=$_def_dir"
+}
 
-# --- Apply files --------------------------------------------------------------
+# --- Target select: .../current ----------------------------------------------
+_choose_target_base() {
+  local primary="$WAYBAR_DIR/current" alt="$STATE_BASE/current"
+  if _is_writable_dir "$WAYBAR_DIR" && { [[ -d "$primary" ]] || mkdir -p "$primary"; }; then
+    _target_base="$primary"
+  else
+    mkdir -p "$alt"; _target_base="$alt"
+  fi
+  _debug "target base chosen: $_target_base"
+}
+
+# --- Pickers (cascade) -------------------------------------------------------
+_pick_stylesheet() {
+  _pick_first_file \
+    "${_var_dir}/style.css" "${_var_dir}/style-custom.css" \
+    "${_theme_dir}/style.css" "${_theme_dir}/style-custom.css" \
+    "${_def_dir}/style.css" "${_def_dir}/style-custom.css"
+}
+_pick_colors() {
+  # + extra fallback: repo’s top-level colors.css (WAYBAR_DIR/colors.css)
+  _pick_first_file \
+    "${_var_dir}/colors.css" \
+    "${_theme_dir}/colors.css" \
+    "${_def_dir}/colors.css" \
+    "${WAYBAR_DIR}/colors.css"
+}
+_pick_config() {
+  _pick_first_file \
+    "${_var_dir}/config.jsonc" "${_var_dir}/config" \
+    "${_theme_dir}/config.jsonc" "${_theme_dir}/config" \
+    "${_def_dir}/config.jsonc" "${_def_dir}/config"
+}
+_pick_modules() {
+  _pick_first_file \
+    "${_var_dir}/modules.jsonc" \
+    "${_theme_dir}/modules.jsonc" \
+    "${WAYBAR_DIR}/modules.jsonc"
+}
+
+# --- Build style.resolved.css -------------------------------------------------
+_build_style_resolved() {
+  local src_css="$1" out_css="$2"
+  # 1) begin met import van colors.css
+  printf '@import url("colors.css");\n' > "$out_css"
+  # 2) append bron, maar verwijder eventuele import van ../style.css of colors.css om loops te voorkomen
+  if [[ -f "$src_css" ]]; then
+    sed -E '/@import.*\.\.\/style\.css/d; /@import.*colors\.css/d' "$src_css" >> "$out_css"
+  fi
+}
+
+# --- Apply -------------------------------------------------------------------
 _apply_theme_files() {
-  _choose_target_dir
-  local target="$_active_target"
-  mkdir -p "$target"
+  _choose_target_base
+  local css cfg mod col
 
-  local css cfg col
-  if css="$(_pick_stylesheet)"; then
-    _safe_install "$css" "$target/style.css"
-    _debug "using style: $css -> $target/style.css"
-  else
-    _safe_empty "$target/style.css"
-    echo "WARN: no stylesheet found (variant/theme/default)" >&2
-  fi
-
-  if cfg="$(_pick_config)"; then
-    # Normaliseer naar 'config'
-    _safe_install "$cfg" "$target/config"
-    _debug "using config: $cfg -> $target/config"
-  else
-    echo "WARN: no config found (variant/theme/default). Keeping existing." >&2
-  fi
-
+  # colors.css
   if col="$(_pick_colors)"; then
-    _safe_install "$col" "$target/colors.css"
-    _debug "using colors: $col -> $target/colors.css"
+    _safe_install "$col" "$_target_base/colors.css"
+    _debug "colors: $col -> $_target_base/colors.css"
   else
-    _safe_empty "$target/colors.css"
-    _debug "no colors.css found; wrote empty"
+    _safe_write "$_target_base/colors.css" <<<"/* empty colors */"
+    _debug "colors: none found → wrote empty"
+  fi
+
+  # config.jsonc
+  if cfg="$(_pick_config)"; then
+    _safe_install "$cfg" "$_target_base/config.jsonc"
+    _debug "config: $cfg -> $_target_base/config.jsonc"
+  else
+    _safe_write "$_target_base/config.jsonc" <<<'{ "modules-left": [], "modules-center": [], "modules-right": [] }'
+    _debug "config: none → wrote minimal"
+  fi
+
+  # modules.jsonc (optioneel)
+  if mod="$(_pick_modules)"; then
+    _safe_install "$mod" "$_target_base/modules.jsonc"
+    _debug "modules: $mod -> $_target_base/modules.jsonc"
+  else
+    _safe_write "$_target_base/modules.jsonc" <<<"{}"
+    _debug "modules: none → wrote {}"
+  fi
+
+  # style.resolved.css
+  if css="$(_pick_stylesheet)"; then
+    _build_style_resolved "$css" "$_target_base/style.resolved.css"
+    _debug "style: built from $css -> $_target_base/style.resolved.css"
+  else
+    _safe_write "$_target_base/style.resolved.css" <<<'@import url("colors.css");'
+    echo "WARN: no stylesheet found; wrote colors-only style" >&2
   fi
 }
 
-
-# --- Waybar reload / restart --------------------------------------------------
+# --- Reload / restart Waybar met juiste paden --------------------------------
 _reload_waybar() {
-  if pgrep -x waybar >/dev/null 2>&1; then
-    if [[ "$_active_target" == "$WAYBAR_DIR" ]]; then
-      # Config/Style op de standaard locatie -> hot reload
+  local want_cfg="$_target_base/config.jsonc"
+  local want_css="$_target_base/style.resolved.css"
+
+  local pid cmdline cfg_arg css_arg
+  if pid="$(pgrep -x waybar | head -n1)"; then
+    cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+    cfg_arg="$(awk '{for(i=1;i<=NF;i++) if($i=="-c" && (i+1)<=NF){print $(i+1); exit}}' <<<"$cmdline")"
+    css_arg="$(awk '{for(i=1;i<=NF;i++) if($i=="-s" && (i+1)<=NF){print $(i+1); exit}}' <<<"$cmdline")"
+
+    _debug "waybar cmd: $cmdline"
+    _debug "parsed: -c=${cfg_arg:-<none>} -s=${css_arg:-<none>}"
+    _debug "want:   -c=$want_cfg -s=$want_css"
+
+    if { [[ -z "${cfg_arg:-}" ]] || [[ "$cfg_arg" == "$want_cfg" ]]; } \
+       && { [[ -z "${css_arg:-}" ]] || [[ "$css_arg" == "$want_css" ]]; }; then
+      _debug "hot reload (USR2)"
       pkill -USR2 waybar || true
     else
-      # We gebruiken een alternate pad: nette restart met -c/-s
+      _debug "paths differ → restart with -c/-s"
       pkill -TERM waybar || true
       sleep 0.2
-      ( waybar -c "$_active_target/config" -s "$_active_target/style.css" >/dev/null 2>&1 & disown ) || true
+      ( waybar -c "$want_cfg" -s "$want_css" >/dev/null 2>&1 & disown ) || true
     fi
   else
-    # Geen Waybar actief: start met juiste paden
-    if [[ "$_active_target" == "$WAYBAR_DIR" ]]; then
-      ( waybar >/dev/null 2>&1 & disown ) || true
-    else
-      ( waybar -c "$_active_target/config" -s "$_active_target/style.css" >/dev/null 2>&1 & disown ) || true
-    fi
+    _debug "no waybar → start with -c/-s"
+    ( waybar -c "$want_cfg" -s "$want_css" >/dev/null 2>&1 & disown ) || true
   fi
 }
 
 # --- Public API ---------------------------------------------------------------
 switch_theme() {
   local token
-  if [[ $# == 1 ]]; then
-    token="$1"
-  elif [[ $# == 2 ]]; then
-    token="$1/$2"
-  else
-    echo "Usage: switch_theme THEME[/VARIANT] | switch_theme THEME VARIANT" >&2
-    return 2
-  fi
+  if   [[ $# == 1 ]]; then token="$1"
+  elif [[ $# == 2 ]]; then token="$1/$2"
+  else echo "Usage: switch_theme THEME[/VARIANT] | THEME VARIANT" >&2; return 2; fi
   _ensure "$token" || return 1
   _apply_theme_files
   _reload_waybar
-  echo "Waybar theme: Applied: $token (target=$_active_target)"
+  echo "Waybar theme: Applied: $token (target=$_target_base)"
 }
 
 list_themes() {
@@ -193,23 +205,18 @@ list_themes() {
     fam="$(basename "$famdir")"
     [[ "$fam" == .* ]] && continue
     [[ "$fam" == assets ]] && continue
-    local marker=""
-    if _pick_first_file "$famdir/style.css" "$famdir/style-custom.css" >/dev/null; then
-      marker="(root)"
-    fi
-    local has_variant=0
+    local has_root=""
+    _pick_first_file "$famdir/style.css" "$famdir/style-custom.css" >/dev/null && has_root=1
+
+    local any_var=0
     while IFS= read -r -d '' vdir; do
-      if _pick_first_file "$vdir/style.css" "$vdir/style-custom.css" >/dev/null; then
-        if [[ -z "$marker" && $has_variant -eq 0 ]]; then
-          printf '%s\n' "$fam/"
-        fi
-        printf '%s\n' "$fam/$(basename "$vdir")"
-        has_variant=1
-      fi
+      _pick_first_file "$vdir/style.css" "$vdir/style-custom.css" >/dev/null || continue
+      if [[ -z "$has_root" && $any_var -eq 0 ]]; then printf '%s/\n' "$fam"; fi
+      printf '%s/%s\n' "$fam" "$(basename "$vdir")"
+      any_var=1
     done < <(find -L "$famdir" -mindepth 1 -maxdepth 1 -type d -print0)
-    if [[ -n "$marker" ]]; then
-      printf '%s\n' "$fam"
-    fi
+
+    [[ -n "$has_root" ]] && printf '%s\n' "$fam"
   done < <(find -L "$base" -mindepth 1 -maxdepth 1 -type d -print0)
 }
 
@@ -225,11 +232,11 @@ Usage:
   helper-functions.sh --help
 
 Env:
-  WAYBAR_DIR           Default config dir (read-only is OK)
-  WAYBAR_THEMES_DIR    Themes root (default: ~/.config/waybar/themes)
-  DEFAULT_FAMILY       Fallback family (default: default)
-  WAYBAR_MUTABLE_DIR   Writable overlay (default: \$XDG_STATE_HOME/waybar-theme)
-  WAYBAR_THEME_DEBUG   Set 1 for debug logs
+  WAYBAR_DIR           (~/.config/waybar)
+  WAYBAR_THEMES_DIR    (~/.config/waybar/themes)
+  DEFAULT_FAMILY       (default)
+  WAYBAR_MUTABLE_DIR   (~/.local/state/waybar-theme)
+  WAYBAR_THEME_DEBUG   (1 for debug)
 EOF
 }
 
@@ -243,8 +250,6 @@ main() {
   esac
 }
 
-# Only run main when executed directly, not when sourced
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  main "$@"
-fi
+# alleen draaien bij direct uitvoeren
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then main "$@"; fi
 
