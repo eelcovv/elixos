@@ -3,26 +3,34 @@
 # Robust against Nix-store symlinks. Supports:
 #   - "theme" (single-level, style.css at theme root)
 #   - "theme/variant" (two-level; variant may or may not have its own style.css)
+#
+# Usage:
+#   helper-function.sh THEME[/VARIANT]
+#   helper-function.sh THEME VARIANT
+#   helper-function.sh --apply THEME[/VARIANT]
+#   helper-function.sh --list
+#   helper-function.sh --help
+#
+# Env:
+#   WAYBAR_THEME_DEBUG=1  # extra debug logging
+
+set -Eeuo pipefail
 
 # --- Global state (initialize to avoid 'unbound variable' with set -u) ---
 _theme_dir=""   # e.g., $BASE/ml4w
 _var_dir=""     # e.g., $BASE/ml4w/dark
 _def_dir=""     # e.g., $BASE/default
+_kind=""        # "single" | "variant" | "unknown"  (set by _resolve_theme_paths)
 
-# Enable extra logging by exporting:  WAYBAR_THEME_DEBUG=1
+# Enable extra logging by exporting: WAYBAR_THEME_DEBUG=1
 _debug() { [[ "${WAYBAR_THEME_DEBUG:-0}" == "1" ]] && printf 'DEBUG: %s\n' "$*" >&2 || true; }
 
 notify() {
-  # Args: <title> [body...]
-  local title="$1"; shift
+  local title="${1:-}"; shift || true
   local body="${*:-}"
-  printf '%s: %s\n' "$title" "$body"
-  if command -v logger >/dev/null 2>&1; then
-    logger -t waybar-theme -- "$title: $body"
-  fi
-  if command -v notify-send >/dev/null 2>&1; then
-    notify-send "$title" "$body" || true
-  fi
+  [[ -n "$title" ]] && printf '%s: %s\n' "$title" "$body"
+  command -v logger >/dev/null 2>&1 && logger -t waybar-theme -- "$title: $body"
+  command -v notify-send >/dev/null 2>&1 && notify-send "$title" "$body" || true
 }
 
 # Safely check for file existence through symlinks (Nix store etc.)
@@ -35,7 +43,7 @@ _have_file() {
   return 1
 }
 
-# Return first existing file from the given candidates (echo path; 0 if found)
+# Return first existing file from candidates (echo path; 0 if found)
 _pick_first_existing() {
   local cand
   for cand in "$@"; do
@@ -69,66 +77,90 @@ list_theme_variants() {
 }
 
 # Resolve whether token is "theme/variant" or just "theme".
-# Side effects: sets global _theme_dir, _var_dir, _def_dir.
-# Output (stdout): "single" | "variant" | "unknown"
+# SIDE EFFECTS (global): sets _theme_dir, _var_dir, _def_dir, _kind
+# RETURNS: 0 if recognized (single|variant), 1 if unknown
 _resolve_theme_paths() {
   local base="$1"
   local token="$2"
 
-  # Reset globals to safe values every call
   _theme_dir=""
   _var_dir=""
   _def_dir="$base/default"
+  _kind="unknown"
 
   if [[ "$token" == */* ]]; then
     _var_dir="$base/$token"
     _theme_dir="$base/${token%%/*}"
     if [[ -d "$_var_dir" ]]; then
-      _debug "_resolve: kind=variant theme_dir=$_theme_dir var_dir=$_var_dir"
-      echo "variant"
+      _kind="variant"
+      _debug "_resolve: kind=$_kind theme_dir=$_theme_dir var_dir=$_var_dir def_dir=$_def_dir"
       return 0
     fi
   else
     _theme_dir="$base/$token"
     if [[ -d "$_theme_dir" ]]; then
-      _debug "_resolve: kind=single theme_dir=$_theme_dir"
-      echo "single"
+      _kind="single"
+      _debug "_resolve: kind=$_kind theme_dir=$_theme_dir def_dir=$_def_dir"
       return 0
     fi
   fi
 
-  _debug "_resolve: unknown token=$token"
-  echo "unknown"
+  _debug "_resolve: unknown token=$token base=$base"
   return 1
 }
 
+# More permissive validation:
+# - single: theme/style.css || theme/style-custom.css || default/style.css || default/style-custom.css
+# - variant: variant/style.css || variant/style-custom.css || theme/style.css || theme/style-custom.css || default/*
 ensure_theme_variant() {
-  # Accepts "theme" (single) or "theme/variant"
   local base="$1"
   local token="$2"
 
-  local kind
-  kind="$(_resolve_theme_paths "$base" "$token")" || {
+  if ! _resolve_theme_paths "$base" "$token"; then
     echo "Unknown theme: $token"
     return 1
-  }
+  fi
+  local kind="$_kind"
+
+  _debug "ensure: base=$base token=$token"
+  _debug "ensure: _theme_dir=$_theme_dir"
+  _debug "ensure: _var_dir=$_var_dir"
+  _debug "ensure: _def_dir=$_def_dir"
+
+  local have=()
 
   case "$kind" in
     single)
-      # Single-level must have its own style.css
-      if ! _have_file "$_theme_dir/style.css" && ! _have_file "$_theme_dir/style-custom.css"; then
-        echo "Theme '$token' has no style.css"
+      _have_file "$_theme_dir/style.css"        && have+=("$_theme_dir/style.css")
+      _have_file "$_theme_dir/style-custom.css" && have+=("$_theme_dir/style-custom.css")
+      _have_file "$_def_dir/style.css"          && have+=("$_def_dir/style.css")
+      _have_file "$_def_dir/style-custom.css"   && have+=("$_def_dir/style-custom.css")
+      if ((${#have[@]}==0)); then
+        echo "Theme '$token' heeft geen style.css (en ook geen default/style.css)."
+        echo "Gecheckt:"
+        echo "  - $_theme_dir/style.css"
+        echo "  - $_theme_dir/style-custom.css"
+        echo "  - $_def_dir/style.css"
+        echo "  - $_def_dir/style-custom.css"
         return 1
       fi
       ;;
     variant)
-      # Variant is valid if EITHER variant/style.css exists OR the parent theme has style.css
-      if  ! _have_file "$_var_dir/style.css" \
-       && ! _have_file "$_var_dir/style-custom.css" \
-       && ! _have_file "$_theme_dir/style.css" \
-       && ! _have_file "$_theme_dir/style-custom.css"
-      then
-        echo "Variant '$token' has no style.css (nor parent theme style.css)"
+      _have_file "$_var_dir/style.css"          && have+=("$_var_dir/style.css")
+      _have_file "$_var_dir/style-custom.css"   && have+=("$_var_dir/style-custom.css")
+      _have_file "$_theme_dir/style.css"        && have+=("$_theme_dir/style.css")
+      _have_file "$_theme_dir/style-custom.css" && have+=("$_theme_dir/style-custom.css")
+      _have_file "$_def_dir/style.css"          && have+=("$_def_dir/style.css")
+      _have_file "$_def_dir/style-custom.css"   && have+=("$_def_dir/style-custom.css")
+      if ((${#have[@]}==0)); then
+        echo "Variant '$token' heeft geen style.css (noch parent theme, noch default)."
+        echo "Gecheckt:"
+        echo "  - $_var_dir/style.css"
+        echo "  - $_var_dir/style-custom.css"
+        echo "  - $_theme_dir/style.css"
+        echo "  - $_theme_dir/style-custom.css"
+        echo "  - $_def_dir/style.css"
+        echo "  - $_def_dir/style-custom.css"
         return 1
       fi
       ;;
@@ -140,20 +172,18 @@ ensure_theme_variant() {
 }
 
 switch_theme() {
-  # Arg: token = "theme" (single) OR "theme/variant"
   local token="$1"
 
   local cfg="$HOME/.config/waybar"
   local base="$cfg/themes"
   local cur="$cfg/current"
 
-  local kind cfg_src mod_src css_src col_src
+  local cfg_src mod_src css_src col_src
   local mod_global="$cfg/modules.jsonc"
   local col_global="$cfg/colors.css"
 
-  # Ensure and resolve (fills _theme_dir/_var_dir/_def_dir)
   ensure_theme_variant "$base" "$token" || return 1
-  kind="$(_resolve_theme_paths "$base" "$token")" || return 1
+  local kind="$_kind"
 
   local theme_dir="$_theme_dir"
   local var_dir="$_var_dir"
@@ -169,11 +199,11 @@ switch_theme() {
     cfg_src="$(_pick_first_existing \
       "$var_dir/config.jsonc" \
       "$theme_dir/config.jsonc" \
-      "$def_dir/config.jsonc")"
+      "$def_dir/config.jsonc")" || true
   else
     cfg_src="$(_pick_first_existing \
       "$theme_dir/config.jsonc" \
-      "$def_dir/config.jsonc")"
+      "$def_dir/config.jsonc")" || true
   fi
   [[ -n "${cfg_src:-}" ]] || cfg_src=""
 
@@ -183,17 +213,16 @@ switch_theme() {
       "$var_dir/modules.jsonc" \
       "$theme_dir/modules.jsonc" \
       "$def_dir/modules.jsonc" \
-      "$mod_global")"
+      "$mod_global")" || true
   else
     mod_src="$(_pick_first_existing \
       "$theme_dir/modules.jsonc" \
       "$def_dir/modules.jsonc" \
-      "$mod_global")"
+      "$mod_global")" || true
   fi
   [[ -n "${mod_src:-}" ]] || mod_src=""
 
-  # Resolve style.css:
-  # - Prefer variant's style if present; otherwise fall back to the parent theme's style; then default.
+  # Resolve style.css
   if [[ "$kind" == "variant" ]]; then
     css_src="$(_pick_first_existing \
       "$var_dir/style.css" \
@@ -201,13 +230,13 @@ switch_theme() {
       "$theme_dir/style.css" \
       "$theme_dir/style-custom.css" \
       "$def_dir/style.css" \
-      "$def_dir/style-custom.css")"
+      "$def_dir/style-custom.css")" || true
   else
     css_src="$(_pick_first_existing \
       "$theme_dir/style.css" \
       "$theme_dir/style-custom.css" \
       "$def_dir/style.css" \
-      "$def_dir/style-custom.css")"
+      "$def_dir/style-custom.css")" || true
   fi
   [[ -n "${css_src:-}" ]] || css_src=""
 
@@ -216,11 +245,11 @@ switch_theme() {
     col_src="$(_pick_first_existing \
       "$var_dir/colors.css" \
       "$theme_dir/colors.css" \
-      "$col_global")"
+      "$col_global")" || true
   else
     col_src="$(_pick_first_existing \
       "$theme_dir/colors.css" \
-      "$col_global")"
+      "$col_global")" || true
   fi
   [[ -n "${col_src:-}" ]] || col_src=""
 
@@ -253,7 +282,6 @@ switch_theme() {
     else
       sed -i -E '/@import.*colors\.css/d' "$cur/style.resolved.css"
     fi
-    # Any "../foo.css" imports should be rewritten to the family root (theme_dir)
     sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./style\.css['\"]?\)?;#@import url(\"$theme_dir/style.css\");#g" "$cur/style.resolved.css"
     sed -i -E "s#@import[[:space:]]+(url\()?['\"]?\.\./([^'\"\\)]+)['\"]?\)?;#@import url(\"$theme_dir/\2\");#g" "$cur/style.resolved.css"
     printf '@import url("colors.css");\n' | cat - "$cur/style.resolved.css" > "$cur/.tmp.css"
@@ -275,4 +303,60 @@ switch_theme() {
 
   notify "Waybar theme" "Applied: $token"
 }
+
+print_help() {
+  cat <<'EOF'
+Waybar theme helper
+
+Usage:
+  helper-function.sh THEME[/VARIANT]
+  helper-function.sh THEME VARIANT
+  helper-function.sh --apply THEME[/VARIANT]
+  helper-function.sh --list
+  helper-function.sh --help
+
+Env:
+  WAYBAR_THEME_DEBUG=1   Show verbose debug logs
+
+Examples:
+  helper-function.sh ml4w/black
+  helper-function.sh ml4w black
+  helper-function.sh --list
+EOF
+}
+
+main() {
+  local cfg="$HOME/.config/waybar"
+  local base="$cfg/themes"
+  mkdir -p "$cfg" "$base"
+
+  if (($# == 0)); then
+    print_help
+    exit 1
+  fi
+
+  case "${1:-}" in
+    --help|-h) print_help; exit 0 ;;
+    --list)    list_theme_variants "$base"; exit 0 ;;
+    --apply)   shift; (($#>=1)) || { echo "Missing THEME[/VARIANT] after --apply" >&2; exit 1; } ;;
+    *)         : ;;
+  esac
+
+  local token=""
+  if (($# >= 2)) && [[ "$1" != */* ]]; then
+    token="$1/$2"
+  else
+    token="$1"
+  fi
+
+  # Normalize accidental spaces around slash
+  token="${token// \/ /\/}"
+  token="${token//\/\ /\/}"
+  token="${token// \//\/}"
+
+  _debug "main: token=$token"
+  switch_theme "$token"
+}
+
+main "$@"
 
