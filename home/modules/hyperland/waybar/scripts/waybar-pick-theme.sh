@@ -9,7 +9,8 @@
 # Notes:
 # - Excludes non-theme folders like "assets"
 # - Works with read-only Nix store symlinks; we only read files
-# - Menu order preference: rofi → wofi → fzf → stdin fallback
+# - Picker preference: rofi → wofi → fzf → stdin fallback
+# - Force picker via env: WAYBAR_PICKER=rofi|wofi|fzf|auto
 
 set -euo pipefail
 
@@ -34,7 +35,7 @@ if [[ -z "$FOUND" ]]; then
   exit 1
 fi
 
-BASE="$HOME/.config/waybar/themes"
+BASE="${WAYBAR_THEMES_DIR:-$HOME/.config/waybar/themes}"
 if [[ ! -d "$BASE" ]]; then
   echo "No themes dir at $BASE" >&2
   exit 1
@@ -102,7 +103,6 @@ if [[ ${#FAMILIES[@]} -eq 0 ]]; then
 fi
 
 # ShellCheck SC2207: prefer mapfile over command substitution splitting
-# Sort unique families safely into the array
 mapfile -t FAMILIES < <(printf '%s\n' "${FAMILIES[@]}" | sort -u)
 
 SEL_FAMILY="$(printf '%s\n' "${FAMILIES[@]}" | menu_pick "Waybar theme")" || true
@@ -129,14 +129,9 @@ done
 shopt -u nullglob
 
 if [[ ${#FILTERED[@]} -eq 0 ]]; then
-  # No variants: fallback to the family root if it has a style.css
-  if [[ -f "$FAM_DIR/style.css" || -f "$FAM_DIR/style-custom.css" ]]; then
-    switch_theme "$SEL_FAMILY"
-    exit 0
-  else
-    echo "Theme '$SEL_FAMILY' has no variants and no root style.css" >&2
-    exit 1
-  fi
+  # No variants: apply the family (single-level theme)
+  switch_theme "$SEL_FAMILY"
+  exit 0
 fi
 
 SEL_VARIANT="$(printf '%s\n' "${FILTERED[@]}" | menu_pick "$SEL_FAMILY variant")" || true
