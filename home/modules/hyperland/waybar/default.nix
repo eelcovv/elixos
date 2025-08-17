@@ -46,24 +46,13 @@ in {
   };
 
   ##########################################################################
-  # Top-level Waybar config & stylesheet (absolute paths; no "~")
+  # REMOVE Nix-managed top-level config/style. We will always symlink to current/*
   ##########################################################################
-  xdg.configFile."waybar/config.jsonc".text = ''
-    {
-      "include": [
-        "${cfgPath}/current/config.jsonc",
-        "${cfgPath}/current/modules.jsonc"
-      ]
-    }
-  '';
-
-  xdg.configFile."waybar/style.css".text = ''
-    @import url("${cfgPath}/current/style.resolved.css");
-  '';
+  # (Intentionally no xdg.configFile."waybar/config.jsonc".text)
+  # (Intentionally no xdg.configFile."waybar/style.css".text)
 
   ##########################################################################
   # Initialize ~/.config/waybar/current only if missing (do NOT overwrite)
-  # NOTE: Any Bash parameter expansion `${…}` must be escaped as `\${…}` in Nix strings.
   ##########################################################################
   home.activation.bootstrapWaybarIfMissing = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
@@ -73,18 +62,14 @@ in {
 
     mkdir -p "$CFG" "$CUR"
 
-    # Pick a reliable default theme variant if nothing is initialized yet.
-    # Prefer "default" folder; otherwise pick the first style.css we can find.
     choose_variant() {
       if [ -e "$THEMES/default/style.css" ]; then
         echo "default"
         return 0
       fi
-      # Find first theme/variant with style.css
       local first
       first="$(find -L "$THEMES" -mindepth 2 -maxdepth 2 -type f -name 'style.css' | head -n1 || true)"
       if [ -n "$first" ]; then
-        # Strip "$THEMES/" prefix and "/style.css" suffix -> "theme/variant"
         echo "''${first#''$THEMES/}" | sed 's#/style\.css$##'
         return 0
       fi
@@ -92,20 +77,18 @@ in {
       return 1
     }
 
-    # Only bootstrap if nothing has ever been written by scripts:
     if [ ! -e "$CUR/style.resolved.css" ]; then
       variant="$(choose_variant || true)"
       if [ -n "$variant" ]; then
-        # Build an initial style.resolved.css from the chosen variant
         var_dir="$THEMES/$variant"
-        theme_dir="''${var_dir%/*}"    # "themes/<theme>"
+        theme_dir="''${var_dir%/*}"
 
         css_src=""
         if   [ -e "$var_dir/style.css" ]; then css_src="$var_dir/style.css"
         elif [ -e "$var_dir/style-custom.css" ]; then css_src="$var_dir/style-custom.css"
         fi
 
-        # Prepare colors.css fallback
+        # colors.css cascade
         if   [ -e "$var_dir/colors.css" ]; then ln -sfn "$var_dir/colors.css" "$CUR/colors.css"
         elif [ -e "$theme_dir/colors.css" ]; then ln -sfn "$theme_dir/colors.css" "$CUR/colors.css"
         elif [ -e "$CFG/colors.css" ]; then ln -sfn "$CFG/colors.css" "$CUR/colors.css"
@@ -132,13 +115,22 @@ in {
         else printf '{}\n' > "$CUR/modules.jsonc"; fi
       fi
     fi
+  '';
 
-    # Ensure top-level Waybar entry points point at current/*
-    # These files are NOT owned by Nix (so your script can relink them later).
-    [ -e "$CFG/config.jsonc" ]        || ln -sfn "$CUR/config.jsonc"       "$CFG/config.jsonc"
-    [ -e "$CFG/modules.jsonc" ]       || ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
-    [ -e "$CFG/colors.css" ]          || ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
-    [ -e "$CFG/style.css" ]           || ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
+  ##########################################################################
+  # Always force top-level entry points to point at current/*
+  ##########################################################################
+  home.activation.waybarEntryPoints = lib.hm.dag.entryAfter ["bootstrapWaybarIfMissing"] ''
+    set -eu
+    CFG="${cfgPath}"
+    CUR="$CFG/current"
+    mkdir -p "$CFG" "$CUR"
+
+    ln -sfn "$CUR/config.jsonc"       "$CFG/config"
+    ln -sfn "$CUR/config.jsonc"       "$CFG/config.jsonc"
+    ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
+    ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
+    ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
   '';
 
   ##########################################################################
