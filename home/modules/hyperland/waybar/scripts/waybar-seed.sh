@@ -88,12 +88,21 @@ else
   fi
 fi
 
+link_if_changed() {
+  # usage: link_if_changed <src> <dst>
+  local src="$1" dst="$2"
+  if [ -L "$dst" ] && [ "$(readlink -f "$dst")" = "$(readlink -f "$src")" ]; then
+    return 0
+  fi
+  ln -sfn "$src" "$dst"
+}
+
 # Force top-level entry points to current/* so Waybar always reads from there
-ln -sfn "$CUR/config.jsonc"       "$CFG/config"
-ln -sfn "$CUR/config.jsonc"       "$CFG/config.jsonc"
-ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
-ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
-ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
+link_if_changed "$CUR/config.jsonc"       "$CFG/config"
+link_if_changed "$CUR/config.jsonc"       "$CFG/config.jsonc"
+link_if_changed "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
+link_if_changed "$CUR/colors.css"         "$CFG/colors.css"
+link_if_changed "$CUR/style.resolved.css" "$CFG/style.css"
 log "Entrypoints symlinked to current/*"
 
 # Hot-reload if Waybar is already running (do NOT start a second instance)
