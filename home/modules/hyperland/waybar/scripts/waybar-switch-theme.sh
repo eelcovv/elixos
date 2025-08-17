@@ -50,15 +50,28 @@ first_existing() {
 }
 
 install_file() {
-  # install_file <src-or-empty> <dst> <placeholder-contents-if-empty>
-  local src="${1:-}" dst="$2" placeholder="${3:-}"
+  # install_file <src-or-empty> <dst> <fallback-string>
+  local src="${1:-}" dst="$2" fallback="${3:-}"
   if [[ -n "$src" ]]; then
     install -Dm0644 "$src" "$dst"
   else
     mkdir -p "$(dirname "$dst")"
-    printf '%s\n' "$placeholder" > "$dst"
+    printf '%s\n' "$fallback" > "$dst"
   fi
 }
+
+# Veilige minimale placeholders (100% geldige JSON/CSS)
+MIN_CONFIG='{
+  "layer": "top",
+  "position": "top",
+  "height": 32,
+  "modules-center": ["clock"],
+  "clock": { "format": "{:%H:%M}" }
+}'
+MIN_MODULES='{}'
+MIN_COLORS=':root { --fg: #d0d0d0; --bg: #202020; }'
+MIN_STYLE='* { font-size: 12px; color: var(--fg); }
+window#waybar { background: var(--bg); }'
 
 mkdir -p "$CUR"
 
@@ -75,15 +88,21 @@ if [[ -z "${src_style:-}" ]]; then
 fi
 
 # ---------- write current/* ----------
-install -Dm0644 "$src_style" "$CUR/style.resolved.css"
+# CSS
+if [[ -n "${src_style:-}" ]]; then
+  install -Dm0644 "$src_style" "$CUR/style.resolved.css"
+else
+  install_file "" "$CUR/style.resolved.css" "$MIN_STYLE"
+fi
+# append optional custom CSS
 if [[ -n "${src_style_custom:-}" ]]; then
-  # append custom overrides at the end
   cat "$src_style_custom" >> "$CUR/style.resolved.css"
 fi
 
-install_file "$src_colors"  "$CUR/colors.css"   "/* no colors.css for ${theme}${variant:+/$variant} */"
-install_file "$src_modules" "$CUR/modules.jsonc" "{/* no modules.jsonc for ${theme}${variant:+/$variant} */}"
-install_file "$src_config"  "$CUR/config.jsonc"  "{/* no config.jsonc for ${theme}${variant:+/$variant} */}"
+# colors / modules / config (valide fallbacks)
+install_file "$src_colors"  "$CUR/colors.css"   "$MIN_COLORS"
+install_file "$src_modules" "$CUR/modules.jsonc" "$MIN_MODULES"
+install_file "$src_config"  "$CUR/config.jsonc"  "$MIN_CONFIG"
 
 # ---------- refresh entrypoint symlinks AFTER writing current/* ----------
 ln -sfn "$CUR/config.jsonc"       "$CFG/config"
@@ -92,8 +111,12 @@ ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
 ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
 ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
 
-# ---------- reload waybar (ignore if not running) ----------
+# ---------- reload waybar; if it died, start it ----------
 pkill -USR2 -x waybar 2>/dev/null || true
+sleep 0.15
+if ! pgrep -x waybar >/dev/null; then
+  nohup waybar >/dev/null 2>&1 &
+fi
 
 echo "Waybar theme: Applied: ${theme}${variant:+/$variant}"
 
