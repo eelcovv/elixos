@@ -4,10 +4,24 @@
   lib,
   ...
 }: let
-  waybarDir = ./.;
-  scriptsDir = ./scripts;
+  waybarDir = ./.; # map waar deze default.nix staat
+  scriptsDir = ./scripts; # verwacht scripts/ met *.sh
   cfgPath = "${config.xdg.configHome}/waybar";
 in {
+  ##########################################################################
+  # Sanity checks (faal vroeg als themes/ of scripts/ ontbreken)
+  ##########################################################################
+  assertions = [
+    {
+      assertion = builtins.pathExists (waybarDir + "/themes");
+      message = "waybar/default.nix: expected ./themes next to this module.";
+    }
+    {
+      assertion = builtins.pathExists scriptsDir;
+      message = "waybar/default.nix: expected ./scripts next to this module.";
+    }
+  ];
+
   ##########################################################################
   # Packages used by the picker (menu + notifications)
   ##########################################################################
@@ -16,6 +30,16 @@ in {
     swaynotificationcenter
     dunst
   ];
+
+  ##########################################################################
+  # Expose repo themes to ~/.config/waybar/themes (bron voor seed/switch)
+  ##########################################################################
+  xdg.configFile."waybar/themes".source = waybarDir + "/themes";
+
+  # (Optioneel) als je een globale modules.jsonc of colors.css wilt meeleveren,
+  # kun je ze hier ook koppelen. Seed/switch gebruikt echter "current/*".
+  # xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
+  # xdg.configFile."waybar/colors.css".source   = waybarDir + "/colors.css";
 
   ##########################################################################
   # Install helper-driven switcher scripts into ~/.local/bin
@@ -33,6 +57,10 @@ in {
     executable = true;
   };
 
+  ##########################################################################
+  # Bootstrap: seed alleen als er nog geen resolved style aanwezig is
+  # (geeft nu wél themes/ mee, dus seed zal een echte variant kunnen vinden)
+  ##########################################################################
   home.activation.bootstrapWaybarIfMissing = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
     if [ ! -e "${cfgPath}/current/style.resolved.css" ]; then
@@ -40,7 +68,9 @@ in {
     fi
   '';
 
-  # Keep forcing entry points to current/* (belt & suspenders)
+  ##########################################################################
+  # Belt & suspenders: forceer de entrypoint-symlinks naar current/*
+  ##########################################################################
   home.activation.waybarEntryPoints = lib.hm.dag.entryAfter ["bootstrapWaybarIfMissing"] ''
     set -eu
     CFG="${cfgPath}"
@@ -53,8 +83,12 @@ in {
     ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
   '';
 
+  ##########################################################################
+  # Waybar it self (without systemd-user unit to prevent double starts
+  ##########################################################################
   programs.waybar.enable = true;
   programs.waybar.systemd.enable = false;
 
+  # Zorg dat ~/.local/bin in PATH staat voor de scripts
   home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
 }
