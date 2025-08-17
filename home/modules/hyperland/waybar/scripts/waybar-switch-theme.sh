@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Robust Waybar theme switcher (Hyprland is the single "chef").
 # - Resolves themes from ~/.config/waybar/themes
-# - Builds in a temp dir, validates JSON (if jq is available)
+# - Builds in a temp dir
 # - Merges style.css + style-custom.css
 # - Flattens CSS custom properties `var(--...)` using colors.css or safe defaults
 # - STRIPS any CSS @import lines to avoid Waybar absolute-path issues
 # - Atomically replaces ~/.config/waybar/current/*
 # - Sends USR2 only (no start/stop): Hyprland should start Waybar
+#
+# NOTE: Waybar configs in the wild are often JSONC (comments, trailing commas).
+#       We DO NOT hard-validate with jq here to avoid false negatives.
 
 set -euo pipefail
 
@@ -21,12 +24,18 @@ CUR="$CFG/current"
 
 usage() { echo "usage: waybar-switch-theme <theme> [variant] | <theme/variant>" >&2; exit 2; }
 
-# ----- parse args -------------------------------------------------------------
+# ----- parse args: support 'theme/variant' or 'theme variant' -----------------
 theme=""; variant=""
 case "$#" in
-  1)  if [[ "$1" == */* ]]; then theme="${1%%/*}"; variant="${1#*/}"; else theme="$1"; fi ;;
-  2)  theme="$1"; variant="$2" ;;
-  *)  usage ;;
+  1)
+    if [[ "$1" == */* ]]; then
+      theme="${1%%/*}"; variant="${1#*/}"
+    else
+      theme="$1"; variant=""
+    fi
+    ;;
+  2) theme="$1"; variant="$2" ;;
+  *) usage ;;
 esac
 [[ -n "$theme" ]] || usage
 
@@ -38,32 +47,43 @@ debug "resolve: theme_dir=$theme_dir var_dir=$var_dir def_dir=$def_dir"
 
 # ----- helpers ----------------------------------------------------------------
 first_existing() {
+  # echo first existing file from args, else return non-zero
   for p in "$@"; do [[ -f "$p" ]] && { echo "$p"; return 0; }; done
   return 1
 }
+
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
+
 sed_escape() {
+  # escape a string for safe sed replacement
   local s=$1
   s=${s//\\/\\\\}; s=${s//\//\\/}; s=${s//&/\\&}
   printf '%s' "$s"
 }
+
 strip_css_imports() {
   # Remove any @import lines to avoid Waybar trying to load weird absolute paths
   sed -E -i '/@import[[:space:]]/d' "$1"
 }
+
 flatten_css_vars() {
   # flatten_css_vars <infile> <outfile> [colors.css]
+  # Replaces var(--name) with values from colors.css if present,
+  # otherwise uses sane defaults to avoid Waybar crash (GTK CSS has no var()).
   local in="$1" out="$2" colors="${3:-}"
   local tmp="$out.tmp"
   cp -f "$in" "$tmp"
 
   declare -A cmap=()
   # Safe defaults if theme provides no colors.css
-  cmap[fg]="#d0d0d0"; cmap[bg]="#202020"; cmap[background]="#202020"; cmap[text]="#d0d0d0"
-  cmap[primary]="#5e81ac"; cmap[accent]="#5e81ac"; cmap[warning]="#ebcb8b"
-  cmap[urgent]="#bf616a"; cmap[good]="#a3be8c"; cmap[bad]="#bf616a"
+  cmap[fg]="#d0d0d0"; cmap[bg]="#202020"
+  cmap[background]="#202020"; cmap[text]="#d0d0d0"
+  cmap[primary]="#5e81ac"; cmap[accent]="#5e81ac"
+  cmap[warning]="#ebcb8b"; cmap[urgent]="#bf616a"
+  cmap[good]="#a3be8c";   cmap[bad]="#bf616a"
 
   if [[ -n "$colors" && -f "$colors" ]]; then
+    # Parse :root { --name: value; } definitions
     while IFS='=' read -r k v; do
       [[ -n "$k" && -n "$v" ]] || continue
       v="${v%%;*}"; v="${v//[$'\t\r\n ']/}"
@@ -71,10 +91,12 @@ flatten_css_vars() {
     done < <(awk 'match($0,/--([a-zA-Z0-9_-]+)\s*:\s*([^;]+);/,m){print m[1] "=" m[2]}' "$colors")
   fi
 
+  # Replace known vars
   for name in "${!cmap[@]}"; do
     val="${cmap[$name]}"; val_esc=$(sed_escape "$val")
     sed -E -i "s/var\\(--${name}\\)/${val_esc}/g" "$tmp"
   done
+  # Replace any remaining var(--something) with a neutral default
   sed -E -i 's/var\(--[a-zA-Z0-9_-]+\)/#d0d0d0/g' "$tmp"
 
   mv -f "$tmp" "$out"
@@ -108,7 +130,7 @@ fi
 tmpdir="$(mktemp -d "${CFG//\//_}.build.XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
-# Compose CSS
+# Compose CSS: base + optional custom, strip imports, flatten vars
 if [[ -n "${src_style:-}" ]]; then
   install -Dm0644 "$src_style" "$tmpdir/style.resolved.css"
 else
@@ -125,32 +147,31 @@ if grep -q 'var(' "$tmpdir/style.resolved.css"; then
 fi
 
 # Other files (with fallbacks)
-[[ -n "${src_colors:-}"  ]] && install -Dm0644 "$src_colors"  "$tmpdir/colors.css"     || printf '/* no colors.css */\n' > "$tmpdir/colors.css"
-[[ -n "${src_modules:-}" ]] && install -Dm0644 "$src_modules" "$tmpdir/modules.jsonc"  || printf '%s\n' "$MIN_MODULES" > "$tmpdir/modules.jsonc"
-[[ -n "${src_config:-}"  ]] && install -Dm0644 "$src_config"  "$tmpdir/config.jsonc"   || printf '%s\n' "$MIN_CONFIG"  > "$tmpdir/config.jsonc"
+if [[ -n "${src_colors:-}"  ]]; then install -Dm0644 "$src_colors"  "$tmpdir/colors.css"; else printf '/* no colors.css */\n' > "$tmpdir/colors.css"; fi
+if [[ -n "${src_modules:-}" ]]; then install -Dm0644 "$src_modules" "$tmpdir/modules.jsonc"; else printf '%s\n' "$MIN_MODULES" > "$tmpdir/modules.jsonc"; fi
+if [[ -n "${src_config:-}"  ]]; then install -Dm0644 "$src_config"  "$tmpdir/config.jsonc";  else printf '%s\n' "$MIN_CONFIG"  > "$tmpdir/config.jsonc";  fi
 
-# Validate JSON if jq exists
-if have_cmd jq; then
-  jq -e . "$tmpdir/config.jsonc"   >/dev/null || { log "ERROR: config.jsonc invalid";  exit 1; }
-  jq -e . "$tmpdir/modules.jsonc"  >/dev/null || { log "ERROR: modules.jsonc invalid"; exit 1; }
-else
-  debug "jq not found; skipping JSON validation"
-fi
+# ----- (no strict jq-validation; JSONC may contain comments) ------------------
+# If you still want a soft check and have jq, you can uncomment this block:
+# if have_cmd jq; then
+#   jq -e . "$tmpdir/config.jsonc"   >/dev/null || debug "warning: config.jsonc not pure JSON (likely JSONC); skipping strict validation"
+#   jq -e . "$tmpdir/modules.jsonc"  >/dev/null || debug "warning: modules.jsonc not pure JSON (likely JSONC); skipping strict validation"
+# fi
 
-# Atomically replace current/
+# ----- atomically replace current/ -------------------------------------------
 mkdir -p "$CFG"
 [[ -d "$CUR" ]] && rm -rf "$CUR"
 mv "$tmpdir" "$CUR"
 trap - EXIT
 
-# Entrypoint symlinks (safety net)
+# Entrypoint symlinks (safety net; HM usually ensures these)
 ln -sfn "$CUR/config.jsonc"       "$CFG/config"
 ln -sfn "$CUR/config.jsonc"       "$CFG/config.jsonc"
 ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
 ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
 ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
 
-# ----- reload only (Hyprland manages lifecycle) ----------------------
+# ----- reload only (Hyprland manages lifecycle) ------------------------------
 # Always try to send USR2; use -f to match the full cmdline (works even if name differs)
 pkill -USR2 -f '[w]aybar' 2>/dev/null || true
 
