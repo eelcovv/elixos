@@ -116,7 +116,7 @@ else
 fi
 [[ -n "${src_style_custom:-}" ]] && cat "$src_style_custom" >> "$tmpdir/style.resolved.css"
 
-# Strip any @import BEFORE/AFTER flatten (do both to be safe)
+# Strip @import BEFORE/AFTER flatten (belt & suspenders)
 strip_css_imports "$tmpdir/style.resolved.css"
 if grep -q 'var(' "$tmpdir/style.resolved.css"; then
   debug "flatten: replacing CSS var(--...) using colors.css='${src_colors:-<none>}'"
@@ -150,12 +150,9 @@ ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
 ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
 ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
 
-# Reload only (Hyprland manages lifecycle)
-if pgrep -x waybar >/dev/null 2>&1; then
-  pkill -USR2 -x waybar || true
-else
-  log "Note: Waybar is not running. Hyprland should start it via exec-once."
-fi
+# ----- reload only (Hyprland manages lifecycle) ----------------------
+# Always try to send USR2; use -f to match the full cmdline (works even if name differs)
+pkill -USR2 -f '[w]aybar' 2>/dev/null || true
 
 log "Waybar theme: Applied: ${theme}${variant:+/$variant}"
 
