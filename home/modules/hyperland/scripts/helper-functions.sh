@@ -17,8 +17,6 @@ _debug() { [[ "${WAYBAR_THEME_DEBUG:-0}" == "1" ]] && echo "DEBUG: $*" >&2; }
 
 # --- Utils -------------------------------------------------------------------
 _exists_file(){ [[ -f "$1" ]]; }
-_exists_dir(){  [[ -d "$1" ]]; }
-
 _pick_first_file(){ local f; for f in "$@"; do [[ -f "$f" ]] && { printf '%s\n' "$f"; return 0; }; done; return 1; }
 
 _is_writable_dir() {
@@ -54,7 +52,9 @@ _resolve() {
 
 _ensure() {
   local token="$1"; _debug "ensure: base=$WAYBAR_THEMES_DIR token=$token"
-  local p=(); mapfile -t p < <(_resolve "$token")
+  local p=(); if ! mapfile -t p < <(_resolve "$token"); then
+    echo "ERROR: internal resolve failed (mapfile/resolve)" >&2; return 1
+  fi
   (( ${#p[@]} == 4 )) || { echo "ERROR: internal resolve failed (got ${#p[@]} parts)" >&2; return 1; }
   local kind="${p[0]}" theme_dir="${p[1]}" var_dir="${p[2]}" def_dir="${p[3]}"
   [[ -d "$theme_dir" ]] || { echo "ERROR: Theme family not found: $theme_dir" >&2; return 1; }
@@ -83,7 +83,6 @@ _pick_stylesheet() {
     "${_def_dir}/style.css" "${_def_dir}/style-custom.css"
 }
 _pick_colors() {
-  # + extra fallback: repo’s top-level colors.css (WAYBAR_DIR/colors.css)
   _pick_first_file \
     "${_var_dir}/colors.css" \
     "${_theme_dir}/colors.css" \
@@ -106,9 +105,7 @@ _pick_modules() {
 # --- Build style.resolved.css -------------------------------------------------
 _build_style_resolved() {
   local src_css="$1" out_css="$2"
-  # 1) begin met import van colors.css
   printf '@import url("colors.css");\n' > "$out_css"
-  # 2) append bron, maar verwijder eventuele import van ../style.css of colors.css om loops te voorkomen
   if [[ -f "$src_css" ]]; then
     sed -E '/@import.*\.\.\/style\.css/d; /@import.*colors\.css/d' "$src_css" >> "$out_css"
   fi
@@ -137,7 +134,7 @@ _apply_theme_files() {
     _debug "config: none → wrote minimal"
   fi
 
-  # modules.jsonc (optioneel)
+  # modules.jsonc
   if mod="$(_pick_modules)"; then
     _safe_install "$mod" "$_target_base/modules.jsonc"
     _debug "modules: $mod -> $_target_base/modules.jsonc"
@@ -156,20 +153,35 @@ _apply_theme_files() {
   fi
 }
 
-# --- Reload / restart Waybar met juiste paden --------------------------------
+# --- Process detect & reload --------------------------------------------------
+_waybar_pids() {
+  # Match wrapper & direct, with/zonder args
+  pgrep -f '(^|/)\.?waybar(-wrapped)?([[:space:]]|$)' 2>/dev/null || true
+}
+
 _reload_waybar() {
-  # In jouw Nix-setup volstaat altijd een hot-reload. Nooit restart.
-  if pgrep -x waybar >/dev/null 2>&1; then
-    pkill -USR2 waybar || true
-    _debug "hot reload (USR2) sent to waybar"
+  local pids; pids="$(_waybar_pids || true)"
+  if [[ -n "${pids//[[:space:]]/}" ]]; then
+    _debug "found running waybar PIDs: $(tr '\n' ' ' <<<"$pids")"
+    # Hot-reload alle actieve instances
+    while read -r pid; do
+      [[ -n "$pid" ]] && kill -USR2 "$pid" 2>/dev/null || true
+    done <<<"$pids"
+    _debug "hot reload (USR2) sent"
+    # Optional: forceer single instance door extra's te sluiten (laat de laagste PID leven)
+    # shellcheck disable=SC2002
+    if [[ "$(echo "$pids" | wc -w)" -gt 1 ]]; then
+      local keep; keep="$(echo "$pids" | tr ' ' '\n' | sort -n | head -n1)"
+      while read -r pid; do
+        [[ -n "$pid" && "$pid" != "$keep" ]] && kill "$pid" 2>/dev/null || true
+      done <<<"$(echo "$pids" | tr ' ' '\n')"
+      _debug "trimmed to single instance (kept PID $keep)"
+    fi
   else
-    # niet actief → gewoon starten. Gebruik standaard entry points,
-    # omdat die al naar current/* wijzen via je Nix-config.
     ( waybar >/dev/null 2>&1 & disown ) || true
     _debug "waybar was not running → started"
   fi
 }
-
 
 # --- Public API ---------------------------------------------------------------
 switch_theme() {
@@ -179,6 +191,10 @@ switch_theme() {
   else echo "Usage: switch_theme THEME[/VARIANT] | THEME VARIANT" >&2; return 2; fi
   _ensure "$token" || return 1
   _apply_theme_files
+  _reload_waybar()
+  {
+    _reload_waybar
+  }
   _reload_waybar
   echo "Waybar theme: Applied: $token (target=$_target_base)"
 }
@@ -234,6 +250,5 @@ main() {
   esac
 }
 
-# alleen draaien bij direct uitvoeren
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then main "$@"; fi
 
