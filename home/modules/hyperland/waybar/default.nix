@@ -8,9 +8,26 @@
   scriptsDir = ./scripts;
   cfgPath = "${config.xdg.configHome}/waybar";
 in {
-  # ... (jouw packages, switchers, themes, optional colors/modules blijven hetzelfde) ...
+  ##########################################################################
+  # Packages used by the picker (menu + notifications)
+  ##########################################################################
+  home.packages = with pkgs; [
+    rofi-wayland
+    swaynotificationcenter
+    dunst
+  ];
 
-  # Install the seed script into ~/.local/bin
+  ##########################################################################
+  # Install helper-driven switcher scripts into ~/.local/bin
+  ##########################################################################
+  home.file.".local/bin/waybar-switch-theme" = {
+    source = scriptsDir + "/waybar-switch-theme.sh";
+    executable = true;
+  };
+  home.file.".local/bin/waybar-pick-theme" = {
+    source = scriptsDir + "/waybar-pick-theme.sh";
+    executable = true;
+  };
   home.file.".local/bin/waybar-seed" = {
     source = scriptsDir + "/waybar-seed.sh";
     executable = true;
