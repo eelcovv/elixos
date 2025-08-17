@@ -158,34 +158,18 @@ _apply_theme_files() {
 
 # --- Reload / restart Waybar met juiste paden --------------------------------
 _reload_waybar() {
-  local want_cfg="$_target_base/config.jsonc"
-  local want_css="$_target_base/style.resolved.css"
-
-  local pid cmdline cfg_arg css_arg
-  if pid="$(pgrep -x waybar | head -n1)"; then
-    cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
-    cfg_arg="$(awk '{for(i=1;i<=NF;i++) if($i=="-c" && (i+1)<=NF){print $(i+1); exit}}' <<<"$cmdline")"
-    css_arg="$(awk '{for(i=1;i<=NF;i++) if($i=="-s" && (i+1)<=NF){print $(i+1); exit}}' <<<"$cmdline")"
-
-    _debug "waybar cmd: $cmdline"
-    _debug "parsed: -c=${cfg_arg:-<none>} -s=${css_arg:-<none>}"
-    _debug "want:   -c=$want_cfg -s=$want_css"
-
-    if { [[ -z "${cfg_arg:-}" ]] || [[ "$cfg_arg" == "$want_cfg" ]]; } \
-       && { [[ -z "${css_arg:-}" ]] || [[ "$css_arg" == "$want_css" ]]; }; then
-      _debug "hot reload (USR2)"
-      pkill -USR2 waybar || true
-    else
-      _debug "paths differ → restart with -c/-s"
-      pkill -TERM waybar || true
-      sleep 0.2
-      ( waybar -c "$want_cfg" -s "$want_css" >/dev/null 2>&1 & disown ) || true
-    fi
+  # In jouw Nix-setup volstaat altijd een hot-reload. Nooit restart.
+  if pgrep -x waybar >/dev/null 2>&1; then
+    pkill -USR2 waybar || true
+    _debug "hot reload (USR2) sent to waybar"
   else
-    _debug "no waybar → start with -c/-s"
-    ( waybar -c "$want_cfg" -s "$want_css" >/dev/null 2>&1 & disown ) || true
+    # niet actief → gewoon starten. Gebruik standaard entry points,
+    # omdat die al naar current/* wijzen via je Nix-config.
+    ( waybar >/dev/null 2>&1 & disown ) || true
+    _debug "waybar was not running → started"
   fi
 }
+
 
 # --- Public API ---------------------------------------------------------------
 switch_theme() {
