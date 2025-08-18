@@ -4,20 +4,12 @@
   lib,
   ...
 }: let
-  # Your script must live here:
-  # home/modules/hyperland/waybar/scripts/waybar-switch-theme
+  waybarDir = ./.;
   scriptsDir = ./scripts;
-
-  installScript = name: {
-    ".local/bin/${name}" = {
-      source = scriptsDir + "/${name}";
-      executable = true;
-    };
-  };
 in {
   config = {
     ##########################################################################
-    # Waybar — run exactly once via systemd, bound to the Hyprland session
+    # Waybar — managed by systemd, bound to Hyprland user target
     ##########################################################################
     programs.waybar.enable = true;
     programs.waybar.package = pkgs.waybar;
@@ -25,32 +17,31 @@ in {
     programs.waybar.systemd.target = "hyprland-session.target";
 
     ##########################################################################
-    # Minimal safe defaults so Waybar can start even before theming
+    # Global fallbacks so theme switchers never hit missing files
     ##########################################################################
-    xdg.configFile."waybar/config.jsonc".text = ''
-      {
-        "layer": "top",
-        "position": "top",
-        "height": 30,
-        "modules-left":   ["hyprland/workspaces", "hyprland/window"],
-        "modules-center": ["clock"],
-        "modules-right":  ["tray", "pulseaudio", "battery"],
-        "clock": { "format": "{:%H:%M}" },
-        "hyprland/window": { "separate-outputs": true },
-        "tray": { "icon-size": 18, "spacing": 8 }
-      }
-    '';
-    xdg.configFile."waybar/style.css".text = "/* placeholder; theme switcher will update this */\n";
+    xdg.configFile."waybar/modules.jsonc".text = ''{ }'';
+    xdg.configFile."waybar/colors.css".text = ''/* global fallback; themes usually override this */'';
 
     ##########################################################################
-    # Install the external script into ~/.local/bin
+    # Expose your repo themes (read-only) into ~/.config/waybar/themes
     ##########################################################################
-    home.file = lib.mkMerge [
-      (installScript "waybar-switch-theme")
-    ];
+    xdg.configFile."waybar/themes".source = waybarDir + "/themes";
 
     ##########################################################################
-    # ⚠️ No wallpaper options here; they live in waypaper/default.nix
+    # Install Waybar switching scripts into ~/.local/bin
     ##########################################################################
+    home.file.".local/bin/waybar-switch-theme" = {
+      source = scriptsDir + "/waybar-switch-theme.sh";
+      executable = true;
+    };
+    home.file.".local/bin/waybar-pick-theme" = {
+      source = scriptsDir + "/waybar-pick-theme.sh";
+      executable = true;
+    };
+
+    ##########################################################################
+    # (Optional) Seed a placeholder file in current/ to avoid empty dir errors
+    ##########################################################################
+    # xdg.configFile."waybar/current/.keep".text = "";
   };
 }
