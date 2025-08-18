@@ -9,8 +9,8 @@
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
   imports = [
-    ./waybar
-    ./waypaper
+    ./waybar # Waybar config + systemd binding
+    ./waypaper # Wallpaper integratie (restore/rotatie)
   ];
 
   config = {
@@ -62,7 +62,7 @@ in {
     };
 
     ################################
-    # hyprpaper backend via systemd (NO restore here)
+    # hyprpaper backend via systemd (Waypaper drives content)
     ################################
     systemd.user.services."hyprpaper" = {
       Unit = {
@@ -73,23 +73,35 @@ in {
       Service = {
         ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
         Restart = "always";
+        RestartSec = 1;
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
     ################################
-    # Waybar via systemd user (bound to hyprland-session target)
+    # Notifications (SwayNC) via systemd — do not autostart from Hyprland
     ################################
-    programs.waybar.enable = true;
-    programs.waybar.systemd.enable = true;
-    programs.waybar.systemd.target = "hyprland-session.target";
+    systemd.user.services."swaync" = {
+      Unit = {
+        Description = "SwayNotificationCenter";
+        After = ["hyprland-env.service"];
+        PartOf = ["hyprland-session.target"];
+      };
+      Service = {
+        ExecStart = "${pkgs.swaynotificationcenter}/bin/swaync";
+        Restart = "on-failure";
+        RestartSec = 1;
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
 
     ################################
     # Session environment variables
     ################################
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
-      SSH_AUTH_SOCK = "${"$XDG_RUNTIME_DIR"}/keyring/ssh";
+      # Let runtime expand XDG_RUNTIME_DIR (avoid Nix-time interpolation):
+      SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/keyring/ssh";
     };
 
     ################################
@@ -100,15 +112,13 @@ in {
     xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
     xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
 
-    # Link the whole scripts directory (read-only from Nix store).
-    # IMPORTANT: Do NOT also manage individual files inside this dir with home.file,
-    # otherwise HM will try to overwrite files in a read-only store path.
+    # Link read-only directories (do not also manage individual files inside):
     xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
     xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
     xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
     ################################
-    # Optional sanity check: helper must exist (read-only is fine)
+    # Optional sanity check: helper must exist
     ################################
     home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
       if [ ! -r "$HOME/.config/hypr/scripts/helper-functions.sh" ]; then
@@ -118,7 +128,7 @@ in {
     '';
 
     ################################
-    # hyprpaper config + default wallpaper (Waypaper will drive the backend)
+    # hyprpaper config + default wallpaper (Waypaper controls runtime)
     ################################
     xdg.configFile."hypr/hyprpaper.conf".text = ''
       ipc = on
@@ -126,21 +136,18 @@ in {
       preload = ${wallpaperTargetDir}/default.png
     '';
 
-    # Place the default wallpaper using the same target dir variable
     xdg.configFile."${wallpaperTargetDir}/default.png".source = "${wallpaperDir}/nixos.png";
 
     ################################
-    # Ensure ~/.local/bin is in PATH
+    # Ensure ~/.local/bin is in PATH (append)
     ################################
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
 
     ################################
-    # Enable the Waypaper integration module
+    # Enable Waypaper integration module
     ################################
     hyprland.wallpaper.enable = true;
-
-    # Random rotation (optional; you can disable if you want silence at boot)
     hyprland.wallpaper.random.enable = true;
-    hyprland.wallpaper.random.intervalSeconds = 300; # seconds
+    hyprland.wallpaper.random.intervalSeconds = 300;
   };
 }
