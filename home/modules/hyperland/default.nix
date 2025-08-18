@@ -10,7 +10,7 @@
 in {
   imports = [
     ./waybar # Waybar config + systemd binding
-    ./waypaper # Wallpaper integratie (restore/rotatie)
+    ./waypaper # Wallpaper integration (owns hyprpaper + timers)
   ];
 
   config = {
@@ -57,23 +57,6 @@ in {
       Service = {
         Type = "oneshot";
         ExecStart = "${pkgs.bash}/bin/bash -lc '${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE; ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE'";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    ################################
-    # hyprpaper backend via systemd (Waypaper drives content)
-    ################################
-    systemd.user.services."hyprpaper" = {
-      Unit = {
-        Description = "Hyprland wallpaper daemon (hyprpaper)";
-        After = ["hyprland-env.service"];
-        PartOf = ["hyprland-session.target"];
-      };
-      Service = {
-        ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
-        Restart = "always";
-        RestartSec = 1;
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
@@ -144,7 +127,7 @@ in {
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
 
     ################################
-    # Enable Waypaper integration module
+    # Enable Waypaper integration module (owns hyprpaper + timers)
     ################################
     hyprland.wallpaper.enable = true;
     hyprland.wallpaper.random.enable = true;
