@@ -162,7 +162,7 @@ _pick_modules() {
   _pick_first_file \
     "${_var_dir}/modules.jsonc" \
     "${_theme_dir}/modules.jsonc" \
-    "${WAYBAR_DIR}/modules.jsonc"
+    "${_def_dir}/modules.jsonc"
 }
 
 # --- Build style.resolved.css -------------------------------------------------
