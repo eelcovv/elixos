@@ -78,14 +78,23 @@ _ensure() {
   local token="$1"
   _debug "ensure: base=$WAYBAR_THEMES_DIR token=$token"
 
-  local p=()
-  if ! mapfile -t p < <(_resolve "$token"); then
-    echo "ERROR: internal resolve failed (mapfile/resolve)" >&2
+  # Roep _resolve aan en verzamel alle regels in één string
+  local out
+  if ! out="$(_resolve "$token")"; then
+    echo "ERROR: internal resolve failed (resolve exited non-zero)" >&2
     return 1
   fi
-  (( ${#p[@]} == 4 )) || { echo "ERROR: internal resolve failed (got ${#p[@]} parts)" >&2; return 1; }
 
-  local kind="${p[0]}" theme_dir="${p[1]}" var_dir="${p[2]}" def_dir="${p[3]}"
+  # Splits exacte 4 regels: kind, theme_dir, var_dir, def_dir
+  local kind theme_dir var_dir def_dir
+  IFS=$'\n' read -r kind theme_dir var_dir def_dir <<< "$out"
+
+  # Validaties
+  if [[ -z "${kind:-}" || -z "${theme_dir:-}" || -z "${def_dir:-}" ]]; then
+    echo "ERROR: internal resolve failed (missing fields)" >&2
+    _debug "resolve out was: >>>$out<<<"
+    return 1
+  fi
 
   [[ -d "$theme_dir" ]] || { echo "ERROR: Theme family not found: $theme_dir" >&2; return 1; }
   [[ -z "$var_dir" || -d "$var_dir" ]] || { echo "ERROR: Variant not found: $var_dir" >&2; return 1; }
@@ -96,6 +105,7 @@ _ensure() {
   _def_dir="$def_dir"
   _debug "kind=$kind theme_dir=$_theme_dir var_dir=$_var_dir def_dir=$_def_dir"
 }
+
 
 # --- Target select: .../current ----------------------------------------------
 _choose_target_base() {
