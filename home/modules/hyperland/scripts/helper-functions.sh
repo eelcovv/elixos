@@ -147,9 +147,9 @@ _pick_colors() {
   _pick_first_file \
     "${_var_dir}/colors.css" \
     "${_theme_dir}/colors.css" \
-    "${_def_dir}/colors.css" \
-    "${WAYBAR_DIR}/colors.css"
+    "${_def_dir}/colors.css"
 }
+
 
 _pick_config() {
   _pick_first_file \

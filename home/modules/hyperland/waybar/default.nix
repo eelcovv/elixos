@@ -68,11 +68,18 @@ in {
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
+        ##########################################################################
+    # First-run fallbacks (create only if missing; switcher owns them later)
     ##########################################################################
-    # Global fallbacks so theme switchers never hit missing files
-    ##########################################################################
-    xdg.configFile."waybar/modules.jsonc".text = ''{ }'';
-    xdg.configFile."waybar/colors.css".text = ''/* global fallback; themes usually override this */'';
+    home.activation.ensureWaybarFallbacks = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      set -eu
+      cfg_dir="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+      mkdir -p "$cfg_dir"
+
+      # create-once defaults, only if absent
+      [ -e "$cfg_dir/modules.jsonc" ] || printf '{ }\n' > "$cfg_dir/modules.jsonc"
+      [ -e "$cfg_dir/colors.css"    ] || printf '/* global fallback; themes usually override this */\n' > "$cfg_dir/colors.css"
+    '';
 
     ##########################################################################
     # First-run symlinks to a sane default; switcher updates these later
