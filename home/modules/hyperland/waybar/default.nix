@@ -76,7 +76,7 @@
     css_src="$(choose_file style.css || true)"
 
     if [[ -z "''${cfg_src:-}" || -z "''${css_src:-}" ]]; then
-      echo "Theme '''${theme}' (variant '''${variant}') is missing config.jsonc or style.css (checked variant/theme/default)." >&2
+      echo "Theme ''${theme}''${variant:+/''${variant}} is missing config.jsonc or style.css (checked variant/theme/default)." >&2
       exit 1
     fi
 
