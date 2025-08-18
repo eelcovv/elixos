@@ -4,91 +4,54 @@
   lib,
   ...
 }: let
-  waybarDir = ./.; # map waar deze default.nix staat
-  scriptsDir = ./scripts; # verwacht scripts/ met *.sh
-  cfgPath = "${config.xdg.configHome}/waybar";
+  # Korte wachtroutine zodat Hyprland IPC en outputs ‘up’ zijn
+  waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
+    # Wacht max ~5s
+    for i in $(seq 1 50); do
+      if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then
+        exit 0
+      fi
+      sleep 0.1
+    done
+    exit 0
+  '';
+
+  # Optioneel: helper om Waybar netjes te herladen vanuit scripts
+  waybarReload = pkgs.writeShellScriptBin "waybar-reload" ''
+    # Probeer nette reload (SIGUSR2); val terug op restart
+    systemctl --user reload waybar-managed.service || systemctl --user restart waybar-managed.service
+  '';
 in {
-  ##########################################################################
-  # Sanity checks (faal vroeg als themes/ of scripts/ ontbreken)
-  ##########################################################################
-  assertions = [
-    {
-      assertion = builtins.pathExists (waybarDir + "/themes");
-      message = "waybar/default.nix: expected ./themes next to this module.";
-    }
-    {
-      assertion = builtins.pathExists scriptsDir;
-      message = "waybar/default.nix: expected ./scripts next to this module.";
-    }
+  home.packages = [
+    pkgs.waybar
+    waybarReload
   ];
 
-  ##########################################################################
-  # Packages used by the picker (menu + notifications)
-  ##########################################################################
-  home.packages = with pkgs; [
-    rofi-wayland
-    swaynotificationcenter
-    dunst
-  ];
-
-  ##########################################################################
-  # Expose repo themes to ~/.config/waybar/themes (bron voor seed/switch)
-  ##########################################################################
-  xdg.configFile."waybar/themes".source = waybarDir + "/themes";
-
-  # (Optioneel) als je een globale modules.jsonc of colors.css wilt meeleveren,
-  # kun je ze hier ook koppelen. Seed/switch gebruikt echter "current/*".
-  # xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
-  # xdg.configFile."waybar/colors.css".source   = waybarDir + "/colors.css";
-
-  ##########################################################################
-  # Install helper-driven switcher scripts into ~/.local/bin
-  ##########################################################################
-  home.file.".local/bin/waybar-switch-theme" = {
-    source = scriptsDir + "/waybar-switch-theme.sh";
-    executable = true;
-  };
-  home.file.".local/bin/waybar-pick-theme" = {
-    source = scriptsDir + "/waybar-pick-theme.sh";
-    executable = true;
-  };
-  home.file.".local/bin/waybar-seed" = {
-    source = scriptsDir + "/waybar-seed.sh";
-    executable = true;
+  # Belangrijk: zorg dat Hyprland Waybar niet óók start (haal exec-once = waybar uit je Hypr config)
+  # We beheren één eigen service met een andere naam dan de vendor unit: waybar-managed.service
+  systemd.user.services."waybar-managed" = {
+    Unit = {
+      Description = "Waybar (managed by Home Manager)";
+      # Hang aan de standaard user target i.p.v. graphical-session.target
+      After = ["default.target"];
+      PartOf = ["default.target"];
+    };
+    Service = {
+      Type = "simple";
+      # Wacht even op Hyprland zodat Waybar consistent start
+      ExecStartPre = "${waitForHypr}";
+      ExecStart = "${pkgs.waybar}/bin/waybar";
+      ExecReload = "kill -SIGUSR2 $MAINPID";
+      Restart = "on-failure";
+      RestartSec = 0.5;
+      # (optioneel) maak logging stiller:
+      # Environment = "WAYBAR_LOG_LEVEL=warning";
+    };
+    Install = {
+      WantedBy = ["default.target"];
+    };
   };
 
-  ##########################################################################
-  # Bootstrap: seed alleen als er nog geen resolved style aanwezig is
-  # (geeft nu wél themes/ mee, dus seed zal een echte variant kunnen vinden)
-  ##########################################################################
-  home.activation.bootstrapWaybarIfMissing = lib.hm.dag.entryAfter ["linkGeneration"] ''
-    set -eu
-    if [ ! -e "${cfgPath}/current/style.resolved.css" ]; then
-      "${config.home.homeDirectory}/.local/bin/waybar-seed"
-    fi
-  '';
-
-  ##########################################################################
-  # Belt & suspenders: forceer de entrypoint-symlinks naar current/*
-  ##########################################################################
-  home.activation.waybarEntryPoints = lib.hm.dag.entryAfter ["bootstrapWaybarIfMissing"] ''
-    set -eu
-    CFG="${cfgPath}"
-    CUR="$CFG/current"
-    mkdir -p "$CFG" "$CUR"
-    ln -sfn "$CUR/config.jsonc"       "$CFG/config"
-    ln -sfn "$CUR/config.jsonc"       "$CFG/config.jsonc"
-    ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
-    ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
-    ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
-  '';
-
-  ##########################################################################
-  # Waybar it self (without systemd-user unit to prevent double starts
-  ##########################################################################
-  programs.waybar.enable = true;
-  programs.waybar.systemd.enable = false;
-
-  # Zorg dat ~/.local/bin in PATH staat voor de scripts
-  home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
+  # Handig als je theme-switcher een reload wil doen:
+  home.sessionPath = ["${waybarReload}/bin"];
 }
