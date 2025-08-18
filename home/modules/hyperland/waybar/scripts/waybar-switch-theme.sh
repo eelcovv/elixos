@@ -1,39 +1,28 @@
 #!/usr/bin/env bash
-# Robust Waybar theme switcher (Hyprland is the single "chef").
+# Waybar theme switcher (Hyprland is the single "chef")
 # - Resolves themes from ~/.config/waybar/themes
-# - Builds in a temp dir
-# - Merges style.css + style-custom.css
-# - Flattens CSS custom properties `var(--...)` using colors.css or safe defaults
-# - STRIPS any CSS @import lines to avoid Waybar absolute-path issues
+# - Recursively inlines CSS @import files (from variant/theme/default dirs)
+# - Flattens CSS var(--...) using colors.css or safe defaults (GTK CSS has no var())
 # - Atomically replaces ~/.config/waybar/current/*
-# - Sends USR2 only (no start/stop): Hyprland should start Waybar
-#
-# NOTE: Waybar configs in the wild are often JSONC (comments, trailing commas).
-#       We DO NOT hard-validate with jq here to avoid false negatives.
+# - Sends USR2 to the actual Waybar process (no start/stop here)
 
 set -euo pipefail
 
-# ----- debug helpers ----------------------------------------------------------
+# ---- debug helpers -----------------------------------------------------------
 log()   { printf '%s\n' "$*"; }
 debug() { [[ "${WAYBAR_THEME_DEBUG:-0}" == "1" ]] && printf 'DEBUG: %s\n' "$*" >&2 || true; }
 
-# ----- paths ------------------------------------------------------------------
+# ---- paths -------------------------------------------------------------------
 CFG="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
 THEMES="$CFG/themes"
 CUR="$CFG/current"
 
 usage() { echo "usage: waybar-switch-theme <theme> [variant] | <theme/variant>" >&2; exit 2; }
 
-# ----- parse args: support 'theme/variant' or 'theme variant' -----------------
+# ---- parse args --------------------------------------------------------------
 theme=""; variant=""
 case "$#" in
-  1)
-    if [[ "$1" == */* ]]; then
-      theme="${1%%/*}"; variant="${1#*/}"
-    else
-      theme="$1"; variant=""
-    fi
-    ;;
+  1) if [[ "$1" == */* ]]; then theme="${1%%/*}"; variant="${1#*/}"; else theme="$1"; fi ;;
   2) theme="$1"; variant="$2" ;;
   *) usage ;;
 esac
@@ -45,45 +34,84 @@ def_dir="$THEMES/default"
 
 debug "resolve: theme_dir=$theme_dir var_dir=$var_dir def_dir=$def_dir"
 
-# ----- helpers ----------------------------------------------------------------
+# ---- helpers -----------------------------------------------------------------
 first_existing() {
-  # echo first existing file from args, else return non-zero
   for p in "$@"; do [[ -f "$p" ]] && { echo "$p"; return 0; }; done
   return 1
 }
 
-have_cmd() { command -v "$1" >/dev/null 2>&1; }
-
 sed_escape() {
-  # escape a string for safe sed replacement
-  local s=$1
-  s=${s//\\/\\\\}; s=${s//\//\\/}; s=${s//&/\\&}
-  printf '%s' "$s"
+  local s=$1; s=${s//\\/\\\\}; s=${s//\//\\/}; s=${s//&/\\&}; printf '%s' "$s"
 }
 
-strip_css_imports() {
-  # Remove any @import lines to avoid Waybar trying to load weird absolute paths
-  sed -E -i '/@import[[:space:]]/d' "$1"
-}
-
-flatten_css_vars() {
-  # flatten_css_vars <infile> <outfile> [colors.css]
-  # Replaces var(--name) with values from colors.css if present,
-  # otherwise uses sane defaults to avoid Waybar crash (GTK CSS has no var()).
-  local in="$1" out="$2" colors="${3:-}"
-  local tmp="$out.tmp"
+# inline_css_imports <infile> <outfile> <search_dir1> <search_dir2> <search_dir3>
+# Recursively inlines @import "file.css"; or @import url(file.css);
+inline_css_imports() {
+  local in="$1" out="$2"; shift 2
+  local -a search_dirs=("$@")
+  local tmp="$(mktemp)"
   cp -f "$in" "$tmp"
 
+  # Limit recursion to prevent cycles
+  local max_passes=10
+  local pass=0
+  while grep -Eq '^\s*@import[[:space:]]' "$tmp" && [[ $pass -lt $max_passes ]]; do
+    pass=$((pass+1))
+    local next="$(mktemp)"
+    : > "$next"
+    # Read line-by-line; replace @import with file contents if found
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^[[:space:]]*@import[[:space:]] ]]; then
+        # extract path between quotes or url(...)
+        local path
+        path="$(printf '%s\n' "$line" | sed -nE 's/.*@import[[:space:]]+url\(([^)]+)\).*/\1/p')"
+        if [[ -z "$path" ]]; then
+          path="$(printf '%s\n' "$line" | sed -nE 's/.*@import[[:space:]]+["'\'']([^"'\'']+)["'\''].*/\1/p')"
+        fi
+        # strip quotes if any
+        path="${path%\"}"; path="${path#\"}"; path="${path%\'}"; path="${path#\'}"
+        # resolve candidate
+        local found=""
+        if [[ -n "$path" ]]; then
+          if [[ "$path" == /* ]]; then
+            [[ -f "$path" ]] && found="$path"
+          else
+            for d in "${search_dirs[@]}"; do
+              [[ -n "$d" && -f "$d/$path" ]] && { found="$d/$path"; break; }
+            done
+            # as last resort, look relative to CFG (e.g. "colors.css")
+            [[ -z "$found" && -f "$CFG/$path" ]] && found="$CFG/$path"
+          fi
+        fi
+        if [[ -n "$found" ]]; then
+          cat "$found" >> "$next"
+        else
+          # skip unknown import (do not keep the line)
+          :
+        fi
+      else
+        printf '%s\n' "$line" >> "$next"
+      fi
+    done < "$tmp"
+    mv -f "$next" "$tmp"
+  done
+
+  mv -f "$tmp" "$out"
+}
+
+# flatten_css_vars <infile> <outfile> [colors.css]
+flatten_css_vars() {
+  local in="$1" out="$2" colors="${3:-}"
+  local tmp="$out.tmp"; cp -f "$in" "$tmp"
+
   declare -A cmap=()
-  # Safe defaults if theme provides no colors.css
-  cmap[fg]="#d0d0d0"; cmap[bg]="#202020"
-  cmap[background]="#202020"; cmap[text]="#d0d0d0"
-  cmap[primary]="#5e81ac"; cmap[accent]="#5e81ac"
-  cmap[warning]="#ebcb8b"; cmap[urgent]="#bf616a"
-  cmap[good]="#a3be8c";   cmap[bad]="#bf616a"
+  # defaults
+  cmap[fg]="#d0d0d0"; cmap[bg]="#202020"; cmap[background]="#202020"; cmap[text]="#d0d0d0"
+  cmap[primary]="#5e81ac"; cmap[accent]="#5e81ac"; cmap[warning]="#ebcb8b"
+  cmap[urgent]="#bf616a";  cmap[good]="#a3be8c";  cmap[bad]="#bf616a"
 
   if [[ -n "$colors" && -f "$colors" ]]; then
-    # Parse :root { --name: value; } definitions
+    # parse --name: value;
     while IFS='=' read -r k v; do
       [[ -n "$k" && -n "$v" ]] || continue
       v="${v%%;*}"; v="${v//[$'\t\r\n ']/}"
@@ -91,18 +119,17 @@ flatten_css_vars() {
     done < <(awk 'match($0,/--([a-zA-Z0-9_-]+)\s*:\s*([^;]+);/,m){print m[1] "=" m[2]}' "$colors")
   fi
 
-  # Replace known vars
   for name in "${!cmap[@]}"; do
-    val="${cmap[$name]}"; val_esc=$(sed_escape "$val")
+    local val="${cmap[$name]}"; local val_esc; val_esc=$(sed_escape "$val")
     sed -E -i "s/var\\(--${name}\\)/${val_esc}/g" "$tmp"
   done
-  # Replace any remaining var(--something) with a neutral default
+  # neutral fallback for any leftover var()
   sed -E -i 's/var\(--[a-zA-Z0-9_-]+\)/#d0d0d0/g' "$tmp"
 
   mv -f "$tmp" "$out"
 }
 
-# Minimal, valid fallbacks (no CSS vars)
+# minimal fallbacks
 MIN_CONFIG='{
   "layer": "top",
   "position": "top",
@@ -114,7 +141,7 @@ MIN_MODULES='{}'
 MIN_STYLE='* { font-size: 12px; color: #d0d0d0; }
 window#waybar { background: #202020; }'
 
-# ----- resolve sources strictly from theme tree -------------------------------
+# ---- resolve sources ---------------------------------------------------------
 src_style="$(first_existing "$var_dir/style.css" "$theme_dir/style.css" "$def_dir/style.css" || true)"
 src_style_custom="$(first_existing "$var_dir/style-custom.css" "$theme_dir/style-custom.css" || true)"
 src_colors="$(first_existing "$var_dir/colors.css" "$theme_dir/colors.css" "$def_dir/colors.css" || true)"
@@ -126,11 +153,11 @@ if [[ -z "${src_style:-}" ]]; then
   exit 1
 fi
 
-# ----- build into a temp dir --------------------------------------------------
+# ---- build temp tree ---------------------------------------------------------
 tmpdir="$(mktemp -d "${CFG//\//_}.build.XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
-# Compose CSS: base + optional custom, strip imports, flatten vars
+# Compose CSS: base + custom -> inline imports -> flatten vars
 if [[ -n "${src_style:-}" ]]; then
   install -Dm0644 "$src_style" "$tmpdir/style.resolved.css"
 else
@@ -138,42 +165,36 @@ else
 fi
 [[ -n "${src_style_custom:-}" ]] && cat "$src_style_custom" >> "$tmpdir/style.resolved.css"
 
-# Strip @import BEFORE/AFTER flatten (belt & suspenders)
-strip_css_imports "$tmpdir/style.resolved.css"
+# Inline @import recursively from variant/theme/default (then CFG)
+inline_css_imports "$tmpdir/style.resolved.css" "$tmpdir/style.resolved.css" "$var_dir" "$theme_dir" "$def_dir" "$CFG"
+
+# Flatten var(--...) after imports are inlined (so variables & uses are in one file)
 if grep -q 'var(' "$tmpdir/style.resolved.css"; then
-  debug "flatten: replacing CSS var(--...) using colors.css='${src_colors:-<none>}'"
+  debug "flatten: using colors.css='${src_colors:-<none>}'"
   flatten_css_vars "$tmpdir/style.resolved.css" "$tmpdir/style.resolved.css" "${src_colors:-}"
-  strip_css_imports "$tmpdir/style.resolved.css"
 fi
 
-# Other files (with fallbacks)
-if [[ -n "${src_colors:-}"  ]]; then install -Dm0644 "$src_colors"  "$tmpdir/colors.css"; else printf '/* no colors.css */\n' > "$tmpdir/colors.css"; fi
+# Other files
+if [[ -n "${src_colors:-}"  ]]; then install -Dm0644 "$src_colors"  "$tmpdir/colors.css";    else printf '/* no colors.css */\n' > "$tmpdir/colors.css"; fi
 if [[ -n "${src_modules:-}" ]]; then install -Dm0644 "$src_modules" "$tmpdir/modules.jsonc"; else printf '%s\n' "$MIN_MODULES" > "$tmpdir/modules.jsonc"; fi
 if [[ -n "${src_config:-}"  ]]; then install -Dm0644 "$src_config"  "$tmpdir/config.jsonc";  else printf '%s\n' "$MIN_CONFIG"  > "$tmpdir/config.jsonc";  fi
 
-# ----- (no strict jq-validation; JSONC may contain comments) ------------------
-# If you still want a soft check and have jq, you can uncomment this block:
-# if have_cmd jq; then
-#   jq -e . "$tmpdir/config.jsonc"   >/dev/null || debug "warning: config.jsonc not pure JSON (likely JSONC); skipping strict validation"
-#   jq -e . "$tmpdir/modules.jsonc"  >/dev/null || debug "warning: modules.jsonc not pure JSON (likely JSONC); skipping strict validation"
-# fi
-
-# ----- atomically replace current/ -------------------------------------------
+# ---- atomically replace current/ --------------------------------------------
 mkdir -p "$CFG"
 [[ -d "$CUR" ]] && rm -rf "$CUR"
 mv "$tmpdir" "$CUR"
 trap - EXIT
 
-# Entrypoint symlinks (safety net; HM usually ensures these)
+# Entrypoints (safety net; HM doet dit meestal al)
 ln -sfn "$CUR/config.jsonc"       "$CFG/config"
 ln -sfn "$CUR/config.jsonc"       "$CFG/config.jsonc"
 ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
 ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
 ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
 
-# ----- reload only (Hyprland manages lifecycle) ------------------------------
-# Always try to send USR2; use -f to match the full cmdline (works even if name differs)
-pkill -USR2 -f '[w]aybar' 2>/dev/null || true
+# ---- reload Waybar zonder onszelf te raken ----------------------------------
+# exact procesnaam; GEEN -f (anders raak je dit script)
+pkill -USR2 -x waybar 2>/dev/null || true
 
 log "Waybar theme: Applied: ${theme}${variant:+/$variant}"
 
