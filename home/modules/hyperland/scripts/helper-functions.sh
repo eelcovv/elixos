@@ -74,6 +74,16 @@ _resolve() {
   printf '%s\n%s\n%s\n%s\n' "$kind" "$theme_dir" "$var_dir" "$def_dir"
 }
 
+# --- Top-level symlinks die HM gebruikt -------------------------------------
+_update_top_level_links() {
+  ln -sfn "$_target_base/style.resolved.css" "$WAYBAR_DIR/style.css"
+  ln -sfn "$_target_base/config.jsonc"       "$WAYBAR_DIR/config"
+  ln -sfn "$_target_base/modules.jsonc"      "$WAYBAR_DIR/modules.jsonc"
+  ln -sfn "$_target_base/colors.css"         "$WAYBAR_DIR/colors.css"
+}
+
+
+
 _ensure() {
   local token="$1"
   _debug "ensure: base=$WAYBAR_THEMES_DIR token=$token"
@@ -252,6 +262,7 @@ switch_theme() {
 
   _ensure "$token" || return 1
   _apply_theme_files
+  _update_top_level_links
   _reload_waybar
   echo "Waybar theme: Applied: $token (target=$_target_base)"
 }
