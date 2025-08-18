@@ -40,12 +40,6 @@ for _hf in "${HELPER_CANDIDATES[@]}"; do
     . "$_hf"
     if type -t switch_theme >/dev/null 2>&1; then
       switch_theme "$combo"
-      # Prefer systemd reload if our custom unit exists
-      if systemctl --user is-active --quiet waybar-managed.service; then
-        systemctl --user reload waybar-managed.service || systemctl --user restart waybar-managed.service || true
-      else
-        pkill -USR2 -x waybar 2>/dev/null || true
-      fi
       echo "Waybar theme: Applied via helper: $combo"
       exit 0
     fi

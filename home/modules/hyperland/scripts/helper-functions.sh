@@ -223,32 +223,16 @@ _waybar_pids() {
   pgrep -f '(^|/)\.?waybar(-wrapped)?([[:space:]]|$)' 2>/dev/null || true
 }
 
+
 _reload_waybar() {
-  local pids
-  pids="$(_waybar_pids || true)"
-
-  if [[ -n "${pids//[[:space:]]/}" ]]; then
-    _debug "found running waybar PIDs: $(tr '\n' ' ' <<<"$pids")"
-    # hot-reload alle actieve instances
-    while read -r pid; do
-      [[ -n "$pid" ]] && kill -USR2 "$pid" 2>/dev/null || true
-    done <<<"$pids"
-    _debug "hot reload (USR2) sent"
-
-    # Optional: forceer single instance – laat de laagste PID leven
-    if [[ "$(echo "$pids" | tr ' ' '\n' | wc -l)" -gt 1 ]]; then
-      local keep
-      keep="$(echo "$pids" | tr ' ' '\n' | sort -n | head -n1)"
-      while read -r pid; do
-        [[ -n "$pid" && "$pid" != "$keep" ]] && kill "$pid" 2>/dev/null || true
-      done <<<"$(echo "$pids" | tr ' ' '\n')"
-      _debug "trimmed to single instance (kept PID $keep)"
-    fi
+  if systemctl --user is-active --quiet waybar-managed.service; then
+    systemctl --user reload waybar-managed.service || systemctl --user restart waybar-managed.service || true
   else
-    ( waybar >/dev/null 2>&1 & disown ) || true
-    _debug "waybar was not running → started"
+    # fallback als unit niet actief is (handmatige start)
+    pkill -USR2 -x waybar 2>/dev/null || true
   fi
 }
+
 
 # --- Public API ---------------------------------------------------------------
 switch_theme() {
