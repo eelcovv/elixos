@@ -1,314 +1,158 @@
 #!/usr/bin/env bash
-# Waybar theme helper – schrijft naar ~/.config/waybar/current/
+# Waybar theme helper — direct write (no "current", no symlinks)
+# This file defines functions so other scripts can `source` it and call `switch_theme`.
+# It writes directly into ~/.config/waybar/{config.jsonc, style.css, modules.jsonc?}
+# Colors are managed separately by Matugen and must live at ~/.config/waybar/colors.css.
+
 set -euo pipefail
 
-# --- Padconfig ---------------------------------------------------------------
-WAYBAR_DIR="${WAYBAR_DIR:-$HOME/.config/waybar}"                 # -> ~/.config/waybar
-WAYBAR_THEMES_DIR="${WAYBAR_THEMES_DIR:-$HOME/.config/waybar/themes}"
+# --- Paths --------------------------------------------------------------------
+WAYBAR_DIR="${WAYBAR_DIR:-$HOME/.config/waybar}"                   # -> ~/.config/waybar
+WAYBAR_THEMES_DIR="${WAYBAR_THEMES_DIR:-$WAYBAR_DIR/themes}"       # -> ~/.config/waybar/themes
 DEFAULT_FAMILY="${DEFAULT_FAMILY:-default}"
-STATE_BASE_DEFAULT="${XDG_STATE_HOME:-$HOME/.local/state}/waybar-theme"
-STATE_BASE="${WAYBAR_MUTABLE_DIR:-$STATE_BASE_DEFAULT}"          # fallback als ~/.config/waybar/current niet schrijfbaar
-
-# --- Globals -----------------------------------------------------------------
-_theme_dir=""
-_var_dir=""
-_def_dir=""
-_target_base=""   # .../current (schrijfdoel)
 
 _debug() { [[ "${WAYBAR_THEME_DEBUG:-0}" == "1" ]] && echo "DEBUG: $*" >&2; }
 
-# --- Utils -------------------------------------------------------------------
-_exists_file(){ [[ -f "$1" ]]; }
-_pick_first_file(){
-  local f
-  for f in "$@"; do
-    [[ -f "$f" ]] && { printf '%s\n' "$f"; return 0; }
-  done
-  return 1
-}
+# --- Utilities ----------------------------------------------------------------
+_die() { echo "ERROR: $*" >&2; exit 1; }
 
-_is_writable_dir() {
-  local d="$1"
-  [[ -d "$d" ]] || return 1
-  ( set -o noclobber; : > "$d/.wb_writable_test_$$" ) 2>/dev/null || return 1
-  rm -f "$d/.wb_writable_test_$$" 2>/dev/null || true
-  return 0
-}
-
-_safe_write() { # _safe_write DEST < content
-  local dest="$1"
-  rm -f -- "$dest" 2>/dev/null || true
-  umask 022
-  local tmp
-  tmp="$(mktemp "${dest}.XXXXXX")"
-  cat >"$tmp"
-  mv -f -- "$tmp" "$dest"
-}
-
-_safe_install() { # _safe_install SRC DEST
+_copy_if_exists() {               # _copy_if_exists SRC DEST
   local src="$1" dest="$2"
-  rm -f -- "$dest" 2>/dev/null || true
-  install -m 0644 -- "$src" "$dest"
+  [[ -f "$src" ]] || return 1
+  install -Dm0644 -- "$src" "$dest"
 }
 
-# --- Resolve -----------------------------------------------------------------
-_resolve() {
-  local token="$1" family variant kind
-  if [[ "$token" == */* ]]; then
-    family="${token%%/*}"
-    variant="${token#*/}"
-    kind="variant"
-  else
-    family="$token"
-    variant=""
-    kind="single"
-  fi
-
-  local base="$WAYBAR_THEMES_DIR"
-  local theme_dir="$base/$family"
-  local var_dir=""
-  [[ -n "$variant" ]] && var_dir="$theme_dir/$variant"
-  local def_dir="$base/$DEFAULT_FAMILY"
-
-  _debug "_resolve: kind=$kind theme_dir=$theme_dir var_dir=$var_dir def_dir=$def_dir"
-  printf '%s\n%s\n%s\n%s\n' "$kind" "$theme_dir" "$var_dir" "$def_dir"
-}
-
-# --- Top-level symlinks die HM gebruikt -------------------------------------
-_update_top_level_links() {
-  ln -sfn "$_target_base/style.resolved.css" "$WAYBAR_DIR/style.css"
-  ln -sfn "$_target_base/config.jsonc"       "$WAYBAR_DIR/config"
-  ln -sfn "$_target_base/modules.jsonc"      "$WAYBAR_DIR/modules.jsonc"
-  ln -sfn "$_target_base/colors.css"         "$WAYBAR_DIR/colors.css"
-}
-
-
-
-_ensure() {
-  local token="$1"
-  _debug "ensure: base=$WAYBAR_THEMES_DIR token=$token"
-
-  # Run resolver and capture all lines
-  local out
-  if ! out="$(_resolve "$token")"; then
-    echo "ERROR: internal resolve failed (resolve exited non-zero)" >&2
-    return 1
-  fi
-
-  # Split into lines (exactly 4 expected)
-  local lines=() line
-  while IFS= read -r line; do
-    lines+=("$line")
-  done <<< "$out"
-
-  if (( ${#lines[@]} != 4 )); then
-    echo "ERROR: internal resolve failed (expected 4 lines, got ${#lines[@]})" >&2
-    _debug "resolve out was: >>>$out<<<"
-    return 1
-  fi
-
-  local kind="${lines[0]}"
-  local theme_dir="${lines[1]}"
-  local var_dir="${lines[2]}"
-  local def_dir="${lines[3]}"
-
-  [[ -d "$theme_dir" ]] || { echo "ERROR: Theme family not found: $theme_dir" >&2; return 1; }
-  [[ -z "$var_dir" || -d "$var_dir" ]] || { echo "ERROR: Variant not found: $var_dir" >&2; return 1; }
-  [[ -d "$def_dir" ]] || { echo "ERROR: Default theme not found: $def_dir" >&2; return 1; }
-
-  _theme_dir="$theme_dir"
-  _var_dir="$var_dir"
-  _def_dir="$def_dir"
-  _debug "kind=$kind theme_dir=$_theme_dir var_dir=$_var_dir def_dir=$_def_dir"
-}
-
-# --- Target select: .../current ----------------------------------------------
-_choose_target_base() {
-  local primary="$WAYBAR_DIR/current"
-  local alt="$STATE_BASE/current"
-  if _is_writable_dir "$WAYBAR_DIR" && { [[ -d "$primary" ]] || mkdir -p "$primary"; }; then
-    _target_base="$primary"
-  else
-    mkdir -p "$alt"
-    _target_base="$alt"
-  fi
-  _debug "target base chosen: $_target_base"
-}
-
-# --- Pickers (cascade) -------------------------------------------------------
-_pick_stylesheet() {
-  _pick_first_file \
-    "${_var_dir}/style.css" "${_var_dir}/style-custom.css" \
-    "${_theme_dir}/style.css" "${_theme_dir}/style-custom.css" \
-    "${_def_dir}/style.css" "${_def_dir}/style-custom.css"
-}
-
-_pick_colors() {
-  _pick_first_file \
-    "${_var_dir}/colors.css" \
-    "${_theme_dir}/colors.css" \
-    "${_def_dir}/colors.css"
-}
-
-
-_pick_config() {
-  _pick_first_file \
-    "${_var_dir}/config.jsonc" "${_var_dir}/config" \
-    "${_theme_dir}/config.jsonc" "${_theme_dir}/config" \
-    "${_def_dir}/config.jsonc" "${_def_dir}/config"
-}
-
-_pick_modules() {
-  _pick_first_file \
-    "${_var_dir}/modules.jsonc" \
-    "${_theme_dir}/modules.jsonc" \
-    "${_def_dir}/modules.jsonc"
-}
-
-# --- Build style.resolved.css -------------------------------------------------
-_build_style_resolved() {
-  local src_css="$1" out_css="$2"
-  printf '@import url("colors.css");\n' > "$out_css"
-  if [[ -f "$src_css" ]]; then
-    # strip dubbele imports; houd het bestand zelf verder intact
-    sed -E '/@import.*\.\.\/style\.css/d; /@import.*colors\.css/d' "$src_css" >> "$out_css"
+_replace_symlink_with_file() {    # _replace_symlink_with_file DEST [fallback]
+  local dest="$1" fallback="${2:-}"
+  if [[ -L "$dest" ]]; then
+    local src_real; src_real="$(readlink -f -- "$dest" || true)"
+    rm -f -- "$dest"
+    if [[ -n "$src_real" && -f "$src_real" ]]; then
+      install -Dm0644 -- "$src_real" "$dest"
+    elif [[ -n "$fallback" ]]; then
+      printf '%s\n' "$fallback" >"$dest"
+      chmod 0644 "$dest"
+    else
+      : >"$dest"; chmod 0644 "$dest"
+    fi
   fi
 }
 
-# --- Apply -------------------------------------------------------------------
-_apply_theme_files() {
-  _choose_target_base
-  local css cfg mod col
-
-  # colors.css
-  if col="$(_pick_colors)"; then
-    _safe_install "$col" "$_target_base/colors.css"
-    _debug "colors: $col -> $_target_base/colors.css"
-  else
-    _safe_write "$_target_base/colors.css" <<<"/* empty colors */"
-    _debug "colors: none found → wrote empty"
-  fi
-
-  # config.jsonc
-  if cfg="$(_pick_config)"; then
-    _safe_install "$cfg" "$_target_base/config.jsonc"
-    _debug "config: $cfg -> $_target_base/config.jsonc"
-  else
-    _safe_write "$_target_base/config.jsonc" <<<'{ "modules-left": [], "modules-center": [], "modules-right": [] }'
-    _debug "config: none → wrote minimal"
-  fi
-
-  # modules.jsonc
-  if mod="$(_pick_modules)"; then
-    _safe_install "$mod" "$_target_base/modules.jsonc"
-    _debug "modules: $mod -> $_target_base/modules.jsonc"
-  else
-    _safe_write "$_target_base/modules.jsonc" <<<"{}"
-    _debug "modules: none → wrote {}"
-  fi
-
-  # style.resolved.css
-  if css="$(_pick_stylesheet)"; then
-    _build_style_resolved "$css" "$_target_base/style.resolved.css"
-    _debug "style: built from $css -> $_target_base/style.resolved.css"
-  else
-    _safe_write "$_target_base/style.resolved.css" <<<'@import url("colors.css");'
-    echo "WARN: no stylesheet found; wrote colors-only style" >&2
-  fi
+_ensure_includes_exist() {        # _ensure_includes_exist CONFIG_JSONC
+  local cfg_json="$1"
+  [[ -f "$cfg_json" ]] || return 0
+  # Parse "~/.config/...json[c]?" entries inside an "include" array (lenient)
+  mapfile -t includes < <(awk '
+    /"include"[[:space:]]*:/,/\]/ {
+      while (match($0, /"~\/\.config\/[^"]+\.json[c]?"/)) {
+        print substr($0, RSTART+1, RLENGTH-2)
+        $0 = substr($0, RSTART+RLENGTH)
+      }
+    }' "$cfg_json")
+  for inc in "${includes[@]}"; do
+    local abspath="${inc/#\~/$HOME}"
+    local d; d="$(dirname -- "$abspath")"
+    mkdir -p "$d"
+    if [[ ! -e "$abspath" ]]; then
+      case "$abspath" in
+        */waybar-quicklinks.json) printf '[]\n' >"$abspath" ;;  # common ML4W include
+        *)                        printf '{}\n' >"$abspath" ;;
+      esac
+      chmod 0644 "$abspath"
+    fi
+  done
 }
-
-# --- Process detect & reload --------------------------------------------------
-_waybar_pids() {
-  # Match wrapper & direct, met/zonder args
-  pgrep -f '(^|/)\.?waybar(-wrapped)?([[:space:]]|$)' 2>/dev/null || true
-}
-
 
 _reload_waybar() {
   if systemctl --user is-active --quiet waybar-managed.service; then
     systemctl --user reload waybar-managed.service || systemctl --user restart waybar-managed.service || true
   else
-    # fallback als unit niet actief is (handmatige start)
     pkill -USR2 -x waybar 2>/dev/null || true
   fi
 }
 
-
 # --- Public API ---------------------------------------------------------------
+# switch_theme THEME[/VARIANT] | THEME VARIANT
 switch_theme() {
-  local token
-  if   [[ $# == 1 ]]; then token="$1"
-  elif [[ $# == 2 ]]; then token="$1/$2"
+  local token theme variant=""
+  if   [[ $# == 1 ]]; then
+    token="$1"
+    if [[ "$token" == */* ]]; then theme="${token%%/*}"; variant="${token#*/}"; else theme="$token"; fi
+  elif [[ $# == 2 ]]; then
+    theme="$1"; variant="$2"
   else
     echo "Usage: switch_theme THEME[/VARIANT] | THEME VARIANT" >&2
     return 2
   fi
 
-  _ensure "$token" || return 1
-  _apply_theme_files
-  _update_top_level_links
+  local THEME_DIR="$WAYBAR_THEMES_DIR/$theme"
+  local VAR_DIR="$THEME_DIR/${variant:-}"
+  [[ -d "$THEME_DIR" ]] || _die "Theme not found: $THEME_DIR"
+  if [[ -n "$variant" && ! -d "$VAR_DIR" ]]; then
+    _die "Variant not found: $VAR_DIR"
+  fi
+
+  mkdir -p "$WAYBAR_DIR"
+
+  # 1) base copies (only the authoritative two; modules.jsonc optional)
+  local copied_any=0
+  _copy_if_exists "$THEME_DIR/config.jsonc" "$WAYBAR_DIR/config.jsonc" && copied_any=1
+  _copy_if_exists "$THEME_DIR/style.css"    "$WAYBAR_DIR/style.css"    && copied_any=1
+  _copy_if_exists "$THEME_DIR/modules.jsonc" "$WAYBAR_DIR/modules.jsonc" || true
+
+  # 2) overlay variant (overwrite if present)
+  if [[ -n "$variant" ]]; then
+    _copy_if_exists "$VAR_DIR/config.jsonc" "$WAYBAR_DIR/config.jsonc" || true
+    _copy_if_exists "$VAR_DIR/style.css"    "$WAYBAR_DIR/style.css"    || true
+    _copy_if_exists "$VAR_DIR/modules.jsonc" "$WAYBAR_DIR/modules.jsonc" || true
+  fi
+
+  # 3) ensure colors.css is local (Matugen-owned), never a dangling symlink
+  _replace_symlink_with_file "$WAYBAR_DIR/colors.css" '/* default colors (placeholder) */'
+  if [[ ! -s "$WAYBAR_DIR/colors.css" ]]; then
+    printf '/* default colors */\n' >"$WAYBAR_DIR/colors.css"
+    chmod 0644 "$WAYBAR_DIR/colors.css"
+  fi
+
+  # 4) minimal fallbacks if theme was sparse
+  if [[ ! -f "$WAYBAR_DIR/config.jsonc" ]]; then
+    printf '{ "layer":"top", "position":"top", "height":32, "modules-center":["clock"], "clock":{"format":"{:%H:%M}"} }\n' >"$WAYBAR_DIR/config.jsonc"
+    chmod 0644 "$WAYBAR_DIR/config.jsonc"
+  fi
+  if [[ ! -f "$WAYBAR_DIR/style.css" ]]; then
+    printf '@import url("colors.css");\nwindow#waybar { background: #202020; }\n* { color: #d0d0d0; font-size: 12px; }\n' >"$WAYBAR_DIR/style.css"
+    chmod 0644 "$WAYBAR_DIR/style.css"
+  fi
+  if [[ ! -f "$WAYBAR_DIR/modules.jsonc" ]]; then
+    printf '{}\n' >"$WAYBAR_DIR/modules.jsonc"
+    chmod 0644 "$WAYBAR_DIR/modules.jsonc"
+  fi
+
+  # 5) be tolerant with includes
+  _ensure_includes_exist "$WAYBAR_DIR/config.jsonc"
+
+  # 6) reload and message
   _reload_waybar
-  echo "Waybar theme: Applied: $token (target=$_target_base)"
+  echo "Waybar theme: Applied: ${theme}${variant:+/$variant}"
 }
 
 list_themes() {
-  local base="$WAYBAR_THEMES_DIR" fam vdir
+  local base="$WAYBAR_THEMES_DIR"
+  local fam vdir
   while IFS= read -r -d '' famdir; do
     fam="$(basename "$famdir")"
     [[ "$fam" == .* ]] && continue
     [[ "$fam" == assets ]] && continue
-
-    local has_root=""
-    _pick_first_file "$famdir/style.css" "$famdir/style-custom.css" >/dev/null && has_root=1
-
+    local root_has=""
+    [[ -f "$famdir/style.css" || -f "$famdir/style-custom.css" ]] && root_has=1
     local any_var=0
     while IFS= read -r -d '' vdir; do
-      _pick_first_file "$vdir/style.css" "$vdir/style-custom.css" >/dev/null || continue
-      if [[ -z "$has_root" && $any_var -eq 0 ]]; then
-        printf '%s/\n' "$fam"
-      fi
+      [[ -f "$vdir/style.css" || -f "$vdir/style-custom.css" ]] || continue
+      if [[ -z "$root_has" && $any_var -eq 0 ]]; then printf '%s/\n' "$fam"; fi
       printf '%s/%s\n' "$fam" "$(basename "$vdir")"
       any_var=1
     done < <(find -L "$famdir" -mindepth 1 -maxdepth 1 -type d -print0)
-
-    [[ -n "$has_root" ]] && printf '%s\n' "$fam"
+    [[ -n "$root_has" ]] && printf '%s\n' "$fam"
   done < <(find -L "$base" -mindepth 1 -maxdepth 1 -type d -print0)
 }
-
-print_help() {
-  cat <<EOF
-Waybar theme helper
-
-Usage:
-  helper-functions.sh THEME[/VARIANT]
-  helper-functions.sh THEME VARIANT
-  helper-functions.sh --apply THEME[/VARIANT]
-  helper-functions.sh --list
-  helper-functions.sh --help
-
-Env:
-  WAYBAR_DIR           (~/.config/waybar)
-  WAYBAR_THEMES_DIR    (~/.config/waybar/themes)
-  DEFAULT_FAMILY       (default)
-  WAYBAR_MUTABLE_DIR   (~/.local/state/waybar-theme)
-  WAYBAR_THEME_DEBUG   (1 for debug)
-EOF
-}
-
-main() {
-  if [[ $# -eq 0 ]]; then
-    print_help
-    exit 2
-  fi
-  case "${1:-}" in
-    --help|-h)  print_help ;;
-    --list)     list_themes ;;
-    --apply)    shift; switch_theme "$@" ;;
-    *)          switch_theme "$@" ;;
-  esac
-}
-
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  main "$@"
-fi
 
