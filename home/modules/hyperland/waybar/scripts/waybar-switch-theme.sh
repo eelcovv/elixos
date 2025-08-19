@@ -5,6 +5,10 @@
 # - First tries helper-functions.sh:switch_theme; if not present, falls back
 #   to a standalone resolver that builds ~/.config/waybar/current/*
 # - Reloads Waybar via systemd (waybar-managed) or SIGUSR2
+#
+# This version also ensures that any "include" files referenced by the chosen
+# config.jsonc exist (creating lightweight placeholders if missing) so Waybar
+# never crashes on missing external includes (e.g. ML4W quicklinks).
 
 set -euo pipefail
 
@@ -186,6 +190,35 @@ ln -sfn "$CUR/config.jsonc"       "$CFG/config.jsonc"
 ln -sfn "$CUR/modules.jsonc"      "$CFG/modules.jsonc"
 ln -sfn "$CUR/colors.css"         "$CFG/colors.css"
 ln -sfn "$CUR/style.resolved.css" "$CFG/style.css"
+
+# --- NEW: ensure required include files exist -------------------------------
+# Parse "include" array in config.jsonc and create missing files as placeholders.
+ensure_includes() {
+  local cfg_json="$1"
+  # Collect any "~/.config/...json[ c]" paths in the include array
+  mapfile -t includes < <(awk '
+    /"include"[[:space:]]*:/,/\]/ {
+      while (match($0, /"~\/\.config\/[^"]+\.json[c]?"/)) {
+        print substr($0, RSTART+1, RLENGTH-2)
+        $0 = substr($0, RSTART+RLENGTH)
+      }
+    }' "$cfg_json")
+
+  for inc in "${includes[@]}"; do
+    local abspath="${inc/#\~/$HOME}"
+    local d; d="$(dirname -- "$abspath")"
+    mkdir -p "$d"
+    if [[ ! -e "$abspath" ]]; then
+      case "$abspath" in
+        */waybar-quicklinks.json) printf '[]\n' >"$abspath" ;;  # array fits ML4W pattern
+        *)                        printf '{}\n' >"$abspath" ;;  # default to empty object
+      esac
+    fi
+  done
+}
+
+ensure_includes "$CUR/config.jsonc"
+# --- END NEW ----------------------------------------------------------------
 
 # Prefer systemd reload for our unit; otherwise fall back to SIGUSR2
 if systemctl --user is-active --quiet waybar-managed.service; then

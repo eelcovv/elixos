@@ -50,6 +50,7 @@ in {
         Type = "simple";
         ExecStartPre = "${waitForHypr}";
         ExecStart = "${pkgs.waybar}/bin/waybar -l info -c ${cfgPath}/config -s ${cfgPath}/style.css";
+
         ExecReload = "kill -SIGUSR2 $MAINPID";
         Restart = "on-failure";
         RestartSec = "500ms";
