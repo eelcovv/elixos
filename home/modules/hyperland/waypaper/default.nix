@@ -30,15 +30,6 @@ in {
       description = "Interval (seconds) for the random wallpaper timer.";
     };
 
-    # Fetch wallpapers from repo
-    hyprland.wallpaper.fetch.enable = lib.mkEnableOption "Periodically fetch wallpapers using fetch-wallpapers.sh";
-    hyprland.wallpaper.fetch.onCalendar = lib.mkOption {
-      type = lib.types.str;
-      default = "weekly"; # e.g. "daily", "hourly", "Mon,Fri 08:00", "00/30:00" (every 30 min)
-      description = "systemd OnCalendar schedule for wallpaper fetch timer.";
-    };
-  };
-
   config = lib.mkIf config.hyprland.wallpaper.enable {
     ############################
     # Do NOT auto-start user units during `nixos-rebuild switch`.
@@ -195,37 +186,6 @@ in {
         OnBootSec = "1min";
         OnUnitActiveSec = "${toString config.hyprland.wallpaper.random.intervalSeconds}s";
         Unit = "waypaper-random.service";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    ############################
-    # Periodic fetch via systemd timer (conditional)
-    ############################
-    systemd.user.services."waypaper-fetch" = {
-      Unit = {
-        Description = "Fetch wallpapers from remote repo";
-        After = ["hyprland-env.service"];
-        PartOf = ["hyprland-session.target"];
-      };
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${config.home.homeDirectory}/.local/bin/fetch-wallpapers.sh";
-        SuccessExitStatus = "0";
-        # nice/idle & bounded so it never stalls HM
-        Nice = 19;
-        IOSchedulingClass = "idle";
-        TimeoutStartSec = "30s";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    systemd.user.timers."waypaper-fetch" = lib.mkIf config.hyprland.wallpaper.fetch.enable {
-      Unit = {Description = "Periodic wallpaper fetch";};
-      Timer = {
-        OnCalendar = config.hyprland.wallpaper.fetch.onCalendar;
-        Persistent = true;
-        Unit = "waypaper-fetch.service";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
