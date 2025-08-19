@@ -148,9 +148,13 @@ in {
       };
       Service = {
         Type = "oneshot";
-        ExecStartPre = "${pkgs.coreutils}/bin/sleep 1";
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 2"; # a tiny bit more time
         ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper.sh";
-        TimeoutStartSec = "20s";
+        TimeoutStartSec = "30s";
+        # Treat 'no previous wallpaper' or similar as OK:
+        SuccessExitStatus = "0 1";
+        StandardOutput = "journal";
+        StandardError = "journal";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
