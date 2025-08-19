@@ -23,23 +23,28 @@ in {
       lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
 
     # Random rotation
-    hyprland.wallpaper.random.enable = lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
+    hyprland.wallpaper.random.enable =
+      lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
     hyprland.wallpaper.random.intervalSeconds = lib.mkOption {
       type = lib.types.int;
       default = 300;
       description = "Interval (seconds) for the random wallpaper timer.";
     };
 
+    # (Optional) Keep these if you want fetch schedule to be configurable here.
+    hyprland.wallpaper.fetch.enable = lib.mkEnableOption "Enable periodic wallpaper fetching (handled centrally)";
+    hyprland.wallpaper.fetch.onCalendar = lib.mkOption {
+      type = lib.types.str;
+      default = "weekly";
+      description = "systemd OnCalendar schedule used by the central fetcher.";
+    };
+  };
+
   config = lib.mkIf config.hyprland.wallpaper.enable {
-    ############################
-    # Do NOT auto-start user units during `nixos-rebuild switch`.
-    # Avoids HM blocking when Wayland/session isn't ready yet.
-    ############################
+    # Do NOT auto-start user units during rebuild (avoid blocking)
     systemd.user.startServices = false;
 
-    ############################
-    # Packages
-    ############################
+    # Packages for wallpaper operations
     home.packages =
       (with pkgs; [
         waypaper
@@ -55,31 +60,27 @@ in {
       ])
       ++ lib.optionals (pkgs ? pywalfox) [pkgs.pywalfox];
 
-    ############################
-    # Scripts -> ~/.local/bin
-    ############################
+    # Scripts -> ~/.local/bin (NOTE: fetch-wallpapers.sh removed; central module provides it)
     home.file = lib.mkMerge [
       (installScript "wallpaper.sh")
       (installScript "wallpaper-restore.sh")
       (installScript "wallpaper-effects.sh")
       (installScript "wallpaper-cache.sh")
       (installScript "wallpaper-automation.sh")
-      (installScript "fetch-wallpapers.sh")
+      # (installScript "fetch-wallpapers.sh")  # ← Removed: central fetcher owns it
       (installScript "wallpaper-set.sh")
       (installScript "wallpaper-list.sh")
       (installScript "wallpaper-random.sh")
       (installScript "wallpaper-pick.sh")
 
-      # Only real writable directories (never under Nix store symlinks)
+      # Writable dirs (never under Nix store symlinks)
       {
         ".config/wallpapers/.keep".text = "";
         ".cache/hyprlock-assets/.keep".text = "";
       }
     ];
 
-    ############################
-    # Seed writable settings (replace Nix-store symlinks if present)
-    ############################
+    # Seed writable settings
     home.activation.wallpaperSettingsSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
       set -eu
       S="$HOME/.config/hypr/settings"
@@ -87,11 +88,9 @@ in {
 
       seed_file() {
         local path="$1" default="$2"
-        # If a symlink (e.g. to Nix store), remove it and replace with a real file
         if [ -L "$path" ]; then
           rm -f "$path"
         fi
-        # Create only if missing
         if [ ! -f "$path" ]; then
           printf "%s\n" "$default" > "$path"
           chmod 0644 "$path"
@@ -101,29 +100,24 @@ in {
       seed_file "$S/wallpaper-effect.sh" "off"
       seed_file "$S/blur.sh" "50x30"
       seed_file "$S/wallpaper-automation.sh" "300"
-      # Presence of this file enables caching in wallpaper.sh
+
       if [ ! -e "$S/wallpaper_cache" ]; then
         : > "$S/wallpaper_cache"
         chmod 0644 "$S/wallpaper_cache"
       fi
     '';
 
-    ############################
-    # Seed wallpapers once if empty (non-blocking):
-    # If empty, *defer* actual fetch to the user service to avoid blocking HM.
-    ############################
+    # Initial seed: defer to central fetcher if empty
     home.activation.wallpapersSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
       set -eu
       WALLS="$HOME/.config/wallpapers"
       if [ -z "$(find "$WALLS" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) | head -n1)" ]; then
-        echo ":: No wallpapers found; deferring fetch to user service"
+        echo ":: No wallpapers found; deferring to central fetcher"
         systemctl --user start waypaper-fetch.service || true
       fi
     '';
 
-    ############################
-    # hyprpaper daemon (persistent backend)
-    ############################
+    # hyprpaper daemon
     systemd.user.services."hyprpaper" = {
       Unit = {
         Description = "Hyprland wallpaper daemon (hyprpaper)";
@@ -139,10 +133,7 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    ############################
-    # Restore last wallpaper on session start — via generator (effect + theming)
-    # Wait for hyprpaper & Wayland; give a short timeout so it never blocks.
-    ############################
+    # Restore last wallpaper on session start
     systemd.user.services."waypaper-restore" = {
       Unit = {
         Description = "Restore last wallpaper via wallpaper.sh (effect-aware)";
@@ -152,16 +143,14 @@ in {
       };
       Service = {
         Type = "oneshot";
-        ExecStartPre = "${pkgs.coreutils}/bin/sleep 1"; # small delay for monitors
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 1";
         ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper.sh";
         TimeoutStartSec = "20s";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    ############################
-    # Random rotation service — via random script (calls wallpaper.sh)
-    ############################
+    # Random rotation (service + timer)
     systemd.user.services."waypaper-random" = {
       Unit = {
         Description = "Set a random wallpaper (effect-aware)";
@@ -177,9 +166,6 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    ############################
-    # Random rotation timer (conditional)
-    ############################
     systemd.user.timers."waypaper-random" = lib.mkIf config.hyprland.wallpaper.random.enable {
       Unit = {Description = "Random wallpaper timer";};
       Timer = {
@@ -190,9 +176,7 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    ############################
-    # PATH
-    ############################
+    # Ensure ~/.local/bin is in PATH
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }

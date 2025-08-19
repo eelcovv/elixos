@@ -4,85 +4,68 @@
   lib,
   ...
 }: let
-  # Where wallpapers are stored at runtime
+  # Runtime target for wallpapers
   wpDir = "${config.xdg.configHome}/wallpapers";
 
-  # Remote repository & branch
-  wpRepoUrl = "https://github.com/mylinuxforwork/wallpaper";
-  wpRepoBranch = "main";
-
-  # Build a self-contained fetch script as a Nix derivation
-  fetchScript = pkgs.writeShellScript "fetch-wallpapers.sh" ''
-    set -euo pipefail
-    echo "📥 Downloading wallpapers from ${wpRepoUrl} ..."
-    export GIT_TERMINAL_PROMPT=0
-    export GIT_ASKPASS=true
-
-    if [ -d "${wpDir}/.git" ]; then
-      ${pkgs.git}/bin/git -C "${wpDir}" remote set-url origin "${wpRepoUrl}" || true
-      ${pkgs.git}/bin/git -C "${wpDir}" fetch --depth=1 origin "${wpRepoBranch}"
-      ${pkgs.git}/bin/git -C "${wpDir}" reset --hard FETCH_HEAD
-      ${pkgs.git}/bin/git -C "${wpDir}" clean -fdx
-    else
-      ${pkgs.coreutils}/bin/mkdir -p "${wpDir}"
-      tmp="$(${pkgs.coreutils}/bin/mktemp -d)"
-      trap '${pkgs.coreutils}/bin/rm -rf "$tmp"' EXIT
-      ${pkgs.git}/bin/git clone --depth 1 --branch "${wpRepoBranch}" "${wpRepoUrl}" "$tmp/repo"
-      ${pkgs.rsync}/bin/rsync -a --delete "$tmp/repo/" "${wpDir}/"
-    fi
-
-    echo "✅ Wallpapers updated in ${wpDir}"
-  '';
+  # Reuse your existing script content exactly as-is (single source of truth).
+  # This packs ./scripts/fetch-wallpapers.sh into a Nix-provided binary.
+  # Adjust the path below if this fetcher.nix is not in the same tree layout.
+  fetcherBin = pkgs.writeShellApplication {
+    name = "fetch-wallpapers";
+    runtimeInputs = [pkgs.git pkgs.rsync pkgs.coreutils];
+    text = builtins.readFile ./scripts/fetch-wallpapers.sh;
+  };
 in {
   ##########################################################################
-  # This module owns the "waypaper-fetch" service & timer, centrally.
-  # It intentionally does NOT ship any Waybar/Waypaper bits. Those modules
-  # should not define services/timers with the same name.
+  # Central owner of the "waypaper-fetch" service & timer.
+  # Waybar/Waypaper modules should NOT define a conflicting unit.
   ##########################################################################
 
-  # Tools needed by the script; keep git/rsync available at runtime
-  home.packages = with pkgs; [git rsync];
+  # Ensure the command is available to the user (so manual runs work too)
+  home.packages = [fetcherBin];
 
-  # On-demand fetch (e.g., started at session begin or manually)
+  # One-shot fetch service (can be started on demand or by timers/activation)
   systemd.user.services."waypaper-fetch" = {
     Unit = {
-      Description = "Fetch wallpapers from remote repo (central)";
+      Description = "Fetch wallpapers (central, uses repo script)";
       After = ["hyprland-env.service" "network-online.target"];
       Wants = ["network-online.target"];
       PartOf = ["hyprland-session.target"];
     };
     Service = {
       Type = "oneshot";
-      ExecStart = fetchScript;
+      # Use the packaged binary (same content as your script)
+      ExecStart = lib.getExe fetcherBin;
       TimeoutStartSec = "3min";
       Environment = [
         "XDG_CONFIG_HOME=%h/.config"
         "HOME=%h"
+        "WALLPAPER_DIR=${wpDir}"
       ];
-      # Keep this lightweight; do not block session startup
       Nice = 19;
       IOSchedulingClass = "idle";
     };
     Install = {WantedBy = ["hyprland-session.target"];};
   };
 
-  # Periodic fetch, controlled by waypaper's existing options
-  systemd.user.timers."waypaper-fetch" = lib.mkIf config.hyprland.wallpaper.fetch.enable {
+  # Periodic fetch: schedule comes from waypaper options if you use those,
+  # otherwise you can hardcode here. Keep it conditional:
+  systemd.user.timers."waypaper-fetch" = lib.mkIf (config ? hyprland.wallpaper.fetch && config.hyprland.wallpaper.fetch.enable or false) {
     Unit = {Description = "Periodic wallpaper fetch (central)";};
     Timer = {
-      OnCalendar = config.hyprland.wallpaper.fetch.onCalendar;
+      OnCalendar = config.hyprland.wallpaper.fetch.onCalendar or "weekly";
       Persistent = true;
       Unit = "waypaper-fetch.service";
     };
     Install = {WantedBy = ["timers.target"];};
   };
 
-  # Seed: if folder has no images, trigger a fetch (non-blocking)
+  # Seed: if no images exist yet, trigger a non-blocking initial fetch
   home.activation.wallpapersSeedCentral = lib.hm.dag.entryAfter ["linkGeneration"] ''
     set -eu
     WALLS="$HOME/.config/wallpapers"
     if [ -z "$(find "$WALLS" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) | head -n1)" ]; then
-      echo ":: No wallpapers found; deferring fetch to user service"
+      echo ":: No wallpapers found; starting waypaper-fetch.service"
       systemctl --user start waypaper-fetch.service || true
     fi
   '';
