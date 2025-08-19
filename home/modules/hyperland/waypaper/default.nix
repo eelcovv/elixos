@@ -18,6 +18,11 @@
   default_blur = "50x30\n";
   default_automation_interval = "300\n";
 in {
+  # Import the fetcher script
+  imports = [
+    ./fetcher.nix
+  ];
+
   options = {
     hyprland.wallpaper.enable =
       lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
