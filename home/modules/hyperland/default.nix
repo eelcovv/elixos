@@ -20,7 +20,6 @@ in {
   imports = [
     ./waybar
     ./waypaper
-    ./wallpapers/fetcher.nix
   ];
 
   config = {
