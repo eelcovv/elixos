@@ -1,7 +1,8 @@
 /* -----------------------------------------------------
  * Import Pywal colors
  * ----------------------------------------------------- */
- @import '../../../colors.css';
+ @import url("colors.css");
+
 
  @define-color backgroundlight #FFFFFF;
  @define-color backgrounddark #FFFFFF;
@@ -16,11 +17,11 @@
 @import '../style.css';
  
 #custom-ml4w-welcome {
-    background-image: url("../../assets/ml4w-icon-white.svg");
+    background-image: url("themes/assets/ml4w-icon-white.svg");
 }
  
 #custom-chatgpt {
-    background-image: url("../../assets/openai-white.svg");
+    background-image: url("themes/assets/openai-white.svg");
 }
 
 window#waybar {

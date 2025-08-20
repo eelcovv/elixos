@@ -1,7 +1,8 @@
 /* -----------------------------------------------------
  * Import Pywal colors
  * ----------------------------------------------------- */
-@import '../../../colors.css';
+@import url("colors.css");
+
 @define-color color8 @background;
 
 @define-color backgroundlight @color8;

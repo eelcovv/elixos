@@ -1,7 +1,8 @@
 /* -----------------------------------------------------
  * Import Pywal colors
  * ----------------------------------------------------- */
- @import '../../../colors.css';
+ @import url("colors.css");
+
  @define-color color11 @on_primary_fixed;
 
  @define-color backgroundlight @on_surface;
