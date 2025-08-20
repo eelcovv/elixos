@@ -123,74 +123,43 @@ _waybar_switch_bin() {
   return 1
 }
 
+# Resolve absolute path for the switcher once.
+_waybar_switch_bin() {
+  # Allow override via env
+  if [[ -n "${WAYBAR_SWITCH:-}" && -x "${WAYBAR_SWITCH}" ]]; then
+    printf '%s\n' "$WAYBAR_SWITCH"
+    return 0
+  fi
+  # Common locations
+  local cands=(
+    "$HOME/.local/bin/waybar-switch-theme"
+    "/run/current-system/sw/bin/waybar-switch-theme"
+    "/usr/local/bin/waybar-switch-theme"
+    "/usr/bin/waybar-switch-theme"
+  )
+  for c in "${cands[@]}"; do
+    [[ -x "$c" ]] && { printf '%s\n' "$c"; return 0; }
+  done
+  # Last resort: PATH
+  if command -v waybar-switch-theme >/dev/null 2>&1; then
+    command -v waybar-switch-theme
+    return 0
+  fi
+  echo "ERROR: waybar-switch-theme not found (set WAYBAR_SWITCH to an absolute path)" >&2
+  return 1
+}
+
 switch_theme() {
-  local token theme variant=""
-  if   [[ $# == 1 ]]; then
-    token="$1"
-    if [[ "$token" == */* ]]; then theme="${token%%/*}"; variant="${token#*/}"; else theme="$token"; fi
-  elif [[ $# == 2 ]]; then
-    theme="$1"; variant="$2"
-  else
-    echo "Usage: switch_theme THEME[/VARIANT] | THEME VARIANT" >&2
+  local sel="${1:-}"
+  if [[ -z "$sel" ]]; then
+    echo "switch_theme: missing selection (family or family/variant)" >&2
     return 2
   fi
-
-  local THEME_DIR="$WAYBAR_THEMES_DIR/$theme"
-  local VAR_DIR="$THEME_DIR/${variant:-}"
-
-  [[ -d "$THEME_DIR" ]] || _die "Theme not found: $THEME_DIR"
-  if [[ -n "$variant" && ! -d "$VAR_DIR" ]]; then
-    _die "Variant not found: $VAR_DIR"
-  fi
-
-  mkdir -p "$WAYBAR_DIR"
-
-  # 1) base copies (authoritative)
-  _copy_if_exists "$THEME_DIR/config.jsonc" "$WAYBAR_DIR/config.jsonc" || true
-  _copy_if_exists "$THEME_DIR/style.css"    "$WAYBAR_DIR/style.css"    || true
-  _copy_if_exists "$THEME_DIR/modules.jsonc" "$WAYBAR_DIR/modules.jsonc" || true
-
-  # 2) overlay variant (overwrite if present)
-  if [[ -n "$variant" ]]; then
-    _copy_if_exists "$VAR_DIR/config.jsonc" "$WAYBAR_DIR/config.jsonc" || true
-    _copy_if_exists "$VAR_DIR/style.css"    "$WAYBAR_DIR/style.css"    || true
-    _copy_if_exists "$VAR_DIR/modules.jsonc" "$WAYBAR_DIR/modules.jsonc" || true
-  fi
-
-  # 3) normalize style.css imports (colors first, no tilde-imports)
-  if [[ ! -f "$WAYBAR_DIR/style.css" ]]; then
-    printf '@import url("colors.css");\nwindow#waybar { background: #202020; }\n* { color: #d0d0d0; font-size: 12px; }\n' >"$WAYBAR_DIR/style.css"
-    chmod 0644 "$WAYBAR_DIR/style.css"
-  else
-    _normalize_style_css "$WAYBAR_DIR/style.css"
-  fi
-
-  # 4) colors.css is Matugen-owned; ensure it exists and is a real file
-  _replace_symlink_with_file "$WAYBAR_DIR/colors.css" '/* default colors (placeholder) */'
-  if [[ ! -s "$WAYBAR_DIR/colors.css" ]]; then
-    printf '/* default colors */\n' >"$WAYBAR_DIR/colors.css"
-    chmod 0644 "$WAYBAR_DIR/colors.css"
-  fi
-
-  # 5) minimal fallbacks
-  if [[ ! -f "$WAYBAR_DIR/config.jsonc" ]]; then
-    printf '{ "layer":"top", "position":"top", "height":32, "modules-center":["clock"], "clock":{"format":"{:%H:%M}"} }\n' >"$WAYBAR_DIR/config.jsonc"
-    chmod 0644 "$WAYBAR_DIR/config.jsonc"
-  fi
-  if [[ ! -f "$WAYBAR_DIR/modules.jsonc" ]]; then
-    printf '{}\n' >"$WAYBAR_DIR/modules.jsonc"; chmod 0644 "$WAYBAR_DIR/modules.jsonc"
-  fi
-
-  # 6) back-compat: some services use ~/.config/waybar/config (no extension)
-  ln -sfn "$WAYBAR_DIR/config.jsonc" "$WAYBAR_DIR/config"
-
-  # 7) tolerate missing include JSONs
-  _ensure_includes_exist "$WAYBAR_DIR/config.jsonc"
-
-  # 8) reload & message
-  _reload_waybar
-  echo "Waybar theme: Applied: ${theme}${variant:+/$variant}"
+  local sw; sw="$(_waybar_switch_bin)" || return 3
+  # Call the switcher with the selection; ensure non-interactive, quiet unless you want debug
+  WAYBAR_THEME_DEBUG="${WAYBAR_THEME_DEBUG:-0}" "$sw" "$sel"
 }
+
 
 list_themes() {
   local base="$WAYBAR_THEMES_DIR" fam vdir
