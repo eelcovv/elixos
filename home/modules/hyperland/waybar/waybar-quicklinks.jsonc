@@ -6,17 +6,17 @@ You can reload waybar with SUPER + SHIFT + B
 {
     "custom/quicklink_browser": {
         "format": "",
-        "on-click": "~/.config/ml4w/settings/browser.sh",
+        "on-click": "google-chrome-stable",
         "tooltip-format": "Open Browser"
     },
     "custom/quicklink_filemanager": {
         "format": "",
-        "on-click": "~/.config/ml4w/settings/filemanager.sh",
+        "on-click": "nautilus",
         "tooltip-format": "Open Filemanager"
     },
     "custom/quicklink_email": {
         "format": "",
-        "on-click": "~/.config/ml4w/settings/email.sh",
+        "on-click": "thunderbird",
         "tooltip-format": "Open Email Client"
     },
     "custom/quicklink_chromium": {
@@ -41,7 +41,7 @@ You can reload waybar with SUPER + SHIFT + B
     },
     "custom/quicklink_calculator": {
         "format": "",
-        "on-click": "~/.config/ml4w/settings/calculator.sh",
+        "on-click": "gnome-calculator",
         "tooltip-format": "Open calculator"
     },
 /*
