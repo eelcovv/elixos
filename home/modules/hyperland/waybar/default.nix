@@ -41,7 +41,8 @@ in {
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
-        After = ["hyprland-env.service" "hyprland-session.target"];
+        # Before: After = ["hyprland-env.service" "hyprland-session.target"];
+        After = ["hyprland-env.service"];
         Wants = ["hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
         Conflicts = ["waybar.service"];
@@ -50,7 +51,6 @@ in {
         Type = "simple";
         ExecStartPre = "${waitForHypr}";
         ExecStart = "${pkgs.waybar}/bin/waybar -l info -c ${cfgPath}/config -s ${cfgPath}/style.css";
-
         ExecReload = "kill -SIGUSR2 $MAINPID";
         Restart = "on-failure";
         RestartSec = "500ms";
@@ -59,9 +59,7 @@ in {
           "WAYBAR_STYLE=%h/.config/waybar/style.css"
         ];
       };
-      Install = {
-        WantedBy = ["hyprland-session.target"];
-      };
+      Install = {WantedBy = ["hyprland-session.target"];};
     };
 
     ##########################################################################
