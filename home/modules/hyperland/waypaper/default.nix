@@ -131,21 +131,21 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    # Restore last wallpaper on session start
+    # Replace the broken wallpaper-restore service: use Waypaper, not wallpaper.sh
     systemd.user.services."waypaper-restore" = {
       Unit = {
-        Description = "Restore last wallpaper via wallpaper.sh (effect-aware)";
-        After = ["hyprpaper.service"];
-        Requires = ["hyprpaper.service"];
+        Description = "Restore last wallpaper via Waypaper (Hyprpaper backend)";
         PartOf = ["hyprland-session.target"];
+        After = ["hyprland-session.target"];
+        ConditionPathExists = "%h/.config/waypaper/config.ini";
       };
       Service = {
-        Type = "oneshot";
-        ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper.sh";
-        TimeoutStartSec = "30s";
-        SuccessExitStatus = "0 1";
-        StandardOutput = "journal";
-        StandardError = "journal";
+        Type = "simple";
+        ExecStart = lib.mkForce "${pkgs.waypaper}/bin/waypaper --restore --backend hyprpaper";
+        StandardOutput = "null";
+        StandardError = "null";
+        Restart = "on-failure";
+        RestartSec = "300ms";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
