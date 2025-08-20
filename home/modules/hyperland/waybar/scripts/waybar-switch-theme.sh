@@ -1,220 +1,139 @@
 #!/usr/bin/env bash
-# Waybar theme switcher — direct write (no "current", no symlinks)
-# Usage: waybar-switch-theme <theme> [variant] | <theme/variant>
-#
-# Debug:
-#   WAYBAR_THEME_DEBUG=1 waybar-switch-theme ml4w-blur light
-
+# Switch Waybar theme (family or family/variant). Robust and DEBUG-safe.
 set -euo pipefail
 
-usage() {
-  echo "usage: $(basename "$0") <theme> [variant] | <theme/variant>" >&2
-  exit 2
+# ---- Settings ----------------------------------------------------------------
+: "${WAYBAR_THEMES_DIR:=$HOME/.config/waybar/themes}"
+: "${WAYBAR_CFG_DIR:=$HOME/.config/waybar}"
+: "${WAYBAR_BIN:=waybar}"
+: "${WAYBAR_SERVICE:=waybar-managed.service}"
+: "${WAYBAR_THEME_DEBUG:=0}"   # 1 = print debug lines
+
+# ---- Helpers -----------------------------------------------------------------
+dbg() { [ "$WAYBAR_THEME_DEBUG" = "1" ] && printf 'DEBUG: %s\n' "$*"; }
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+abs() { # resolve to absolute path (best-effort)
+  case "$1" in /*) printf '%s\n' "$1" ;; *) printf '%s/%s\n' "$(pwd)" "$1" ;; esac
 }
 
-# ---------- parse args ----------
-theme=""; variant=""
-case "$#" in
-  1) if [[ "$1" == */* ]]; then theme="${1%%/*}"; variant="${1#*/}"; else theme="$1"; fi ;;
-  2) theme="$1"; variant="$2" ;;
-  *) usage ;;
-esac
-[[ -n "$theme" ]] || usage
-combo="${theme}${variant:+/$variant}"
+is_running() { pgrep -x waybar >/dev/null 2>&1; }
 
-# ---------- paths ----------
-CFG="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
-THEMES="$CFG/themes"
-THEME_DIR="$THEMES/$theme"
-VAR_DIR="$THEME_DIR/${variant:-}"
-
-log()   { printf '%s\n' "$*"; }
-dbg()   { [[ "${WAYBAR_THEME_DEBUG:-0}" == "1" ]] && printf 'DEBUG: %s\n' "$*" >&2; }
-die()   { echo "ERROR: $*" >&2; exit 1; }
-
-[[ -d "$THEME_DIR" ]] || die "Theme not found: $THEME_DIR"
-if [[ -n "$variant" && ! -d "$VAR_DIR" ]]; then
-  die "Variant not found: $VAR_DIR"
-fi
-
-mkdir -p "$CFG"
-
-# ---------- helpers ----------
-safe_copy_if_exists() {
-  local src="$1" dest="$2" label="${3:-file}"
-  if [[ -f "$src" ]]; then
-    dbg "copying $label $src → $dest"
-    install -Dm0644 -- "$src" "$dest"
+reload_waybar() {
+  # Try soft reload first; if not running, start; if still dead, restart.
+  if is_running; then
+    pkill -USR2 -x waybar || true
+    sleep 0.15
     return 0
   fi
-  return 1
+  systemctl --user start "$WAYBAR_SERVICE" >/dev/null 2>&1 || true
+  sleep 0.25
+  is_running || systemctl --user restart "$WAYBAR_SERVICE" >/dev/null 2>&1 || true
 }
 
-break_symlink_to_file_if_needed() {
-  local dest="$1" fallback="${2:-}"
-  if [[ -L "$dest" ]]; then
-    local src_real; src_real="$(readlink -f -- "$dest" || true)"
-    dbg "replacing symlink $dest (→ $src_real)"
-    rm -f -- "$dest"
-    if [[ -n "$src_real" && -f "$src_real" ]]; then
-      install -Dm0644 -- "$src_real" "$dest"
-    elif [[ -n "$fallback" ]]; then
-      printf '%s\n' "$fallback" >"$dest"; chmod 0644 "$dest"
-    else
-      : >"$dest"; chmod 0644 "$dest"
-    fi
-  fi
+ensure_seed_files() {
+  mkdir -p "$WAYBAR_CFG_DIR"
+  [ -f "$WAYBAR_CFG_DIR/config.jsonc" ] || {
+    [ -f "$WAYBAR_THEMES_DIR/default/config.jsonc" ] \
+      && cp -f "$WAYBAR_THEMES_DIR/default/config.jsonc" "$WAYBAR_CFG_DIR/config.jsonc" \
+      || printf '{}\n' >"$WAYBAR_CFG_DIR/config.jsonc"
+  }
+  [ -f "$WAYBAR_CFG_DIR/style.css" ] || {
+    [ -f "$WAYBAR_THEMES_DIR/default/style.css" ] \
+      && cp -f "$WAYBAR_THEMES_DIR/default/style.css" "$WAYBAR_CFG_DIR/style.css" \
+      || printf '/* default */\n' >"$WAYBAR_CFG_DIR/style.css"
+  }
+  [ -f "$WAYBAR_CFG_DIR/colors.css" ] || printf '/* default colors */\n' >"$WAYBAR_CFG_DIR/colors.css"
+  ln -sfn "$WAYBAR_CFG_DIR/config.jsonc" "$WAYBAR_CFG_DIR/config"
 }
 
-ensure_includes_exist() {
-  # Ensure any "~/.config/*.jsonc" listed in config.jsonc "include" exist
-  local cfg_json="$1"
-  [[ -f "$cfg_json" ]] || return 0
-  mapfile -t includes < <(awk '
-    /"include"[[:space:]]*:/,/\]/ {
-      while (match($0, /"~\/\.config\/[^"]+\.json[c]?"/)) {
-        print substr($0, RSTART+1, RLENGTH-2)
-        $0 = substr($0, RSTART+RLENGTH)
-      }
-    }' "$cfg_json")
-  for inc in "${includes[@]}"; do
-    local abspath="${inc/#\~/$HOME}"
-    mkdir -p "$(dirname -- "$abspath")"
-    [[ -e "$abspath" ]] && continue
-    case "$abspath" in
-      */waybar-quicklinks.json) printf '[]\n'  >"$abspath" ;;
-      *)                        printf '{}\n'  >"$abspath" ;;
-    esac
-    chmod 0644 "$abspath"
-    dbg "created include placeholder: $abspath"
-  done
-}
-
-merge_styles_variant_then_base() {
-  # Build a merged style where variant comes first (defines variables),
-  # then base (which may use those variables).
-  local out="$1"
-  local tmp; tmp="$(mktemp)"; : >"$tmp"
-
-  if [[ -n "$variant" && -f "$VAR_DIR/style.css" ]]; then
-    dbg "append VARIANT style: $VAR_DIR/style.css"
-    cat "$VAR_DIR/style.css" >>"$tmp"
-    echo >>"$tmp"
-  fi
-
-  if [[ -f "$THEME_DIR/style.css" ]]; then
-    dbg "append BASE style: $THEME_DIR/style.css"
-    cat "$THEME_DIR/style.css" >>"$tmp"
-  fi
-
-  install -Dm0644 -- "$tmp" "$out"
-  rm -f -- "$tmp"
-}
-
-normalize_style_css() {
-  # Ensure a single colors import at the top.
-  # Remove any line that imports colors.css, or imports ../style.css (case-insensitive).
-  # Remove any tilde (~) import. Rewrite common asset paths to work from ~/.config/waybar/.
-  local css="$1"
-  [[ -f "$css" ]] || return 0
-  local tmp; tmp="$(mktemp)"
-
-  dbg "normalize: colors import + strip bad imports + rewrite asset paths"
-  {
-    printf '@import url("colors.css");\n'
-    awk '
-      {
-        line=$0
-        ll=tolower(line)
-
-        # Drop colors.css imports (we add a canonical import ourselves)
-        if (ll ~ /^[[:space:]]*@import[[:space:]]+/ && index(ll, "colors.css")>0) next
-
-        # Drop any import of ../style.css (variant → parent imports)
-        if (ll ~ /^[[:space:]]*@import[[:space:]]+/ && index(ll, "../style.css")>0) next
-
-        # Drop tilde imports (@import "~/...")
-        if (ll ~ /^[[:space:]]*@import[[:space:]]+/ && index(ll, "~/")>0) next
-
-        # Rewrite asset paths
-        gsub(/\.\.\/\.\.\/assets\//, "themes/assets/", line)
-        gsub(/\.\.\/assets\//,       "themes/assets/", line)
-        gsub(/url\(\s*["]?\.\.\/assets\//, "url(themes/assets/", line)
-        gsub(/url\(\s*["]?\.\/assets\//,   "url(themes/assets/", line)
-
-        print line
-      }
-    ' "$css"
-  } > "$tmp"
-
-  mv -f -- "$tmp" "$css"
-
-  # Final safety: if any ../style.css import survived, strip it now.
-  if grep -qiE '^[[:space:]]*@import[[:space:]]+.*\.\./style\.css' "$css"; then
-    dbg "normalize: forcing removal of lingering ../style.css import"
-    sed -E -i 's/^[[:space:]]*@import[[:space:]]+.*\.\.\/style\.css.*$//I' "$css"
-  fi
-}
-
-reload_or_start_waybar() {
-  if systemctl --user is-active --quiet waybar-managed.service; then
-    dbg "reload waybar-managed"
-    systemctl --user reload waybar-managed.service || systemctl --user restart waybar-managed.service || true
+compose_css() {
+  # args: <variant_css_or_empty> <base_css> -> stdout
+  local variant="$1" base="$2"
+  if [ -n "$variant" ] && [ -f "$variant" ]; then
+    cat "$variant" "$base"
   else
-    dbg "start waybar-managed"
-    systemctl --user start waybar-managed.service || true
+    cat "$base"
   fi
 }
 
-# ---------- 0) break problematic symlinks ----------
-for f in config config.jsonc style.css modules.jsonc colors.css; do
-  break_symlink_to_file_if_needed "$CFG/$f"
-done
+normalize_css() {
+  # stdin css -> stdout normalized css
+  # - drop @import of colors.css (we manage colors.css separately)
+  # - rewrite ../assets → absolute assets dir
+  local assets_dir="$WAYBAR_THEMES_DIR/assets"
+  sed -E '/@import[[:space:]]+("?'\''?)\.?\/?colors\.css\1;[[:space:]]*$/d' \
+  | sed -E "s,url\((['\"]?)\.\.\/assets\/,url(\1$(printf '%s' "$assets_dir" | sed 's/[.[\*^$()+?{}|]/\\&/g')\/,g"
+}
 
-# ---------- 1) copy config/modules (variant overrides base) ----------
-if [[ -n "$variant" ]]; then
-  safe_copy_if_exists "$VAR_DIR/config.jsonc"  "$CFG/config.jsonc"  "variant config"   || true
-  safe_copy_if_exists "$VAR_DIR/modules.jsonc" "$CFG/modules.jsonc" "variant modules"  || true
+write_atomic() {
+  # args: <dest_path> ; reads content from stdin and writes atomically
+  local dest="$1" tmp
+  tmp="$(mktemp "${dest}.tmp.XXXX")"
+  cat >"$tmp"
+  mv -f "$tmp" "$dest"
+}
+
+resolve_theme_paths() {
+  # args: <sel> -> echo base_css variant_css
+  local sel="$1" base_dir var_dir base_css variant_css
+  case "$sel" in
+    */*)
+      base_dir="$WAYBAR_THEMES_DIR/${sel%%/*}"
+      var_dir="$WAYBAR_THEMES_DIR/$sel"
+      ;;
+    *)
+      base_dir="$WAYBAR_THEMES_DIR/$sel"
+      var_dir=""
+      ;;
+  esac
+  base_css="$base_dir/style.css"
+  variant_css=""
+  [ -n "$var_dir" ] && variant_css="$var_dir/style.css"
+  [ -f "$base_css" ] || die "Base style missing: $base_css"
+  if [ -n "$variant_css" ] && [ ! -f "$variant_css" ]; then
+    dbg "Variant style not found at $variant_css, proceeding with base only"
+    variant_css=""
+  fi
+  printf '%s %s\n' "$base_css" "$variant_css"
+}
+
+# ---- Parse input -------------------------------------------------------------
+sel="${1:-}"
+if [ -z "$sel" ]; then
+  die "Usage: $(basename "$0") <family>[/<variant>]"
 fi
-safe_copy_if_exists "$THEME_DIR/config.jsonc"  "$CFG/config.jsonc"  "base config"      || true
-safe_copy_if_exists "$THEME_DIR/modules.jsonc" "$CFG/modules.jsonc" "base modules"     || true
 
-# ---------- 2) merge style: VAR first, then BASE ----------
-merge_styles_variant_then_base "$CFG/style.css"
+ensure_seed_files
 
-# ---------- 3) normalize CSS ----------
-normalize_style_css "$CFG/style.css"
+# ---- Resolve files -----------------------------------------------------------
+read -r base_css variant_css < <(resolve_theme_paths "$sel")
+dbg "base_css=$base_css"
+[ -n "$variant_css" ] && dbg "variant_css=$variant_css"
 
-# ---------- 4) ensure colors.css ----------
-break_symlink_to_file_if_needed "$CFG/colors.css" '/* default colors (placeholder) */'
-if [[ ! -s "$CFG/colors.css" ]]; then
-  printf '/* default colors */\n' >"$CFG/colors.css"
-  chmod 0644 "$CFG/colors.css"
+# ---- Copy config.jsonc from family root if exists ----------------------------
+# Keep user's local config if none in theme.
+family="${sel%%/*}"
+theme_cfg="$WAYBAR_THEMES_DIR/$family/config.jsonc"
+if [ -f "$theme_cfg" ]; then
+  dbg "copying base config $theme_cfg → $WAYBAR_CFG_DIR/config.jsonc"
+  cp -f "$theme_cfg" "$WAYBAR_CFG_DIR/config.jsonc"
+else
+  dbg "no theme config for $family, leaving existing config.jsonc"
 fi
 
-# ---------- 5) fallbacks ----------
-if [[ ! -f "$CFG/config.jsonc" ]]; then
-  dbg "write fallback config.jsonc"
-  printf '{ "layer":"top", "position":"top", "height":32, "modules-center":["clock"], "clock":{"format":"{:%H:%M}"} }\n' >"$CFG/config.jsonc"
-  chmod 0644 "$CFG/config.jsonc"
-fi
-if [[ ! -f "$CFG/style.css" ]]; then
-  dbg "write fallback style.css"
-  printf '@import url("colors.css");\nwindow#waybar { background: #202020; }\n* { color: #d0d0d0; font-size: 12px; }\n' >"$CFG/style.css"
-  chmod 0644 "$CFG/style.css"
-fi
-if [[ ! -f "$CFG/modules.jsonc" ]]; then
-  dbg "write fallback modules.jsonc"
-  printf '{}\n' >"$CFG/modules.jsonc"
-  chmod 0644 "$CFG/modules.jsonc"
-fi
+# ---- Compose & normalize CSS, then write atomically --------------------------
+dbg "compose css"
+compose_css "$variant_css" "$base_css" \
+  | normalize_css \
+  | write_atomic "$WAYBAR_CFG_DIR/style.css"
 
-# ---------- 6) compat symlink & includes ----------
-ln -sfn "$CFG/config.jsonc" "$CFG/config"
-ensure_includes_exist "$CFG/config.jsonc"
+# Ensure quicklinks placeholder exists (some configs include it)
+[ -f "$WAYBAR_CFG_DIR/waybar-quicklinks.json" ] || printf '[]\n' >"$WAYBAR_CFG_DIR/waybar-quicklinks.json"
 
-# ---------- 7) reload/start ----------
-reload_or_start_waybar
+# ---- Reload Waybar -----------------------------------------------------------
+dbg "reload waybar"
+reload_waybar
 
-log "Waybar theme: Applied: $combo"
+printf 'Waybar theme: Applied: %s\n' "$sel"
 
