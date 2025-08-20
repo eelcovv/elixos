@@ -25,7 +25,7 @@ in {
           enable = lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
           intervalSeconds = lib.mkOption {
             type = lib.types.int;
-            default = 300;
+            default = 15;
             description = "Interval (seconds) for the random wallpaper timer.";
           };
         };
