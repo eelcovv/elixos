@@ -12,7 +12,7 @@
 
   waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
     for i in $(seq 1 50); do
-      if ${pkgs.hyprland}/bin/hyprctl -j monitors >/div/null 2>&1; then
+      if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then
         exit 0
       fi
       sleep 0.1
@@ -23,12 +23,13 @@ in {
   config = {
     programs.waybar.enable = true;
     programs.waybar.package = pkgs.waybar;
+    # Gebruik onze eigen systemd unit (voorkomt dubbele starts):
     programs.waybar.systemd.enable = false;
 
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
-        After = [];
+        After = ["hyprland-session.target"];
         PartOf = ["hyprland-session.target"];
         Conflicts = ["waybar.service"];
       };
@@ -36,22 +37,23 @@ in {
         Type = "simple";
         ExecStartPre = "${waitForHypr}";
         ExecStart = "${pkgs.waybar}/bin/waybar -l info -c ${cfgPath}/config.jsonc -s ${cfgPath}/style.css";
-        ExecReload = "kill -SIGUSR2 $MAINPID";
+        # Waybar ondersteunt USR2 voor live reload:
+        ExecReload = "${pkgs.coreutils}/bin/kill -USR2 $MAINPID";
         Restart = "on-failure";
         RestartSec = "500ms";
         Environment = [
-          "WAYBAR_CONFIG=%h/.config/waybar/config"
+          "WAYBAR_CONFIG=%h/.config/waybar/config.jsonc"
           "WAYBAR_STYLE=%h/.config/waybar/style.css"
         ];
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    # Publish themes (read-only)
+    # Publiceer themes (read-only vanuit de store)
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
-    # Seed local files (no store symlinks)
+    # Seed lokale, muteerbare bestanden (geen store-symlinks)
     home.activation.ensureWaybarSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
@@ -71,7 +73,12 @@ in {
         printf '{}\n' >"$cfg_dir/modules.jsonc"
         chmod 0644 "$cfg_dir/modules.jsonc"
       fi
+      if [ ! -f "$cfg_dir/waybar-quicklinks.json" ]; then
+        printf '[]\n' >"$cfg_dir/waybar-quicklinks.json"
+        chmod 0644 "$cfg_dir/waybar-quicklinks.json"
+      fi
 
+      # Compat-symlink die sommige tools verwachten:
       ln -sfn "$cfg_dir/config.jsonc" "$cfg_dir/config"
     '';
 
