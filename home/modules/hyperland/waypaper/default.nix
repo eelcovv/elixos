@@ -1,8 +1,12 @@
-{ config, pkgs, lib, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   # Paths relative to this module
-  waybarDir  = ./.;
-  themesDir  = ./themes;
+  waybarDir = ./.;
+  themesDir = ./themes;
   scriptsDir = ./scripts;
 
   # Resolves to "~/.config/waybar"
@@ -33,9 +37,9 @@ in {
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
-        After = [ ];                         # geen target of hyprland-env hier
-        PartOf = [ "hyprland-session.target" ];
-        Conflicts = [ "waybar.service" ];
+        After = []; # geen target of hyprland-env hier
+        PartOf = ["hyprland-session.target"];
+        Conflicts = ["waybar.service"];
       };
       Service = {
         Type = "simple";
@@ -50,7 +54,7 @@ in {
           "WAYBAR_STYLE=%h/.config/waybar/style.css"
         ];
       };
-      Install = { WantedBy = [ "hyprland-session.target" ]; };
+      Install = {WantedBy = ["hyprland-session.target"];};
     };
 
     ##########################################################################
@@ -64,9 +68,9 @@ in {
     ##########################################################################
     # Let op: we gebruiken geen xdg.configFile voor colors.css/modules.jsonc
     # en ook geen symlinks naar default theme. We schrijven echte bestanden.
-    home.activation.ensureWaybarSeed = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    home.activation.ensureWaybarSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
-      cfg_dir="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+      cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
       mkdir -p "$cfg_dir"
 
       # 1) seed defaults als ECHTE bestanden (geen symlinks naar store)
@@ -106,7 +110,6 @@ in {
     ##########################################################################
     # PATH aanvullen met ~/.local/bin
     ##########################################################################
-    home.sessionPath = lib.mkAfter [ "$HOME/.local/bin" ];
+    home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }
-
