@@ -55,22 +55,6 @@ in {
     };
 
     ########################################################################
-    # Import Hyprland environment into systemd --user (for Wayland/DBus vars)
-    ########################################################################
-    systemd.user.services."hyprland-env" = {
-      Unit = {
-        Description = "Import Hyprland session environment into systemd --user";
-        After = ["graphical-session.target"];
-        PartOf = ["hyprland-session.target"];
-      };
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.bash}/bin/bash -lc '${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE; ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE'";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    ########################################################################
     # Notifications via systemd — do not autostart from Hyprland config
     ########################################################################
     systemd.user.services."swaync" = {
@@ -124,7 +108,7 @@ in {
     xdg.configFile."hypr/hyprpaper.conf".text = ''
       ipc = on
       splash = false
-      preload = ${wallpaperTargetDir}/default.png
+      # preload = ${wallpaperTargetDir}/default.png
     '';
 
     xdg.configFile."${wallpaperTargetDir}/default.png".source = "${wallpaperDir}/nixos.png";

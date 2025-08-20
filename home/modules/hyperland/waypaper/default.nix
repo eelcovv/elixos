@@ -148,7 +148,7 @@ in {
       };
       Service = {
         Type = "oneshot";
-        ExecStartPre = "${pkgs.coreutils}/bin/sleep 2"; # a tiny bit more time
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 0.5"; # a tiny bit more time
         ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper.sh";
         TimeoutStartSec = "30s";
         # Treat 'no previous wallpaper' or similar as OK:
