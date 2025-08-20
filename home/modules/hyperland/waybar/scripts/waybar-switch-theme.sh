@@ -2,7 +2,8 @@
 # Waybar theme switcher — direct write (no "current", no symlinks)
 # Usage: waybar-switch-theme <theme> [variant] | <theme/variant>
 #
-# Supports debug logging via: WAYBAR_THEME_DEBUG=1 waybar-switch-theme ml4w-blur light
+# Debug:
+#   WAYBAR_THEME_DEBUG=1 waybar-switch-theme ml4w-blur light
 
 set -euo pipefail
 
@@ -11,7 +12,7 @@ usage() {
   exit 2
 }
 
-# ---------- argument parsing ----------
+# ---------- parse args ----------
 theme=""; variant=""
 case "$#" in
   1) if [[ "$1" == */* ]]; then theme="${1%%/*}"; variant="${1#*/}"; else theme="$1"; fi ;;
@@ -40,7 +41,7 @@ mkdir -p "$CFG"
 
 # ---------- helpers ----------
 safe_copy_if_exists() {
-  local src="$1" dest="$2" label="$3"
+  local src="$1" dest="$2" label="${3:-file}"
   if [[ -f "$src" ]]; then
     dbg "copying $label $src → $dest"
     install -Dm0644 -- "$src" "$dest"
@@ -49,7 +50,7 @@ safe_copy_if_exists() {
   return 1
 }
 
-replace_symlink_with_file_if_needed() {
+break_symlink_to_file_if_needed() {
   local dest="$1" fallback="${2:-}"
   if [[ -L "$dest" ]]; then
     local src_real; src_real="$(readlink -f -- "$dest" || true)"
@@ -66,7 +67,7 @@ replace_symlink_with_file_if_needed() {
 }
 
 ensure_includes_exist() {
-  # Ensures that any "include" paths in config.jsonc exist as placeholder files
+  # Ensure any "~/.config/*.jsonc" listed in config.jsonc "include" exist
   local cfg_json="$1"
   [[ -f "$cfg_json" ]] || return 0
   mapfile -t includes < <(awk '
@@ -89,73 +90,131 @@ ensure_includes_exist() {
   done
 }
 
-merge_styles() {
-  # Merge style.css: variant first (defines variables), then base theme
+merge_styles_variant_then_base() {
+  # Build a merged style where variant comes first (defines variables),
+  # then base (which may use those variables).
   local out="$1"
-  local tmp="$(mktemp)"
-  >"$tmp"
+  local tmp; tmp="$(mktemp)"; : >"$tmp"
+
   if [[ -n "$variant" && -f "$VAR_DIR/style.css" ]]; then
-    dbg "adding variant style.css from $VAR_DIR"
+    dbg "append VARIANT style: $VAR_DIR/style.css"
     cat "$VAR_DIR/style.css" >>"$tmp"
-    echo "" >>"$tmp"
+    echo >>"$tmp"
   fi
+
   if [[ -f "$THEME_DIR/style.css" ]]; then
-    dbg "adding theme style.css from $THEME_DIR"
+    dbg "append BASE style: $THEME_DIR/style.css"
     cat "$THEME_DIR/style.css" >>"$tmp"
   fi
+
   install -Dm0644 -- "$tmp" "$out"
-  rm -f "$tmp"
+  rm -f -- "$tmp"
 }
 
-reload_waybar() {
-  if systemctl --user is-active --quiet waybar-managed.service; then
-    dbg "reloading waybar via systemd"
-    systemctl --user reload waybar-managed.service || systemctl --user restart waybar-managed.service || true
-  else
-    dbg "sending USR2 to waybar process"
-    pkill -USR2 -x waybar 2>/dev/null || true
+normalize_style_css() {
+  # Ensure a single colors import at the top.
+  # Remove any line that imports colors.css, or imports ../style.css (case-insensitive).
+  # Remove any tilde (~) import. Rewrite common asset paths to work from ~/.config/waybar/.
+  local css="$1"
+  [[ -f "$css" ]] || return 0
+  local tmp; tmp="$(mktemp)"
+
+  dbg "normalize: colors import + strip bad imports + rewrite asset paths"
+  {
+    printf '@import url("colors.css");\n'
+    awk '
+      {
+        line=$0
+        ll=tolower(line)
+
+        # Drop colors.css imports (we add a canonical import ourselves)
+        if (ll ~ /^[[:space:]]*@import[[:space:]]+/ && index(ll, "colors.css")>0) next
+
+        # Drop any import of ../style.css (variant → parent imports)
+        if (ll ~ /^[[:space:]]*@import[[:space:]]+/ && index(ll, "../style.css")>0) next
+
+        # Drop tilde imports (@import "~/...")
+        if (ll ~ /^[[:space:]]*@import[[:space:]]+/ && index(ll, "~/")>0) next
+
+        # Rewrite asset paths
+        gsub(/\.\.\/\.\.\/assets\//, "themes/assets/", line)
+        gsub(/\.\.\/assets\//,       "themes/assets/", line)
+        gsub(/url\(\s*["]?\.\.\/assets\//, "url(themes/assets/", line)
+        gsub(/url\(\s*["]?\.\/assets\//,   "url(themes/assets/", line)
+
+        print line
+      }
+    ' "$css"
+  } > "$tmp"
+
+  mv -f -- "$tmp" "$css"
+
+  # Final safety: if any ../style.css import survived, strip it now.
+  if grep -qiE '^[[:space:]]*@import[[:space:]]+.*\.\./style\.css' "$css"; then
+    dbg "normalize: forcing removal of lingering ../style.css import"
+    sed -E -i 's/^[[:space:]]*@import[[:space:]]+.*\.\.\/style\.css.*$//I' "$css"
   fi
 }
 
-# ---------- 1) copy config + modules ----------
+reload_or_start_waybar() {
+  if systemctl --user is-active --quiet waybar-managed.service; then
+    dbg "reload waybar-managed"
+    systemctl --user reload waybar-managed.service || systemctl --user restart waybar-managed.service || true
+  else
+    dbg "start waybar-managed"
+    systemctl --user start waybar-managed.service || true
+  fi
+}
+
+# ---------- 0) break problematic symlinks ----------
+for f in config config.jsonc style.css modules.jsonc colors.css; do
+  break_symlink_to_file_if_needed "$CFG/$f"
+done
+
+# ---------- 1) copy config/modules (variant overrides base) ----------
 if [[ -n "$variant" ]]; then
-  safe_copy_if_exists "$VAR_DIR/config.jsonc" "$CFG/config.jsonc" "variant" || true
-  safe_copy_if_exists "$VAR_DIR/modules.jsonc" "$CFG/modules.jsonc" "variant" || true
+  safe_copy_if_exists "$VAR_DIR/config.jsonc"  "$CFG/config.jsonc"  "variant config"   || true
+  safe_copy_if_exists "$VAR_DIR/modules.jsonc" "$CFG/modules.jsonc" "variant modules"  || true
 fi
-safe_copy_if_exists "$THEME_DIR/config.jsonc" "$CFG/config.jsonc" "theme" || true
-safe_copy_if_exists "$THEME_DIR/modules.jsonc" "$CFG/modules.jsonc" "theme" || true
+safe_copy_if_exists "$THEME_DIR/config.jsonc"  "$CFG/config.jsonc"  "base config"      || true
+safe_copy_if_exists "$THEME_DIR/modules.jsonc" "$CFG/modules.jsonc" "base modules"     || true
 
-# ---------- 2) merge style ----------
-merge_styles "$CFG/style.css"
+# ---------- 2) merge style: VAR first, then BASE ----------
+merge_styles_variant_then_base "$CFG/style.css"
 
-# ---------- 3) handle colors.css ----------
-replace_symlink_with_file_if_needed "$CFG/colors.css" '/* default colors (placeholder) */'
+# ---------- 3) normalize CSS ----------
+normalize_style_css "$CFG/style.css"
+
+# ---------- 4) ensure colors.css ----------
+break_symlink_to_file_if_needed "$CFG/colors.css" '/* default colors (placeholder) */'
 if [[ ! -s "$CFG/colors.css" ]]; then
   printf '/* default colors */\n' >"$CFG/colors.css"
   chmod 0644 "$CFG/colors.css"
 fi
 
-# ---------- 4) minimal fallbacks ----------
+# ---------- 5) fallbacks ----------
 if [[ ! -f "$CFG/config.jsonc" ]]; then
-  dbg "writing fallback config.jsonc"
+  dbg "write fallback config.jsonc"
   printf '{ "layer":"top", "position":"top", "height":32, "modules-center":["clock"], "clock":{"format":"{:%H:%M}"} }\n' >"$CFG/config.jsonc"
   chmod 0644 "$CFG/config.jsonc"
 fi
 if [[ ! -f "$CFG/style.css" ]]; then
-  dbg "writing fallback style.css"
+  dbg "write fallback style.css"
   printf '@import url("colors.css");\nwindow#waybar { background: #202020; }\n* { color: #d0d0d0; font-size: 12px; }\n' >"$CFG/style.css"
   chmod 0644 "$CFG/style.css"
 fi
 if [[ ! -f "$CFG/modules.jsonc" ]]; then
-  dbg "writing fallback modules.jsonc"
+  dbg "write fallback modules.jsonc"
   printf '{}\n' >"$CFG/modules.jsonc"
   chmod 0644 "$CFG/modules.jsonc"
 fi
 
-# ---------- 5) includes ----------
+# ---------- 6) compat symlink & includes ----------
+ln -sfn "$CFG/config.jsonc" "$CFG/config"
 ensure_includes_exist "$CFG/config.jsonc"
 
-# ---------- 6) reload ----------
-reload_waybar
+# ---------- 7) reload/start ----------
+reload_or_start_waybar
+
 log "Waybar theme: Applied: $combo"
 
