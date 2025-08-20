@@ -41,8 +41,7 @@ in {
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
-        # Verwijder elke verwijzing naar hyprland-env en naar hyprland-session.target in After=
-        After = []; # leeg laten of bv. ["graphical-session.target"] als je wil
+        After = []; # niets nodig; timing vangt waitForHypr op
         PartOf = ["hyprland-session.target"];
         Conflicts = ["waybar.service"];
       };

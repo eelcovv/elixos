@@ -123,10 +123,10 @@ in {
     '';
 
     # hyprpaper daemon
+    # hyprpaper daemon
     systemd.user.services."hyprpaper" = {
       Unit = {
         Description = "Hyprland wallpaper daemon (hyprpaper)";
-        After = ["hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
       };
       Service = {
@@ -134,6 +134,41 @@ in {
         Restart = "always";
         RestartSec = "200ms";
         TimeoutStartSec = "15s";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    # Restore last wallpaper on session start
+    systemd.user.services."waypaper-restore" = {
+      Unit = {
+        Description = "Restore last wallpaper via wallpaper.sh (effect-aware)";
+        After = ["hyprpaper.service"];
+        Requires = ["hyprpaper.service"];
+        PartOf = ["hyprland-session.target"];
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper.sh";
+        TimeoutStartSec = "30s";
+        SuccessExitStatus = "0 1";
+        StandardOutput = "journal";
+        StandardError = "journal";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    # Random rotation (service + timer)
+    systemd.user.services."waypaper-random" = {
+      Unit = {
+        Description = "Set a random wallpaper (effect-aware)";
+        After = ["hyprpaper.service"];
+        Requires = ["hyprpaper.service"];
+        PartOf = ["hyprland-session.target"];
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper-random.sh";
+        TimeoutStartSec = "20s";
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
