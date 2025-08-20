@@ -75,8 +75,7 @@ This NixOS configuration module defines common system settings:
     networking.networkmanager.enable = true;
 
     i18n.defaultLocale = "en_US.UTF-8";
-    # time.timeZone = "Europe/Amsterdam";
-    time.timeZone = "Asia/Bangkok";
+    time.timeZone = "Europe/Amsterdam";
 
     fonts = lib.mkIf config.desktop.enable {
       enableDefaultPackages = true;
