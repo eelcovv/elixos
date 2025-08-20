@@ -13,44 +13,40 @@
     };
   };
 in {
-  ########################
-  # (1) Namespace anchor #
-  ########################
-  # Niet strikt nodig, maar voorkomt “option hyprland does not exist” als submodule eens niet laadt.
-  options.hyprland = lib.mkOption {
-    type = lib.types.attrsOf lib.types.any;
-    default = {};
-    description = "Namespace for custom Hyprland options";
+  ################
+  # Options
+  ################
+  options = {
+    hyprland = {
+      wallpaper = {
+        enable = lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
+
+        random = {
+          enable = lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
+          intervalSeconds = lib.mkOption {
+            type = lib.types.int;
+            default = 300;
+            description = "Interval (seconds) for the random wallpaper timer.";
+          };
+        };
+
+        fetch = {
+          enable = lib.mkEnableOption "Enable periodic wallpaper fetching (handled centrally)";
+          onCalendar = lib.mkOption {
+            type = lib.types.str;
+            default = "weekly";
+            description = "systemd OnCalendar schedule used by the central fetcher.";
+          };
+        };
+      };
+    };
   };
 
   ################
-  # (2) Options  #
-  ################
-  options.hyprland.wallpaper.enable =
-    lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
-
-  options.hyprland.wallpaper.random.enable =
-    lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
-
-  options.hyprland.wallpaper.random.intervalSeconds = lib.mkOption {
-    type = lib.types.int;
-    default = 300;
-    description = "Interval (seconds) for the random wallpaper timer.";
-  };
-
-  options.hyprland.wallpaper.fetch.enable =
-    lib.mkEnableOption "Enable periodic wallpaper fetching (handled centrally)";
-
-  options.hyprland.wallpaper.fetch.onCalendar = lib.mkOption {
-    type = lib.types.str;
-    default = "weekly";
-    description = "systemd OnCalendar schedule used by the central fetcher.";
-  };
-
-  ################
-  # (3) Config   #
+  # Config
   ################
   config = lib.mkIf config.hyprland.wallpaper.enable {
+    # Do NOT auto-start user units during rebuild (avoid blocking)
     systemd.user.startServices = false;
 
     home.packages =
@@ -85,7 +81,7 @@ in {
       }
     ];
 
-    # Seed writable settings (LET OP: ''${…} voor Bash-expansies)
+    # Seed writable settings
     home.activation.wallpaperSettingsSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
       set -eu
       S="$HOME/.config/hypr/settings"
@@ -180,7 +176,7 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    # Zorg dat ~/.local/bin in PATH staat
+    # Ensure ~/.local/bin is in PATH
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }

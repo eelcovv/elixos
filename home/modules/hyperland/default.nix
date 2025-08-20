@@ -8,24 +8,12 @@
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
-  ##########################################################################
-  # Module imports
-  # - waybar: status bar & theme switching
-  # - waypaper: wallpaper integration (hyprpaper, restore, random)
-  # - wallpapers/fetcher.nix: central wallpaper fetch (service+timer)
-  #
-  # NOTE: Import order matters slightly: we import waypaper BEFORE fetcher,
-  # so fetcher can read waypaper's options (hyprland.wallpaper.fetch.*).
-  ##########################################################################
   imports = [
     ./waybar
     ./waypaper
   ];
 
   config = {
-    ########################################################################
-    # Desktop packages for Hyprland
-    ########################################################################
     home.packages = with pkgs; [
       kitty
       hyprpaper
@@ -42,9 +30,7 @@ in {
       waypaper
     ];
 
-    ########################################################################
-    # User target representing the Hyprland session
-    ########################################################################
+    # Hyprland session target (user)
     systemd.user.targets."hyprland-session" = {
       Unit = {
         Description = "Hyprland graphical session (user)";
@@ -54,13 +40,10 @@ in {
       Install = {WantedBy = ["default.target"];};
     };
 
-    ########################################################################
-    # Notifications via systemd — do not autostart from Hyprland config
-    ########################################################################
+    # Notifications via systemd
     systemd.user.services."swaync" = {
       Unit = {
         Description = "SwayNotificationCenter";
-        After = ["hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
       };
       Service = {
@@ -71,30 +54,21 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    ########################################################################
-    # Session environment variables
-    ########################################################################
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
-      # Let runtime expand XDG_RUNTIME_DIR (avoid Nix-time interpolation):
       SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/keyring/ssh";
     };
 
-    ########################################################################
-    # Hyprland configuration files (read-only links)
-    ########################################################################
+    # Hyprland configs
     xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
     xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
     xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
     xdg.configFile."hypr/colors.conf".source = "${hyprDir}/colors.conf";
-
     xdg.configFile."hypr/conf".source = "${hyprDir}/conf";
     xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
     xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
-    ########################################################################
-    # Sanity check: helper script must exist
-    ########################################################################
+    # Sanity check: helper must exist
     home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
       if [ ! -r "$HOME/.config/hypr/scripts/helper-functions.sh" ]; then
         echo "ERROR: missing helper at ~/.config/hypr/scripts/helper-functions.sh" >&2
@@ -102,34 +76,22 @@ in {
       fi
     '';
 
-    ########################################################################
     # hyprpaper config + default wallpaper (Waypaper controls runtime)
-    ########################################################################
     xdg.configFile."hypr/hyprpaper.conf".text = ''
       ipc = on
       splash = false
       # preload = ${wallpaperTargetDir}/default.png
     '';
-
     xdg.configFile."${wallpaperTargetDir}/default.png".source = "${wallpaperDir}/nixos.png";
 
-    ########################################################################
-    # Ensure ~/.local/bin is in PATH (append)
-    ########################################################################
+    # PATH
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
 
-    ########################################################################
-    # Waypaper integration:
-    # - We enable waypaper module for hyprpaper + restore + random rotation
-    # - DO NOT define any "waypaper-fetch" service here; that lives in
-    #   ./wallpapers/fetcher.nix and is shared for all consumers.
-    ########################################################################
+    # Waypaper options (consumed by ./waypaper)
     hyprland.wallpaper.enable = true;
     hyprland.wallpaper.random.enable = true;
     hyprland.wallpaper.random.intervalSeconds = 300;
 
-    # Optional: schedule for the central fetcher (read by fetcher.nix).
-    # Keep using the existing option exposed by your waypaper module:
     hyprland.wallpaper.fetch.enable = true;
     hyprland.wallpaper.fetch.onCalendar = "daily";
   };
