@@ -46,7 +46,7 @@
                   keyFile = "/tmp/installer/cryptswap.key"; # <- moved here
                 };
                 askPassword = false;
-                initrdUnlock = false;
+                initrdUnlock = true;
                 content = {
                   type = "swap";
                   resumeDevice = true;
