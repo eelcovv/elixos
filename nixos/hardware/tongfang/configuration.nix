@@ -6,7 +6,7 @@
   ...
 }: {
   imports = [
-    ../../modules/hardware/efi-boot.nix
+    ../../modules/hardware/efi-boot-at-root.nix
     ../../modules/hardware/efi-dualboot.nix
     ../../modules/hardware/gpu/nvidia.nix
     ../../modules/hardware/gpu/nvidia-wayland-env.nix
