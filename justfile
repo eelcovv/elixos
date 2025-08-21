@@ -309,15 +309,25 @@ generate-hardware-config:
 # into `nixos/hardware/tongfang/hardware-configuration.nix`
 
 install HOST:
-	@echo "🔐 Copying age key to target..."
-	mkdir -p /mnt/etc/sops/age
-	cp /root/keys.txt /mnt/etc/sops/age/keys.txt
-	chmod 400 /mnt/etc/sops/age/keys.txt
-	@echo "🚀 Building system for {{HOST}}..."
-	nix --extra-experimental-features 'nix-command flakes' build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result-{{HOST}}
-	@echo "🚀 Running nixos-install for {{HOST}}..."
-	nixos-install --system result-{{HOST}} --no-root-passwd
+	@echo "🔐 Copying age key to target (/mnt)…"
+	sudo mkdir -p /mnt/etc/sops/age
+	# keys.txt is optioneel; sla over als hij er niet is
+	@if [ -f /root/keys.txt ]; then \
+	  sudo cp -v /root/keys.txt /mnt/etc/sops/age/keys.txt && \
+	  sudo chmod 400 /mnt/etc/sops/age/keys.txt; \
+	else \
+	  echo "⚠️  /root/keys.txt not found, skipping age key copy"; \
+	fi
+
+	@echo "🧷 Sanity-check mounts (root/home/ESP)…"
+	@mount | egrep ' /mnt($|/boot|/home)' || true
+
+	@echo "🚀 Running nixos-install for {{HOST}} (direct flake)…"
+	sudo env NIX_CONFIG='experimental-features = nix-command flakes' \
+	  nixos-install --flake .#{{HOST}} --no-root-password
+
 	@echo "✅ {{HOST}} is now installed!"
+
 
 reinstall HOST:
 	@echo "🔐 Preparing pass/key files…"
