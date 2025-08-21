@@ -134,6 +134,7 @@ bootstrap-base:
 
 # ========== TARGET-SPECIFIC BOOTSTRAPS ==========
 
+
 # For VM with /dev/vda
 bootstrap-generic-vm:
 	just bootstrap-base
@@ -235,12 +236,38 @@ vm_reset:
 
 # ========== SOPS ENCRYPTION HELPERS (Age only) ==========
 
+# Make de pass/key-files which disko expects (root/home passphrase, swap key)
+prepare-passfiles:
+	sudo bash -eu -o pipefail -c '\
+	  mkdir -p /tmp/installer; \
+	  echo -n "Enter ROOT passphrase: " >&2; \
+	  read -rs ROOT; echo >&2; \
+	  echo -n "$ROOT" > /tmp/installer/cryptroot.pass; \
+	  echo -n "Enter HOME passphrase: " >&2; \
+	  read -rs HOME; echo >&2; \
+	  echo -n "$$HOME" > /tmp/installer/crypthome.pass; \
+	  dd if=/dev/urandom bs=64 count=1 of=/tmp/installer/cryptswap.key status=none; \
+	  chmod 600 /tmp/installer/cryptroot.pass /tmp/installer/crypthome.pass /tmp/installer/cryptswap.key; \
+	  echo "✅ Pass/key files ready in /tmp/installer"'
+
+
 encrypt SECRET:
 	if [ -z "{{SECRET}}" ]; then echo "❌ Specify a secret file"; exit 1; fi
 	sops -e --age "$(rage-keygen -y ~/.config/sops/age/keys.txt)" -i nixos/secrets/{{SECRET}}
 
 
 # ========== LIVE INSTALLATION ==========
+
+# Wipe+create+mount exact volgens de disko flake van deze HOST
+disko-wipe HOST:
+	sudo bash -eu -o pipefail -c '\
+	  swapoff -a || true; \
+	  umount -Rl /mnt || true; \
+	  for m in cryptroot cryptswap crypthome; do cryptsetup close $$m 2>/dev/null || true; done'
+	sudo -i nix --extra-experimental-features 'nix-command flakes' \
+	  run github:nix-community/disko -- --flake ~/elixos#{{HOST}} --mode zap_create_mount
+	@echo "✅ Disk wiped & mounted for {{HOST}} (per disko config)"
+
 partition HOST:
 	sudo -i nix --extra-experimental-features 'nix-command flakes' run github:nix-community/disko -- --flake ~/elixos#{{HOST}} --mode zap_create_mount
 	@echo "✅ Partitioning for {{HOST}}."
@@ -282,15 +309,25 @@ generate-hardware-config:
 # into `nixos/hardware/tongfang/hardware-configuration.nix`
 
 install HOST:
-	@echo "🔐 Copying age key to target..."
-	mkdir -p /mnt/etc/sops/age
-	cp /root/keys.txt /mnt/etc/sops/age/keys.txt
-	chmod 400 /mnt/etc/sops/age/keys.txt
-	@echo "🚀 Building system for {{HOST}}..."
-	nix --extra-experimental-features 'nix-command flakes' build .#nixosConfigurations.{{HOST}}.config.system.build.toplevel --out-link result-{{HOST}}
-	@echo "🚀 Running nixos-install for {{HOST}}..."
-	nixos-install --system result-{{HOST}} --no-root-passwd
+	@echo "🔐 Copying age key to target (/mnt)..."
+	sudo mkdir -p /mnt/etc/sops/age
+	sudo cp -v /root/keys.txt /mnt/etc/sops/age/keys.txt
+	sudo chmod 400 /mnt/etc/sops/age/keys.txt
+	@echo "🚀 Running nixos-install for {{HOST}} (direct flake)…"
+	sudo env NIX_CONFIG='experimental-features = nix-command flakes' \
+	  nixos-install --flake .#{{HOST}} --no-root-passwd
 	@echo "✅ {{HOST}} is now installed!"
+
+reinstall HOST:
+	@echo "🔐 Preparing pass/key files…"
+	just prepare-passfiles
+	@echo "💽 Repartition + format + mount (Disko)…"
+	just disko-wipe {{HOST}}
+	@echo "🛠 Generating hardware-configuration.nix (for reference)…"
+	sudo nixos-generate-config --root /mnt
+	@echo "🚀 Installing NixOS (flake {{HOST}})…"
+	just install {{HOST}}
+	@echo "✅ Reinstall for {{HOST}} completed. You can reboot now."
 
 
 install_server HOST:

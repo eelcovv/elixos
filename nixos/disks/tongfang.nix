@@ -1,16 +1,7 @@
 {lib, ...}: {
-  # Disk layout voor Tongfang-laptop (veilig: raakt alleen de Linux-disk).
   disko.devices = {
     disk = {
-      # with multiple drives, it is not safe to use
-      # the device by number, like nvme0n1, if you have
-      # windows on nvme1n1, because the order is not
-      # guarenteed. Therefore, use the real device name to
-      # distingish the drives, like.
-      # ls -l /dev/disk/by-id/ | grep SAMSUNG ^
-      # do not use the backslash
-      # also, make use to include all the details, also the serial number
-      "nvme0n1" = {
+      "samsung-linux" = {
         type = "disk";
         device = "/dev/disk/by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W803075";
 
@@ -23,8 +14,7 @@
               content = {
                 type = "filesystem";
                 format = "vfat";
-                # systemd-boot verwacht ESP op /boot
-                mountpoint = "/boot";
+                mountpoint = "/boot"; # systemd-boot expects /boot
                 mountOptions = ["umask=0077"];
               };
             };
@@ -35,7 +25,6 @@
                 type = "luks";
                 name = "cryptroot";
                 settings.allowDiscards = true;
-                # non-interactief + initrd unlock
                 askPassword = false;
                 passwordFile = "/tmp/installer/cryptroot.pass";
                 initrdUnlock = true;
@@ -52,9 +41,11 @@
               content = {
                 type = "luks";
                 name = "cryptswap";
-                settings.allowDiscards = true;
+                settings = {
+                  allowDiscards = true;
+                  keyFile = "/tmp/installer/cryptswap.key"; # <- moved here
+                };
                 askPassword = false;
-                keyFile = "/tmp/installer/cryptswap.key";
                 initrdUnlock = false;
                 content = {
                   type = "swap";
@@ -64,7 +55,7 @@
             };
 
             home = {
-              size = "100%"; # rest van de schijf
+              size = "100%";
               content = {
                 type = "luks";
                 name = "crypthome";
@@ -83,11 +74,7 @@
         };
       };
 
-      # Windows-disk: expliciet benoemen, maar GEEN 'content' => disko blijft er vanaf.
-      "samsung-windows" = {
-        type = "disk";
-        device = "/dev/disk/by-id/nvme-SAMSUNG_MZVL21T0HCLR-00B00_S676NL0W804929";
-      };
+      # NOTE: Do NOT declare the Windows disk at all; Disko will ignore it.
     };
   };
 }
