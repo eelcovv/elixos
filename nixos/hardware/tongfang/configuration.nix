@@ -18,8 +18,8 @@
   hardware.nvidia.driver = "open"; # or "proprietary"
 
   specialisation = {
-    nvidea.configuration = {
-      system.nixos.tags = ["nvidea"];
+    nvidia.configuration = {
+      system.nixos.tags = ["nvidia"];
       hardware.nvidia.prime = {
         sync.enable = true;
         nvidiaBusId = "PCI:0:1:0";
