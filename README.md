@@ -17,51 +17,51 @@ It leverages flakes and sops-nix for secure, reproducible, and extendable NixOS 
 
 The elixos structure looks like:
 
-elixos
-├── home
-│   ├── modules
-│   │   ├── benchmarking
-│   │   ├── common
-│   │   ├── databases
-│   │   ├── desktop
-│   │   ├── development
-│   │   ├── editors
-│   │   ├── engingeering
-│   │   ├── graphics
-│   │   ├── hyperland
-│   │   ├── internet
-│   │   ├── maintainance
-│   │   ├── multimedia
-│   │   ├── office
-│   │   ├── publishing
-│   │   ├── security
-│   │   ├── shells
-│   │   ├── socialmedia
-│   │   └── terminals
-│   └── users
-├── nixos
-│   ├── disks
-│   ├── hardware
-│   │   ├── alloy
-│   │   ├── contabo
-│   │   ├── singer
-│   │   └── tongfang
-│   ├── hosts
-│   ├── modules
-│   │   ├── disk-layouts
-│   │   ├── fonts
-│   │   ├── hardware
-│   │   ├── lib
-│   │   ├── profiles
-│   │   ├── secrets
-│   │   └── services
-│   ├── secrets
-│   │   └── surfshark
-│   └── users
-└── scripts
-    ├── bootstrap
-    ├── install
-    └── vpn
+    elixos
+    ├── home
+    │   ├── modules
+    │   │   ├── benchmarking
+    │   │   ├── common
+    │   │   ├── databases
+    │   │   ├── desktop
+    │   │   ├── development
+    │   │   ├── editors
+    │   │   ├── engingeering
+    │   │   ├── graphics
+    │   │   ├── hyperland
+    │   │   ├── internet
+    │   │   ├── maintainance
+    │   │   ├── multimedia
+    │   │   ├── office
+    │   │   ├── publishing
+    │   │   ├── security
+    │   │   ├── shells
+    │   │   ├── socialmedia
+    │   │   └── terminals
+    │   └── users
+    ├── nixos
+    │   ├── disks
+    │   ├── hardware
+    │   │   ├── alloy
+    │   │   ├── contabo
+    │   │   ├── singer
+    │   │   └── tongfang
+    │   ├── hosts
+    │   ├── modules
+    │   │   ├── disk-layouts
+    │   │   ├── fonts
+    │   │   ├── hardware
+    │   │   ├── lib
+    │   │   ├── profiles
+    │   │   ├── secrets
+    │   │   └── services
+    │   ├── secrets
+    │   │   └── surfshark
+    │   └── users
+    └── scripts
+        ├── bootstrap
+        ├── install
+        └── vpn
 
 Use the following steps to quickly install a NixOS VM using QEMU.
 
