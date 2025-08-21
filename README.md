@@ -63,8 +63,6 @@ elixos
     ├── install
     └── vpn
 
-This installs all the required development tools.
-
 Use the following steps to quickly install a NixOS VM using QEMU.
 
 ## 🔑 Initial Setup: Generating Your Age Key
