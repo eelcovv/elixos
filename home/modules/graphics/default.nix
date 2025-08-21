@@ -4,9 +4,9 @@
   lib,
   ...
 }: {
-  imports = [
-    ./ptgui
-  ];
+  #imports = [
+  #  ./ptgui
+  #];
   home.packages = with pkgs; [
     imagemagick
     inkscape-with-extensions
