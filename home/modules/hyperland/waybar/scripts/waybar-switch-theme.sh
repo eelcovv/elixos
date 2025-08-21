@@ -31,15 +31,22 @@ ensure_seed_files() {
 }
 
 reload_waybar() {
-  if is_running; then
-    pkill -USR2 -x waybar || true
-    sleep 0.15
+  # 1) Best-effect: if there is a system-service, always use it
+  if systemctl --user status "$WAYBAR_SERVICE" >/dev/null 2>&1; then
+    systemctl --user reload-or-restart "$WAYBAR_SERVICE" >/dev/null 2>&1 || true
     return 0
   fi
-  systemctl --user start "$WAYBAR_SERVICE" >/dev/null 2>&1 || true
-  sleep 0.25
-  is_running || systemctl --user restart "$WAYBAR_SERVICE" >/dev/null 2>&1 || true
+
+  # 2) No service: if a waybar is already running, only 'soft reload'
+  if is_running; then
+    pkill -USR2 -x waybar || true
+    return 0
+  fi
+
+  # 3) Nothing runs: start exactly one separate instance
+  nohup waybar >/dev/null 2>&1 &
 }
+
 
 write_atomic() {
   local dest="$1" tmp; tmp="$(mktemp "${dest}.tmp.XXXX")"
