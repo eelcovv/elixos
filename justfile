@@ -514,7 +514,7 @@ load-env HOST:
 # -- hyperland
 
 reload-waybar:
-    pkill waybar && waybar &
+	systemctl --user reload-or-restart waybar-managed.service
 
 switch-theme theme:
     HOME_THEME={{theme}} home-manager switch --flake ".#eelco@$(hostname)"
