@@ -86,7 +86,8 @@ in {
     Unit = {
       Description = "Fetch wallpapers (central, repo script)";
       # In user scope, network-online.target is unreliable; keep it simple.
-      After = ["hyprland-env.service"];
+      After = ["default.target"];
+
       PartOf = ["hyprland-session.target"];
     };
     Service = {
