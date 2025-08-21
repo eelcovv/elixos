@@ -14,7 +14,7 @@
               content = {
                 type = "filesystem";
                 format = "vfat";
-                mountpoint = "/boot"; # systemd-boot expects /boot
+                mountpoint = "/boot/efi";
                 mountOptions = ["umask=0077"];
               };
             };
@@ -25,9 +25,6 @@
                 type = "luks";
                 name = "cryptroot";
                 settings.allowDiscards = true;
-                askPassword = false;
-                passwordFile = "/tmp/installer/cryptroot.pass";
-                initrdUnlock = true;
                 content = {
                   type = "filesystem";
                   format = "ext4";
@@ -60,9 +57,6 @@
                 type = "luks";
                 name = "crypthome";
                 settings.allowDiscards = true;
-                askPassword = false;
-                passwordFile = "/tmp/installer/crypthome.pass";
-                initrdUnlock = false;
                 content = {
                   type = "filesystem";
                   format = "ext4";

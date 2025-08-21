@@ -245,7 +245,7 @@ prepare-passfiles:
 	  echo -n "$ROOT" > /tmp/installer/cryptroot.pass; \
 	  echo -n "Enter HOME passphrase: " >&2; \
 	  read -rs HOME; echo >&2; \
-	  echo -n "$$HOME" > /tmp/installer/crypthome.pass; \
+	  echo -n "$HOME" > /tmp/installer/crypthome.pass; \
 	  dd if=/dev/urandom bs=64 count=1 of=/tmp/installer/cryptswap.key status=none; \
 	  chmod 600 /tmp/installer/cryptroot.pass /tmp/installer/crypthome.pass /tmp/installer/cryptswap.key; \
 	  echo "✅ Pass/key files ready in /tmp/installer"'
