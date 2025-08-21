@@ -27,7 +27,7 @@
     allUsers = ["eelco" "por"];
     allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo" "generic-vm"];
 
-    enableHM = false;
+    enableHM = true;
 
     hostFiles = {
       tongfang = ./nixos/hosts/tongfang.nix;
