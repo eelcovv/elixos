@@ -38,12 +38,7 @@
               content = {
                 type = "luks";
                 name = "cryptswap";
-                settings = {
-                  allowDiscards = true;
-                  keyFile = "/tmp/installer/cryptswap.key"; # <- moved here
-                };
-                askPassword = false;
-                initrdUnlock = true;
+                settings.allowDiscards = true;
                 content = {
                   type = "swap";
                   resumeDevice = true;
