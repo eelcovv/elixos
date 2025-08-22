@@ -1,7 +1,8 @@
 {pkgs, ...}: {
   home.packages = with pkgs; [
-    freecad-wayland
     blender
+    freecad-wayland
+    openfoam
     paraview
   ];
 }
