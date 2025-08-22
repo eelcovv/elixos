@@ -5,10 +5,6 @@
   pkgs,
   ...
 }: {
-  imports = [
-    ./rootless-podman-storage.nix
-  ];
-
   # Enable Podman and rootless container support
   virtualisation.podman = {
     enable = true;

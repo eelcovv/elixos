@@ -11,6 +11,7 @@
     ./pycharm.nix
     ./python.nix
     ./vscode.nix
+    ./rootless-podman-storage.nix
   ];
 
   home.packages = with pkgs; [
