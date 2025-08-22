@@ -16,6 +16,7 @@ in {
   imports = [
     ./fetcher.nix
   ];
+
   ################
   # Options
   ################
@@ -49,7 +50,7 @@ in {
   # Config
   ################
   config = lib.mkIf config.hyprland.wallpaper.enable {
-    # Do NOT auto-start user units during rebuild (avoid blocking)
+    # Do NOT auto-start user units during rebuild (avoid blocking UI during HM switch)
     systemd.user.startServices = false;
 
     home.packages =
@@ -67,7 +68,7 @@ in {
       ])
       ++ lib.optionals (pkgs ? pywalfox) [pkgs.pywalfox];
 
-    # Scripts -> ~/.local/bin
+    # Install helper scripts into ~/.local/bin
     home.file = lib.mkMerge [
       (installScript "wallpaper.sh")
       (installScript "wallpaper-restore.sh")
@@ -84,7 +85,7 @@ in {
       }
     ];
 
-    # Seed writable settings
+    # Seed writable settings (kept for your scripts; harmless if unused)
     home.activation.wallpaperSettingsSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
       set -eu
       S="$HOME/.config/hypr/settings"
@@ -109,7 +110,7 @@ in {
       fi
     '';
 
-    # Initial seed: defer to central fetcher if empty
+    # If no wallpapers exist, kick the central fetcher once (non-fatal if absent)
     home.activation.wallpapersSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
       set -eu
       WALLS="$HOME/.config/wallpapers"
@@ -119,67 +120,13 @@ in {
       fi
     '';
 
-    # hyprpaper daemon
-    systemd.user.services."hyprpaper" = {
-      Unit = {
-        Description = "Hyprland wallpaper daemon (hyprpaper)";
-        PartOf = ["hyprland-session.target"];
-      };
-      Service = {
-        ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper";
-        Restart = "always";
-        RestartSec = "200ms";
-        TimeoutStartSec = "15s";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
+    # IMPORTANT:
+    # Do NOT define or start wallpaper services here.
+    # Hyprpaper is managed centrally in the Hyprland module to avoid duplicates.
+    # If you ever want to reintroduce a timer, do it via hyprpaper IPC only,
+    # and ensure it 'After=hyprland-session.target' with proper env.
 
-    # Replace the broken wallpaper-restore service: use Waypaper, not wallpaper.sh
-    systemd.user.services."waypaper-restore" = {
-      Unit = {
-        Description = "Restore last wallpaper via Waypaper (Hyprpaper backend)";
-        PartOf = ["hyprland-session.target"];
-        After = ["hyprland-session.target"];
-        ConditionPathExists = "%h/.config/waypaper/config.ini";
-      };
-      Service = {
-        Type = "simple";
-        ExecStart = lib.mkForce "${pkgs.waypaper}/bin/waypaper --restore --backend hyprpaper";
-        StandardOutput = "null";
-        StandardError = "null";
-        Restart = "on-failure";
-        RestartSec = "300ms";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    # Random rotation (service + timer)
-    systemd.user.services."waypaper-random" = {
-      Unit = {
-        Description = "Set a random wallpaper (effect-aware)";
-        After = ["hyprpaper.service"];
-        Requires = ["hyprpaper.service"];
-        PartOf = ["hyprland-session.target"];
-      };
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${config.home.homeDirectory}/.local/bin/wallpaper-random.sh";
-        TimeoutStartSec = "20s";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    systemd.user.timers."waypaper-random" = lib.mkIf config.hyprland.wallpaper.random.enable {
-      Unit = {Description = "Random wallpaper timer";};
-      Timer = {
-        OnBootSec = "1min";
-        OnUnitActiveSec = "${toString config.hyprland.wallpaper.random.intervalSeconds}s";
-        Unit = "waypaper-random.service";
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    # Ensure ~/.local/bin is in PATH
+    # Keep ~/.local/bin in PATH
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }

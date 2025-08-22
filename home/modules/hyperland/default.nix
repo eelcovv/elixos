@@ -7,7 +7,10 @@
   hyprDir = ./.;
   scriptsDir = "${hyprDir}/scripts";
   wallpaperDir = ./wallpapers;
+
+  # Mutable wallpapers live here (user config dir)
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
+  defaultWallpaper = "${wallpaperTargetDir}/default.png";
 in {
   imports = [
     ./waybar
@@ -30,9 +33,12 @@ in {
       matugen
       wallust
       waypaper
+      imagemagick # for fallback wallpaper creation
     ];
 
-    # User session target for Hyprland (user-level)
+    # ---------------------------
+    # Hyprland user session target
+    # ---------------------------
     systemd.user.targets."hyprland-session" = {
       Unit = {
         Description = "Hyprland graphical session (user)";
@@ -42,11 +48,14 @@ in {
       Install = {WantedBy = ["default.target"];};
     };
 
-    # Notifications via systemd
+    # ---------------------------
+    # Notifications (SwayNC)
+    # ---------------------------
     systemd.user.services."swaync" = {
       Unit = {
         Description = "SwayNotificationCenter";
         PartOf = ["hyprland-session.target"];
+        After = ["hyprland-session.target"];
       };
       Service = {
         ExecStart = "${pkgs.swaynotificationcenter}/bin/swaync";
@@ -56,7 +65,9 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    # --- make sure ~/.local/bin ends up in the systemd user environment (for Hyprland exec / binds harmony)
+    # -------------------------------------------------------
+    # Ensure ~/.local/bin ends up in the systemd user PATH
+    # -------------------------------------------------------
     systemd.user.services."import-user-env" = {
       Unit = {
         Description = "Import PATH into systemd user environment";
@@ -64,7 +75,6 @@ in {
       };
       Service = {
         Type = "oneshot";
-        # Export a PATH that includes ~/.local/bin and common Nix profiles, then import it into the user manager
         Environment = [
           "PATH=%h/.local/bin:%h/.nix-profile/bin:/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/usr/bin:/bin"
         ];
@@ -73,14 +83,18 @@ in {
       };
       Install = {WantedBy = ["default.target"];};
     };
-    # --- END NEW
 
+    # ---------------------------
+    # Session environment
+    # ---------------------------
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
       SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/keyring/ssh";
     };
 
-    # Hyprland configs (static files under ~/.config/hypr)
+    # ---------------------------
+    # Hyprland config files
+    # ---------------------------
     xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
     xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
     xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
@@ -89,7 +103,7 @@ in {
     xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
     xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
-    # Sanity check: helper must exist (fail early if missing)
+    # Fail early if helper is missing
     home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
       if [ ! -r "$HOME/.config/hypr/scripts/helper-functions.sh" ]; then
         echo "ERROR: missing helper at ~/.config/hypr/scripts/helper-functions.sh" >&2
@@ -97,17 +111,17 @@ in {
       fi
     '';
 
-    # Install hypr-switch-displays into ~/.local/bin
+    # ---------------------------
+    # Display watcher utilities
+    # ---------------------------
     home.file.".local/bin/hypr-switch-displays" = {
       source = "${scriptsDir}/hypr-switch-displays.sh";
       executable = true;
     };
-
     home.file.".local/bin/hypr-display-watcher" = {
       text = builtins.readFile ./scripts/hypr-display-watcher.sh;
       executable = true;
     };
-
     systemd.user.services."hypr-display-watcher" = {
       Unit = {
         Description = "Auto switch displays on hotplug (Hyprland)";
@@ -122,22 +136,68 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    # hyprpaper config + default wallpaper (Waypaper controls runtime)
+    # ---------------------------
+    # Hyprpaper: single wallpaper manager (daemon)
+    # ---------------------------
+
+    # Config file for hyprpaper
     xdg.configFile."hypr/hyprpaper.conf".text = ''
+      # hyprpaper uses a single global wallpaper; IPC on enables tooling to switch later.
       ipc = on
       splash = false
-      # preload = ${wallpaperTargetDir}/default.png
+      preload = ${defaultWallpaper}
+      wallpaper = ,${defaultWallpaper}
     '';
-    xdg.configFile."${wallpaperTargetDir}/default.png".source = "${wallpaperDir}/nixos.png";
 
-    # Ensure ~/.local/bin is in PATH for the session
+    # Provide default wallpaper from repo (nixos.png)
+    xdg.configFile."${defaultWallpaper}".source = "${wallpaperDir}/nixos.png";
+
+    # Create a fallback if missing (first deploy or manual delete)
+    home.activation.ensureDefaultWallpaper = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      mkdir -p "${wallpaperTargetDir}"
+      if [ ! -f "${defaultWallpaper}" ]; then
+        echo "Creating fallback wallpaper at ${defaultWallpaper}"
+        "${pkgs.imagemagick}/bin/convert" -size 3840x2160 xc:'#202020' "${defaultWallpaper}"
+      fi
+    '';
+
+    # Start hyprpaper inside Hyprland session only
+    systemd.user.services.hyprpaper = {
+      Unit = {
+        Description = "Hyprland wallpaper daemon (hyprpaper)";
+        After = ["graphical-session.target" "hyprland-session.target"];
+        PartOf = ["hyprland-session.target"];
+      };
+      Service = {
+        Type = "simple";
+        Environment = [
+          "XDG_RUNTIME_DIR=%t"
+          "WAYLAND_DISPLAY=wayland-0"
+        ];
+        ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper -c ${config.xdg.configHome}/hypr/hyprpaper.conf";
+        Restart = "on-failure";
+        RestartSec = "2s";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    # Make sure no legacy randomizer/timer is enabled (avoid conflicts)
+    systemd.user.services."waypaper-random".Install.WantedBy = lib.mkForce [];
+    systemd.user.timers."waypaper-random".Install.WantedBy = lib.mkForce [];
+
+    # Best-effort: disable/stop dangling units if present
+    home.activation.disableOtherWallpaperUnits = lib.hm.dag.entryAfter ["reloadSystemd"] ''
+      systemctl --user disable --now waypaper-random.service 2>/dev/null || true
+      systemctl --user disable --now waypaper-random.timer   2>/dev/null || true
+    '';
+
+    # Ensure ~/.local/bin in PATH for interactive session
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
 
-    # Waypaper options (consumed by ./waypaper module)
+    # Keep your module options for future use (no effect on service wiring here)
     hyprland.wallpaper.enable = true;
     hyprland.wallpaper.random.enable = true;
     hyprland.wallpaper.random.intervalSeconds = 1800;
-
     hyprland.wallpaper.fetch.enable = true;
     hyprland.wallpaper.fetch.onCalendar = "daily";
   };
