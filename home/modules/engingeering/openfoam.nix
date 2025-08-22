@@ -63,10 +63,9 @@ in {
       text = ''
         #!/usr/bin/env bash
         # Interactive OpenFOAM shell inside the current directory (mounted at /case).
-        # Usage: cd /path/to/case && of-shell
         set -euo pipefail
         exec podman run --rm -it \
-          --user $(id -u):$(id -g) \
+          --user 0:0 \
           -v "$PWD":/case -w /case \
           ${cfg.image}:${cfg.tag} \
           bash -lc '
@@ -83,19 +82,22 @@ in {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Run a single OpenFOAM command in the current directory non-interactively.
-        # Usage: of-run blockMesh [-help]  |  of-run simpleFoam
         set -euo pipefail
         if [ $# -lt 1 ]; then
           echo "Usage: of-run <command> [args...]" >&2
           exit 2
         fi
         cmd="$*"
-        ${podmanBase} bash -lc '
-          ${sourceOF}
-          echo "[of-run] '"$cmd"'"
-          eval '"$cmd"'
-        '
+        podman run --rm \
+          --user 0:0 \
+          -v "$PWD":/case -w /case \
+          ${cfg.image}:${cfg.tag} \
+          bash -lc '
+            ${sourceOF}
+            cd /case || exit 1
+            echo "[of-run] '"$cmd"'"
+            eval '"$cmd"'
+          '
       '';
     };
 
