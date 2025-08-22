@@ -96,6 +96,7 @@ This NixOS configuration module defines common system settings:
       git
       home-manager
       just
+      ntfs3g
       parted
       rage
       sops
