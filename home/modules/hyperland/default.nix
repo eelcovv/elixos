@@ -134,6 +134,13 @@ in {
       text = builtins.readFile ./scripts/hypr-display-watcher.sh;
       executable = true;
     };
+
+    # NEW: expose calculator script from ./scripts to ~/.local/bin
+    home.file.".local/bin/calculator.sh" = {
+      source = "${scriptsDir}/calculator.sh";
+      executable = true;
+    };
+
     systemd.user.services."hypr-display-watcher" = {
       Unit = {
         Description = "Auto switch displays on hotplug (Hyprland)";
