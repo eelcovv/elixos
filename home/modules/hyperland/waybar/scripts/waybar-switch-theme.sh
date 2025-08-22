@@ -1,110 +1,91 @@
 #!/usr/bin/env bash
-# Switch Waybar theme (family or family/variant). Robust and DEBUG-safe.
+# waybar-switch-theme (link-tree v4.2: loader gebruikt @import "...")
 set -euo pipefail
 
-: "${WAYBAR_THEMES_DIR:=$HOME/.config/waybar/themes}"
-: "${WAYBAR_CFG_DIR:=$HOME/.config/waybar}"
-: "${WAYBAR_SERVICE:=waybar-managed.service}"
-: "${WAYBAR_THEME_DEBUG:=0}"
+: "${WAYBAR_DIR:=$HOME/.config/waybar}"
+: "${THEMES_DIR:=$WAYBAR_DIR/themes}"
+: "${SERVICE:=waybar-managed.service}"
+: "${DEBUG:=0}"
 
-dbg() { [ "$WAYBAR_THEME_DEBUG" = "1" ] && printf 'DEBUG: %s\n' "$*"; }
-die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
-is_running() { pgrep -x waybar >/dev/null 2>&1; }
+[ "$DEBUG" = "2" ] && set -x
+log(){ [ "$DEBUG" = "1" ] && printf 'DEBUG: %s\n' "$*" >&2 || true; }
+die(){ printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
-# Accept "family/variant" or "family variant"
-if [ $# -eq 0 ]; then
-  die "Usage: $(basename "$0") <family>[/<variant>] or <family> <variant>"
+if [ $# -eq 0 ]; then die "Usage: $(basename "$0") <family>[/<variant>] or <family> <variant>"; fi
+if [ $# -ge 2 ]; then SEL="$1/$2"; else SEL="$1"; fi
+
+family="${SEL%%/*}"
+variant=""; [ "$SEL" != "$family" ] && variant="${SEL#*/}"
+
+family_dir="$THEMES_DIR/$family"
+[ -d "$family_dir" ] || die "Theme not found: $family ($family_dir)"
+base_css="$family_dir/style.css"
+[ -f "$base_css" ] || die "Missing base css: $base_css"
+
+var_css=""
+if [ -n "$variant" ]; then
+  [ -d "$family_dir/$variant" ] || die "Variant not found: $family/$variant"
+  [ -f "$family_dir/$variant/style.css" ] || die "Variant css missing: $family/$variant/style.css"
+  var_css="$family_dir/$variant/style.css"
 fi
-if [ $# -ge 2 ]; then
-  sel="$1/$2"
+
+mkdir -p "$WAYBAR_DIR"
+[ -f "$WAYBAR_DIR/colors.css" ] || printf '/* colors */\n' >"$WAYBAR_DIR/colors.css"
+[ -f "$WAYBAR_DIR/modules.jsonc" ] || printf '{}\n' >"$WAYBAR_DIR/modules.jsonc"
+[ -f "$WAYBAR_DIR/waybar-quicklinks.json" ] || printf '[]\n' >"$WAYBAR_DIR/waybar-quicklinks.json"
+
+current="$WAYBAR_DIR/current"
+current_tmp="$WAYBAR_DIR/current.tmp"
+rm -rf "$current_tmp" 2>/dev/null || true
+
+install -d "$current_tmp"
+if [ -d "$THEMES_DIR/assets" ]; then
+  install -d "$current_tmp/themes"
+  ln -sfn "$THEMES_DIR/assets" "$current_tmp/themes/assets"
+fi
+
+install -d "$current_tmp/$family"
+ln -sfn "$THEMES_DIR"               "$current_tmp/$family/themes"
+ln -sfn "$base_css"                  "$current_tmp/$family/style.css"
+ln -sfn "$WAYBAR_DIR/colors.css"     "$current_tmp/$family/colors.css"
+
+if [ -n "$variant" ]; then
+  install -d "$current_tmp/$family/$variant"
+  ln -sfn "$THEMES_DIR"               "$current_tmp/$family/$variant/themes"
+  ln -sfn "$var_css"                  "$current_tmp/$family/$variant/style.css"
+  ln -sfn "$WAYBAR_DIR/colors.css"    "$current_tmp/$family/$variant/colors.css"
+fi
+
+sel_cfg=""
+if [ -n "$variant" ] && [ -f "$family_dir/$variant/config.jsonc" ]; then
+  sel_cfg="$family_dir/$variant/config.jsonc"
+elif [ -f "$family_dir/config.jsonc" ]; then
+  sel_cfg="$family_dir/config.jsonc"
+fi
+
+rm -rf "$current"
+mv -T "$current_tmp" "$current"
+
+# Loader: gebruik @import "..." (zonder url())
+if [ -n "$variant" ]; then
+  printf '/* loader */\n@import "current/%s/%s/style.css";\n' "$family" "$variant" > "$WAYBAR_DIR/style.css"
 else
-  sel="$1"
+  printf '/* loader */\n@import "current/%s/style.css";\n' "$family" > "$WAYBAR_DIR/style.css"
 fi
 
-ensure_seed_files() {
-  mkdir -p "$WAYBAR_CFG_DIR"
-  [ -f "$WAYBAR_CFG_DIR/config.jsonc" ] || printf '{}\n' >"$WAYBAR_CFG_DIR/config.jsonc"
-  [ -f "$WAYBAR_CFG_DIR/style.css" ]   || printf '/* default */\n' >"$WAYBAR_CFG_DIR/style.css"
-  [ -f "$WAYBAR_CFG_DIR/colors.css" ]  || printf '/* default colors */\n' >"$WAYBAR_CFG_DIR/colors.css"
-  ln -sfn "$WAYBAR_CFG_DIR/config.jsonc" "$WAYBAR_CFG_DIR/config"
-  [ -f "$WAYBAR_CFG_DIR/waybar-quicklinks.json" ] || printf '[]\n' >"$WAYBAR_CFG_DIR/waybar-quicklinks.json"
-}
+if [ -n "$sel_cfg" ]; then
+  ln -sfn "$sel_cfg" "$WAYBAR_DIR/config.jsonc"
+else
+  [ -f "$WAYBAR_DIR/config.jsonc" ] || printf '{}\n' >"$WAYBAR_DIR/config.jsonc"
+fi
+ln -sfn "$WAYBAR_DIR/config.jsonc" "$WAYBAR_DIR/config"
 
-reload_waybar() {
-  # 1) Best-effect: if there is a system-service, always use it
-  if systemctl --user status "$WAYBAR_SERVICE" >/dev/null 2>&1; then
-    systemctl --user reload-or-restart "$WAYBAR_SERVICE" >/dev/null 2>&1 || true
-    return 0
-  fi
-
-  # 2) No service: if a waybar is already running, only 'soft reload'
-  if is_running; then
-    pkill -USR2 -x waybar || true
-    return 0
-  fi
-
-  # 3) Nothing runs: start exactly one separate instance
-  nohup waybar >/dev/null 2>&1 &
-}
-
-
-write_atomic() {
-  local dest="$1" tmp; tmp="$(mktemp "${dest}.tmp.XXXX")"
-  cat >"$tmp" && mv -f "$tmp" "$dest"
-}
-
-# Resolve paths
-family="${sel%%/*}"
-variant="" ; [ "$sel" != "$family" ] && variant="${sel#*/}"
-
-base_dir="$WAYBAR_THEMES_DIR/$family"
-var_dir="$WAYBAR_THEMES_DIR/$family/$variant"
-
-base_css="$base_dir/style.css"
-[ -f "$base_css" ] || die "Base style missing: $base_css"
-
-variant_css=""
-if [ -n "$variant" ] && [ -f "$var_dir/style.css" ]; then
-  variant_css="$var_dir/style.css"
+# Reload/start Waybar
+if systemctl --user is-active --quiet "$SERVICE"; then
+  systemctl --user reload-or-restart "$SERVICE" >/dev/null 2>&1 || true
+else
+  systemctl --user start "$SERVICE" >/dev/null 2>&1 || pkill -USR2 -x waybar >/dev/null 2>&1 || true
 fi
 
-dbg "base_css=$base_css"
-[ -n "$variant_css" ] && dbg "variant_css=$variant_css" || dbg "no variant css"
-
-# Copy config.jsonc from family root if present
-if [ -f "$base_dir/config.jsonc" ]; then
-  dbg "copying base config $base_dir/config.jsonc → $WAYBAR_CFG_DIR/config.jsonc"
-  cp -f "$base_dir/config.jsonc" "$WAYBAR_CFG_DIR/config.jsonc"
-fi
-
-# Compose CSS: (variant-without-import) + base
-compose_css() {
-  # strip any import of ../style.css or ./style.css or "style.css"
-  strip_imports() {
-    sed -E '/@import[[:space:]]+url?\((["'\'']?)\.\.\/?style\.css\1\)[[:space:]]*;[[:space:]]*$/d;
-             /@import[[:space:]]+url?\((["'\'']?)\.?\/?style\.css\1\)[[:space:]]*;[[:space:]]*$/d' \
-    | sed -E '/@import[[:space:]]+["'\'']\.\.\/?style\.css["'\''][[:space:]]*;[[:space:]]*$/d;
-              /@import[[:space:]]+["'\'']\.?\/?style\.css["'\''][[:space:]]*;[[:space:]]*$/d'
-  }
-  if [ -n "$variant_css" ]; then
-    strip_imports <"$variant_css"
-  fi
-  cat "$base_css"
-}
-
-# Normalize: drop colors import; rewrite ../assets → absolute
-normalize_css() {
-  local assets_dir="$WAYBAR_THEMES_DIR/assets"
-  sed -E '/@import[[:space:]]+("'\''?)\.?\/?colors\.css\1;[[:space:]]*$/d' \
-  | sed -E "s,url\((['\"]?)\.\.\/assets\/,url(\1$(printf '%s' "$assets_dir" | sed 's/[.[\*^$()+?{}|]/\\&/g')\/,g"
-}
-
-ensure_seed_files
-dbg "compose css"
-compose_css | normalize_css | write_atomic "$WAYBAR_CFG_DIR/style.css"
-
-dbg "reload waybar"
-reload_waybar
-
-printf 'Waybar theme: Applied: %s\n' "$sel"
+printf 'Waybar theme: Applied: %s\n' "$SEL"
 
