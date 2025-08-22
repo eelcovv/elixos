@@ -90,7 +90,7 @@ in {
     # Waypaper options (consumed by ./waypaper)
     hyprland.wallpaper.enable = true;
     hyprland.wallpaper.random.enable = true;
-    hyprland.wallpaper.random.intervalSeconds = 300;
+    hyprland.wallpaper.random.intervalSeconds = 1800;
 
     hyprland.wallpaper.fetch.enable = true;
     hyprland.wallpaper.fetch.onCalendar = "daily";
