@@ -11,15 +11,9 @@
   imageRef = "${cfg.image}:${cfg.tag}";
 
   # Source OpenFOAM environment inside the container (best-effort)
-  # IMPORTANT: escape $ to avoid expansion by the outer shell (set -u)
+  # Keep the list on a single line to avoid Bash parsing issues.
   sourceOF = ''
-    for p in \
-      /usr/lib/openfoam/openfoam*/etc/bashrc \
-      /opt/OpenFOAM-*/etc/bashrc \
-      /opt/openfoam*/etc/bashrc \
-      /usr/share/openfoam*/etc/bashrc \
-      /usr/bin/openfoam \
-    ; do
+    for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do
       if [ -f "\$p" ]; then
         # shellcheck source=/dev/null
         source "\$p" >/dev/null 2>&1 || true
