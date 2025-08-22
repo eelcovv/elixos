@@ -6,19 +6,17 @@
   ...
 }: let
   inherit (lib) mkEnableOption mkIf mkOption types;
-
   cfg = config.engineering.openfoam;
 
-  # Compose full image reference from options
+  # Full image reference (OpenCFD official image)
   imageRef = "${cfg.image}:${cfg.tag}";
 in {
   # -----------------------------
-  # Module options (public API)
+  # Module options
   # -----------------------------
   options.engineering.openfoam = {
     enable = mkEnableOption "OpenFOAM helpers (Podman-based)";
 
-    # OpenCFD tags like: 2312, 2406, 2412, ...
     tag = mkOption {
       type = types.str;
       default = "2406";
@@ -33,99 +31,71 @@ in {
   };
 
   # -----------------------------
-  # Module implementation
+  # Implementation
   # -----------------------------
   config = mkIf cfg.enable {
-    # Tools in PATH for the user
+    # Tools in PATH
     home.packages = with pkgs; [
       podman
-      skopeo
       coreutils
       bashInteractive
     ];
 
-    # of-shell: verbose + keep-id with timeout + fallback, with environment toggle
+    # of-shell: run as root in the container for maximum compatibility
     home.file.".local/bin/of-shell" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Interactive OpenFOAM shell; try keep-id (with timeout), fallback if needed.
+        # Interactive OpenFOAM shell (root in container). Simple and reliable.
+        # NOTE: files created in /case will be owned by root:root on the host.
+        #       Use 'of-fix-perms' afterwards if needed.
         set -euo pipefail
-
-        # Allow forcing fallback: export OPENFOAM_NO_KEEPID=1
-        if [ "''${OPENFOAM_NO_KEEPID:-0}" = "1" ]; then
-          echo "[of-shell] MODE=fallback (OPENFOAM_NO_KEEPID=1)"
-          exec podman run --rm -it \
-            --user "$(id -u):$(id -g)" \
-            -v "$PWD":/case -w /case \
-            ${imageRef} \
-            bash -lc 'for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f "$p" ]; then source "$p" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo "[of-shell] cwd=$(pwd), uid=$(id -u), gid=$(id -g)"; exec bash -i'
-        fi
-
-        echo "[of-shell] Trying MODE=keep-id (20s timeout)…"
-        if timeout 20s podman run --rm -it \
-          --userns=keep-id \
-          --user "$(id -u):$(id -g)" \
-          -v "$PWD":/case -w /case \
-          ${imageRef} \
-          bash -lc 'for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f "$p" ]; then source "$p" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo "[of-shell] MODE=keep-id OK, cwd=$(pwd), uid=$(id -u), gid=$(id -g)"; exec bash -i'
-        then
-          exit 0
-        fi
-
-        echo "[of-shell] keep-id failed or timed out → MODE=fallback"
         exec podman run --rm -it \
-          --user "$(id -u):$(id -g)" \
+          --user 0:0 \
           -v "$PWD":/case -w /case \
           ${imageRef} \
-          bash -lc 'for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f "$p" ]; then source "$p" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo "[of-shell] MODE=fallback OK, cwd=$(pwd), uid=$(id -u), gid=$(id -g)"; exec bash -i'
+          bash -lc 'for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f "$p" ]; then source "$p" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo "[of-shell] cwd=$(pwd), uid=$(id -u), gid=$(id -g)"; exec bash -i'
       '';
     };
 
-    # of-run: same behavior for one-shot commands
+    # of-run: run a single OpenFOAM command (root in container)
     home.file.".local/bin/of-run" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Run an OpenFOAM command; try keep-id (with timeout), fallback if needed.
+        # Run an OpenFOAM command in the current directory (root in container).
+        # NOTE: files created in /case will be owned by root:root on the host.
         set -euo pipefail
         if [ $# -lt 1 ]; then
           echo "Usage: of-run <command> [args...]" >&2
           exit 2
         fi
         cmd="$*"
-
-        # Allow forcing fallback: export OPENFOAM_NO_KEEPID=1
-        if [ "''${OPENFOAM_NO_KEEPID:-0}" = "1" ]; then
-          echo "[of-run] MODE=fallback (OPENFOAM_NO_KEEPID=1) → $cmd"
-          exec podman run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$PWD":/case -w /case \
-            ${imageRef} \
-            bash -lc "for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f \"\$p\" ]; then source \"\$p\" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo \"[of-run] cwd=\$(pwd), uid=\$(id -u), gid=\$(id -g)\"; echo \"[of-run] \$cmd\"; eval \$cmd"
-        fi
-
-        echo "[of-run] Trying MODE=keep-id (20s timeout) → $cmd"
-        if timeout 20s podman run --rm \
-          --userns=keep-id \
-          --user "$(id -u):$(id -g)" \
-          -v "$PWD":/case -w /case \
-          ${imageRef} \
-          bash -lc "for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f \"\$p\" ]; then source \"\$p\" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo \"[of-run] MODE=keep-id OK, cwd=\$(pwd), uid=\$(id -u), gid=\$(id -g)\"; echo \"[of-run] \$cmd\"; eval \$cmd"
-        then
-          exit 0
-        fi
-
-        echo "[of-run] keep-id failed or timed out → MODE=fallback → $cmd"
         exec podman run --rm \
-          --user "$(id -u):$(id -g)" \
+          --user 0:0 \
           -v "$PWD":/case -w /case \
           ${imageRef} \
-          bash -lc "for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f \"\$p\" ]; then source \"\$p\" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo \"[of-run] MODE=fallback OK, cwd=\$(pwd), uid=\$(id -u), gid=\$(id -g)\"; echo \"[of-run] \$cmd\"; eval \$cmd"
+          bash -lc "for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f \"\$p\" ]; then source \"\$p\" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo \"[of-run] \$cmd\"; eval \$cmd"
       '';
     };
 
-    # mkfoam helper (tiny convenience)
+    # of-fix-perms: convenience helper to chown the current case back to your user
+    home.file.".local/bin/of-fix-perms" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        # Fix ownership of files created by root-in-container to the current user.
+        # Usage: run from your case directory after container work.
+        set -euo pipefail
+        user_id=$(id -u)
+        group_id=$(id -g)
+        echo "Chowning $(pwd) recursively to ${user_id}:${group_id} ..."
+        chown -R "${user_id}:${group_id}" .
+        echo "Done."
+      '';
+    };
+
+    # mkfoam: tiny helper for ParaView
     home.file.".local/bin/mkfoam" = {
       executable = true;
       text = ''
