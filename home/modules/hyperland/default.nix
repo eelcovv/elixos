@@ -56,6 +56,25 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
+    # --- make sure ~/.local/bin ends up in the systemd user environment (for Hyprland exec / binds harmony)
+    systemd.user.services."import-user-env" = {
+      Unit = {
+        Description = "Import PATH into systemd user environment";
+        After = ["graphical-session.target"];
+      };
+      Service = {
+        Type = "oneshot";
+        # Export a PATH that includes ~/.local/bin and common Nix profiles, then import it into the user manager
+        Environment = [
+          "PATH=%h/.local/bin:%h/.nix-profile/bin:/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/usr/bin:/bin"
+        ];
+        ExecStart = "${pkgs.systemd}/bin/systemctl --user import-environment PATH";
+        RemainAfterExit = true;
+      };
+      Install = {WantedBy = ["default.target"];};
+    };
+    # --- END NEW
+
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
       SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/keyring/ssh";
@@ -79,8 +98,6 @@ in {
     '';
 
     # Install hypr-switch-displays into ~/.local/bin
-    # - Source file lives in your repo at ${hyprDir}/scripts/hypr-switch-displays.sh
-    # - Target is a simple, extension-less command in PATH
     home.file.".local/bin/hypr-switch-displays" = {
       source = "${scriptsDir}/hypr-switch-displays.sh";
       executable = true;
