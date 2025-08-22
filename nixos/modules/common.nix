@@ -90,18 +90,19 @@ This NixOS configuration module defines common system settings:
     environment.systemPackages = with pkgs; let
       inherit (config.system) build;
     in [
-      vim
-      git
-      curl
-      just
-      home-manager
-      sops
-      yq # needed for extracting your sops key
-      rage
-      zsh
       bashInteractive
       coreutils
+      curl
+      git
+      home-manager
+      just
+      parted
+      rage
+      sops
       util-linux
+      vim
+      yq # needed for extracting your sops key
+      zsh
     ];
 
     system.stateVersion = "24.11";
