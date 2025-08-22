@@ -5,6 +5,7 @@
   ...
 }: let
   hyprDir = ./.;
+  scriptsDir = "${hyprDir}/scripts";
   wallpaperDir = ./wallpapers;
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
 in {
@@ -30,7 +31,7 @@ in {
       waypaper
     ];
 
-    # Hyprland session target (user)
+    # User session target for Hyprland (user-level)
     systemd.user.targets."hyprland-session" = {
       Unit = {
         Description = "Hyprland graphical session (user)";
@@ -59,7 +60,7 @@ in {
       SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/keyring/ssh";
     };
 
-    # Hyprland configs
+    # Hyprland configs (static files under ~/.config/hypr)
     xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
     xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
     xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
@@ -68,13 +69,21 @@ in {
     xdg.configFile."hypr/effects".source = "${hyprDir}/effects";
     xdg.configFile."hypr/scripts".source = "${hyprDir}/scripts";
 
-    # Sanity check: helper must exist
+    # Sanity check: helper must exist (fail early if missing)
     home.activation.checkHyprHelper = lib.hm.dag.entryAfter ["linkGeneration"] ''
       if [ ! -r "$HOME/.config/hypr/scripts/helper-functions.sh" ]; then
         echo "ERROR: missing helper at ~/.config/hypr/scripts/helper-functions.sh" >&2
         exit 1
       fi
     '';
+
+    # Install hypr-switch-displays into ~/.local/bin
+    # - Source file lives in your repo at ${hyprDir}/scripts/hypr-switch-displays.sh
+    # - Target is a simple, extension-less command in PATH
+    home.file.".local/bin/hypr-switch-displays" = {
+      source = "${scriptsDir}/hypr-switch-displays.sh";
+      executable = true;
+    };
 
     # hyprpaper config + default wallpaper (Waypaper controls runtime)
     xdg.configFile."hypr/hyprpaper.conf".text = ''
@@ -84,10 +93,10 @@ in {
     '';
     xdg.configFile."${wallpaperTargetDir}/default.png".source = "${wallpaperDir}/nixos.png";
 
-    # PATH
+    # Ensure ~/.local/bin is in PATH for the session
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
 
-    # Waypaper options (consumed by ./waypaper)
+    # Waypaper options (consumed by ./waypaper module)
     hyprland.wallpaper.enable = true;
     hyprland.wallpaper.random.enable = true;
     hyprland.wallpaper.random.intervalSeconds = 1800;
