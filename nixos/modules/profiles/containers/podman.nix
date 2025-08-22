@@ -5,44 +5,51 @@
   pkgs,
   ...
 }: {
+  imports = [
+    ./rootless-podman-storage.nix
+  ];
+
+  # Enable Podman and rootless container support
   virtualisation.podman = {
     enable = true;
-    dockerCompat = true;
+    dockerCompat = true; # Provide a 'docker' shim for Podman
     defaultNetwork.settings.dns_enabled = true;
 
-    # Handig, maar optioneel:
+    # Useful helpers for rootless networking and overlay storage
+    extraPackages = with pkgs; [
+      fuse-overlayfs
+      slirp4netns
+      bubblewrap
+      iptables
+    ];
+
+    # Automatically prune unused images/containers on a schedule
     autoPrune = {
       enable = true;
       dates = "weekly";
     };
-
-    # Zorg dat rootless alle helpers heeft
-    extraPackages = with pkgs; [
-      fuse-overlayfs
-      slirp4netns
-      iptables # vaak al aanwezig, maar zeker voor rootless netwerken
-      bubblewrap
-    ];
   };
 
-  # Forceer overlay storage met fuse-overlayfs als mount-program
+  # Use overlay storage with fuse-overlayfs for rootless containers.
+  # ignore_chown_errors helps avoid failures during ID-mapped layer copies
+  # with certain images that contain special files (e.g., /etc/gshadow-).
   virtualisation.containers.storage.settings = {
     storage = {
       driver = "overlay";
       options = {
         mount_program = "${pkgs.fuse-overlayfs}/bin/fuse-overlayfs";
-        # Als je toch nog chown-foutjes ziet bij exotische images:
-        # ignore_chown_errors = "true";
+        ignore_chown_errors = "true";
       };
     };
   };
 
-  # (meestal al true, maar expliciet kan geen kwaad)
+  # Ensure unprivileged user namespaces are available
   security.unprivilegedUsernsClone = true;
 
-  # Voor de zekerheid voldoende namespaces
+  # Provide a generous amount of user namespaces
   boot.kernel.sysctl."user.max_user_namespaces" = 15000;
 
+  # Tools available on the host
   environment.systemPackages = with pkgs; [
     podman
     podman-compose
