@@ -1,110 +1,99 @@
 #!/usr/bin/env bash
-# Switch Waybar theme (family or family/variant). Robust and DEBUG-safe.
+# waybar-switch-theme (link-tree variant)
+# Simpel & robuust: maak onder ~/.config/waybar/current een symlink-boom
+# die de themes-structuur spiegelt. Zet style.css/config.jsonc in ~/.config/waybar
+# als symlink naar de gekozen variant/family. Imports als ../style.css blijven werken.
 set -euo pipefail
 
-: "${WAYBAR_THEMES_DIR:=$HOME/.config/waybar/themes}"
-: "${WAYBAR_CFG_DIR:=$HOME/.config/waybar}"
-: "${WAYBAR_SERVICE:=waybar-managed.service}"
-: "${WAYBAR_THEME_DEBUG:=0}"
+: "${WAYBAR_DIR:=$HOME/.config/waybar}"
+: "${THEMES_DIR:=$WAYBAR_DIR/themes}"
+: "${SERVICE:=waybar-managed.service}"
+: "${DEBUG:=0}"
 
-dbg() { [ "$WAYBAR_THEME_DEBUG" = "1" ] && printf 'DEBUG: %s\n' "$*"; }
-die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
-is_running() { pgrep -x waybar >/dev/null 2>&1; }
+log(){ [ "$DEBUG" = "1" ] && printf 'DEBUG: %s\n' "$*" >&2; }
+die(){ printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
-# Accept "family/variant" or "family variant"
 if [ $# -eq 0 ]; then
-  die "Usage: $(basename "$0") <family>[/<variant>] or <family> <variant>"
+  die "Usage: $(basename "$0") <family>[ / <variant>]  |  <family> <variant>"
 fi
 if [ $# -ge 2 ]; then
-  sel="$1/$2"
+  SEL="$1/$2"
 else
-  sel="$1"
+  SEL="$1"
 fi
 
-ensure_seed_files() {
-  mkdir -p "$WAYBAR_CFG_DIR"
-  [ -f "$WAYBAR_CFG_DIR/config.jsonc" ] || printf '{}\n' >"$WAYBAR_CFG_DIR/config.jsonc"
-  [ -f "$WAYBAR_CFG_DIR/style.css" ]   || printf '/* default */\n' >"$WAYBAR_CFG_DIR/style.css"
-  [ -f "$WAYBAR_CFG_DIR/colors.css" ]  || printf '/* default colors */\n' >"$WAYBAR_CFG_DIR/colors.css"
-  ln -sfn "$WAYBAR_CFG_DIR/config.jsonc" "$WAYBAR_CFG_DIR/config"
-  [ -f "$WAYBAR_CFG_DIR/waybar-quicklinks.json" ] || printf '[]\n' >"$WAYBAR_CFG_DIR/waybar-quicklinks.json"
-}
+family="${SEL%%/*}"
+variant=""
+[ "$SEL" != "$family" ] && variant="${SEL#*/}"
 
-reload_waybar() {
-  # 1) Best-effect: if there is a system-service, always use it
-  if systemctl --user status "$WAYBAR_SERVICE" >/dev/null 2>&1; then
-    systemctl --user reload-or-restart "$WAYBAR_SERVICE" >/dev/null 2>&1 || true
-    return 0
-  fi
-
-  # 2) No service: if a waybar is already running, only 'soft reload'
-  if is_running; then
-    pkill -USR2 -x waybar || true
-    return 0
-  fi
-
-  # 3) Nothing runs: start exactly one separate instance
-  nohup waybar >/dev/null 2>&1 &
-}
-
-
-write_atomic() {
-  local dest="$1" tmp; tmp="$(mktemp "${dest}.tmp.XXXX")"
-  cat >"$tmp" && mv -f "$tmp" "$dest"
-}
-
-# Resolve paths
-family="${sel%%/*}"
-variant="" ; [ "$sel" != "$family" ] && variant="${sel#*/}"
-
-base_dir="$WAYBAR_THEMES_DIR/$family"
-var_dir="$WAYBAR_THEMES_DIR/$family/$variant"
-
-base_css="$base_dir/style.css"
-[ -f "$base_css" ] || die "Base style missing: $base_css"
-
-variant_css=""
-if [ -n "$variant" ] && [ -f "$var_dir/style.css" ]; then
-  variant_css="$var_dir/style.css"
+family_dir="$THEMES_DIR/$family"
+[ -d "$family_dir" ] || die "Theme not found: $family ($family_dir)"
+base_css="$family_dir/style.css"
+[ -f "$base_css" ] || die "Missing base css: $base_css"
+var_css=""
+if [ -n "$variant" ]; then
+  [ -d "$family_dir/$variant" ] || die "Variant not found: $family/$variant"
+  [ -f "$family_dir/$variant/style.css" ] || die "Variant css missing: $family/$variant/style.css"
+  var_css="$family_dir/$variant/style.css"
 fi
 
-dbg "base_css=$base_css"
-[ -n "$variant_css" ] && dbg "variant_css=$variant_css" || dbg "no variant css"
+# 1) bouw link-tree onder ~/.config/waybar/current
+current="$WAYBAR_DIR/current"
+rm -rf "$current.tmp" 2>/dev/null || true
+mkdir -p "$current.tmp/$family"
 
-# Copy config.jsonc from family root if present
-if [ -f "$base_dir/config.jsonc" ]; then
-  dbg "copying base config $base_dir/config.jsonc → $WAYBAR_CFG_DIR/config.jsonc"
-  cp -f "$base_dir/config.jsonc" "$WAYBAR_CFG_DIR/config.jsonc"
+# assets → symlink naar themes/assets (zodat url('themes/assets/...') werkt)
+if [ -d "$THEMES_DIR/assets" ]; then
+  mkdir -p "$current.tmp/themes"
+  ln -sfn "$THEMES_DIR/assets" "$current.tmp/themes/assets"
 fi
 
-# Compose CSS: (variant-without-import) + base
-compose_css() {
-  # strip any import of ../style.css or ./style.css or "style.css"
-  strip_imports() {
-    sed -E '/@import[[:space:]]+url?\((["'\'']?)\.\.\/?style\.css\1\)[[:space:]]*;[[:space:]]*$/d;
-             /@import[[:space:]]+url?\((["'\'']?)\.?\/?style\.css\1\)[[:space:]]*;[[:space:]]*$/d' \
-    | sed -E '/@import[[:space:]]+["'\'']\.\.\/?style\.css["'\''][[:space:]]*;[[:space:]]*$/d;
-              /@import[[:space:]]+["'\'']\.?\/?style\.css["'\''][[:space:]]*;[[:space:]]*$/d'
-  }
-  if [ -n "$variant_css" ]; then
-    strip_imports <"$variant_css"
-  fi
-  cat "$base_css"
-}
+# family/style.css → symlink naar echte base css
+ln -sfn "$base_css" "$current.tmp/$family/style.css"
 
-# Normalize: drop colors import; rewrite ../assets → absolute
-normalize_css() {
-  local assets_dir="$WAYBAR_THEMES_DIR/assets"
-  sed -E '/@import[[:space:]]+("'\''?)\.?\/?colors\.css\1;[[:space:]]*$/d' \
-  | sed -E "s,url\((['\"]?)\.\.\/assets\/,url(\1$(printf '%s' "$assets_dir" | sed 's/[.[\*^$()+?{}|]/\\&/g')\/,g"
-}
+# variant subdir (optioneel)
+if [ -n "$variant" ]; then
+  mkdir -p "$current.tmp/$family/$variant"
+  ln -sfn "$var_css" "$current.tmp/$family/$variant/style.css"
+fi
 
-ensure_seed_files
-dbg "compose css"
-compose_css | normalize_css | write_atomic "$WAYBAR_CFG_DIR/style.css"
+# (optioneel) family/variant config.jsonc preferentie
+sel_cfg=""
+if [ -n "$variant" ] && [ -f "$family_dir/$variant/config.jsonc" ]; then
+  sel_cfg="$family_dir/$variant/config.jsonc"
+elif [ -f "$family_dir/config.jsonc" ]; then
+  sel_cfg="$family_dir/config.jsonc"
+fi
 
-dbg "reload waybar"
-reload_waybar
+# 2) atomair wisselen van current → current.tmp
+mv -T "$current.tmp" "$current"
 
-printf 'Waybar theme: Applied: %s\n' "$sel"
+# 3) style.css/config.jsonc in ~/.config/waybar als symlink naar de gekozen bron
+if [ -n "$variant" ]; then
+  # style.css → .../current/<family>/<variant>/style.css
+  ln -sfn "$current/$family/$variant/style.css" "$WAYBAR_DIR/style.css"
+else
+  ln -sfn "$current/$family/style.css" "$WAYBAR_DIR/style.css"
+fi
+
+if [ -n "$sel_cfg" ]; then
+  ln -sfn "$sel_cfg" "$WAYBAR_DIR/config.jsonc"
+else
+  # behoud bestaande config.jsonc als er geen theme-config is
+  [ -f "$WAYBAR_DIR/config.jsonc" ] || printf '{}\n' >"$WAYBAR_DIR/config.jsonc"
+fi
+
+# compat symlink
+ln -sfn "$WAYBAR_DIR/config.jsonc" "$WAYBAR_DIR/config"
+[ -f "$WAYBAR_DIR/colors.css" ] || printf '/* colors */\n' >"$WAYBAR_DIR/colors.css"
+[ -f "$WAYBAR_DIR/modules.jsonc" ] || printf '{}\n' >"$WAYBAR_DIR/modules.jsonc"
+
+# 4) reload waybar
+if systemctl --user is-active --quiet "$SERVICE"; then
+  systemctl --user reload-or-restart "$SERVICE" >/dev/null 2>&1 || true
+else
+  pkill -USR2 -x waybar >/dev/null 2>&1 || true
+fi
+
+printf 'Waybar theme: Applied: %s\n' "$SEL"
 
