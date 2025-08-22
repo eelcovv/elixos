@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# waybar-switch-theme (link-tree v3: symlink-boom + loader + colors.css links)
+# waybar-switch-theme (link-tree v4.1: build in current.tmp, then atomic swap)
 # Usage: waybar-switch-theme <family>[/<variant>] | <family> <variant>
 set -euo pipefail
 
@@ -8,14 +8,16 @@ set -euo pipefail
 : "${SERVICE:=waybar-managed.service}"
 : "${DEBUG:=0}"
 
-log(){ [ "$DEBUG" = "1" ] && printf 'DEBUG: %s\n' "$*" >&2; }
+[ "$DEBUG" = "2" ] && set -x
+log(){ [ "$DEBUG" = "1" ] && printf 'DEBUG: %s\n' "$*" >&2 || true; }
 die(){ printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
-# ---- args ----
+# --- args ---
 if [ $# -eq 0 ]; then
   die "Usage: $(basename "$0") <family>[/<variant>] or <family> <variant>"
 fi
 if [ $# -ge 2 ]; then SEL="$1/$2"; else SEL="$1"; fi
+
 family="${SEL%%/*}"
 variant=""
 [ "$SEL" != "$family" ] && variant="${SEL#*/}"
@@ -32,40 +34,42 @@ if [ -n "$variant" ]; then
   var_css="$family_dir/$variant/style.css"
 fi
 
-# Ensure shared files exist in root (used as import target)
+# Ensure shared root files
+mkdir -p "$WAYBAR_DIR"
 [ -f "$WAYBAR_DIR/colors.css" ] || printf '/* colors */\n' >"$WAYBAR_DIR/colors.css"
 [ -f "$WAYBAR_DIR/modules.jsonc" ] || printf '{}\n' >"$WAYBAR_DIR/modules.jsonc"
 [ -f "$WAYBAR_DIR/waybar-quicklinks.json" ] || printf '[]\n' >"$WAYBAR_DIR/waybar-quicklinks.json"
 
-# ---- build link-tree under ~/.config/waybar/current ----
+# --- build link-tree in current.tmp ---
 current="$WAYBAR_DIR/current"
-rm -rf "$current.tmp" 2>/dev/null || true
-mkdir -p "$current.tmp/$family"
+current_tmp="$WAYBAR_DIR/current.tmp"
+rm -rf "$current_tmp" 2>/dev/null || true
 
-# atomair vervangen
-rm -rf "$current"
-mv -T "$current.tmp" "$current"
+# Root level
+install -d "$current_tmp"
 
-
-# assets → symlink, zodat url("themes/assets/...") werkt
+# Root themes/assets (voor paden relatief aan root)
 if [ -d "$THEMES_DIR/assets" ]; then
-  mkdir -p "$current.tmp/themes"
-  ln -sfn "$THEMES_DIR/assets" "$current.tmp/themes/assets"
+  install -d "$current_tmp/themes"
+  ln -sfn "$THEMES_DIR/assets" "$current_tmp/themes/assets"
 fi
 
-# family/style.css → base css
-ln -sfn "$base_css" "$current.tmp/$family/style.css"
-# family/colors.css → link naar root colors.css (voor @import "colors.css" in base)
-ln -sfn "$WAYBAR_DIR/colors.css" "$current.tmp/$family/colors.css"
+# Family level
+install -d "$current_tmp/$family"
+# Zorg dat 'themes/assets' ook vanuit family/ en variant/ klopt
+ln -sfn "$THEMES_DIR" "$current_tmp/$family/themes"
+ln -sfn "$base_css" "$current_tmp/$family/style.css"
+ln -sfn "$WAYBAR_DIR/colors.css" "$current_tmp/$family/colors.css"
 
-# variant/style.css (+ colors.css link) (optioneel)
+# Variant level (optional)
 if [ -n "$variant" ]; then
-  mkdir -p "$current.tmp/$family/$variant"
-  ln -sfn "$var_css" "$current.tmp/$family/$variant/style.css"
-  ln -sfn "$WAYBAR_DIR/colors.css" "$current.tmp/$family/$variant/colors.css"
+  install -d "$current_tmp/$family/$variant"
+  ln -sfn "$THEMES_DIR" "$current_tmp/$family/$variant/themes"
+  ln -sfn "$var_css" "$current_tmp/$family/$variant/style.css"
+  ln -sfn "$WAYBAR_DIR/colors.css" "$current_tmp/$family/$variant/colors.css"
 fi
 
-# (opt) config.jsonc voorkeur: variant → family
+# Prefer config.jsonc: variant → family
 sel_cfg=""
 if [ -n "$variant" ] && [ -f "$family_dir/$variant/config.jsonc" ]; then
   sel_cfg="$family_dir/$variant/config.jsonc"
@@ -73,10 +77,11 @@ elif [ -f "$family_dir/config.jsonc" ]; then
   sel_cfg="$family_dir/config.jsonc"
 fi
 
-# atomair vervangen
-mv -T "$current.tmp" "$current"
+# --- atomic swap: replace current with current.tmp ---
+rm -rf "$current"
+mv -T "$current_tmp" "$current"
 
-# ---- write loader style.css + config symlink ----
+# --- write loader style.css + config link ---
 if [ -n "$variant" ]; then
   printf '/* loader */\n@import url("current/%s/%s/style.css");\n' "$family" "$variant" > "$WAYBAR_DIR/style.css"
 else
@@ -90,7 +95,7 @@ else
 fi
 ln -sfn "$WAYBAR_DIR/config.jsonc" "$WAYBAR_DIR/config"
 
-# ---- reload ----
+# --- reload waybar ---
 if systemctl --user is-active --quiet "$SERVICE"; then
   systemctl --user reload-or-restart "$SERVICE" >/dev/null 2>&1 || true
 else
