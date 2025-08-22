@@ -42,6 +42,11 @@ current="$WAYBAR_DIR/current"
 rm -rf "$current.tmp" 2>/dev/null || true
 mkdir -p "$current.tmp/$family"
 
+# atomair vervangen
+rm -rf "$current"
+mv -T "$current.tmp" "$current"
+
+
 # assets → symlink, zodat url("themes/assets/...") werkt
 if [ -d "$THEMES_DIR/assets" ]; then
   mkdir -p "$current.tmp/themes"
