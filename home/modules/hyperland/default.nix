@@ -11,6 +11,18 @@
   # Mutable wallpapers live here (user config dir)
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
   defaultWallpaper = "${wallpaperTargetDir}/default.png";
+
+  # Wait until Hyprland answers to hyprctl (prevents early-start failures)
+  waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
+    for i in $(seq 1 60); do
+      if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then
+        exit 0
+      fi
+      sleep 0.25
+    done
+    # Do not fail the service; just continue (Hyprland target should guard anyway)
+    exit 0
+  '';
 in {
   imports = [
     ./waybar
@@ -161,7 +173,7 @@ in {
       fi
     '';
 
-    # Start hyprpaper inside Hyprland session only
+    # Start hyprpaper inside Hyprland session only, and wait for Hyprland first
     systemd.user.services.hyprpaper = {
       Unit = {
         Description = "Hyprland wallpaper daemon (hyprpaper)";
@@ -170,6 +182,7 @@ in {
       };
       Service = {
         Type = "simple";
+        ExecStartPre = "${waitForHypr}";
         Environment = [
           "XDG_RUNTIME_DIR=%t"
           "WAYLAND_DISPLAY=wayland-0"
@@ -185,16 +198,30 @@ in {
     systemd.user.services."waypaper-random".Install.WantedBy = lib.mkForce [];
     systemd.user.timers."waypaper-random".Install.WantedBy = lib.mkForce [];
 
-    # Best-effort: disable/stop dangling units if present
-    home.activation.disableOtherWallpaperUnits = lib.hm.dag.entryAfter ["reloadSystemd"] ''
-      systemctl --user disable --now waypaper-random.service 2>/dev/null || true
-      systemctl --user disable --now waypaper-random.timer   2>/dev/null || true
+    # Hard cleanup + mask any legacy units that might still exist in the user dir
+    home.activation.purgeLegacyWallpaperUnits = lib.hm.dag.entryAfter ["reloadSystemd"] ''
+      # Best-effort: stop/disable and mask old units if present
+      systemctl --user stop    waypaper-random.service 2>/dev/null || true
+      systemctl --user stop    waypaper-random.timer   2>/dev/null || true
+      systemctl --user disable waypaper-random.service 2>/dev/null || true
+      systemctl --user disable waypaper-random.timer   2>/dev/null || true
+      systemctl --user mask    waypaper-random.service 2>/dev/null || true
+      systemctl --user mask    waypaper-random.timer   2>/dev/null || true
+
+      # Remove stray unit files that may override HM-managed ones
+      rm -f "$HOME/.config/systemd/user/waypaper-random.service" 2>/dev/null || true
+      rm -f "$HOME/.config/systemd/user/waypaper-random.timer"   2>/dev/null || true
+    '';
+
+    # Reset failed state so HM doesn’t report “degraded” if hyprpaper once failed
+    home.activation.resetFailedWallpaperUnits = lib.hm.dag.entryAfter ["reloadSystemd"] ''
+      systemctl --user reset-failed hyprpaper.service 2>/dev/null || true
     '';
 
     # Ensure ~/.local/bin in PATH for interactive session
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
 
-    # Keep your module options for future use (no effect on service wiring here)
+    # Keep your options (no effect on service wiring here)
     hyprland.wallpaper.enable = true;
     hyprland.wallpaper.random.enable = true;
     hyprland.wallpaper.random.intervalSeconds = 1800;
