@@ -21,6 +21,7 @@ in {
       hyprshot
       hyprlock
       hypridle
+      inotify-tools
       wofi
       brightnessctl
       pavucontrol
@@ -83,6 +84,25 @@ in {
     home.file.".local/bin/hypr-switch-displays" = {
       source = "${scriptsDir}/hypr-switch-displays.sh";
       executable = true;
+    };
+
+    home.file.".local/bin/hypr-display-watcher" = {
+      text = builtins.readFile ./scripts/hypr-display-watcher.sh;
+      executable = true;
+    };
+
+    systemd.user.services."hypr-display-watcher" = {
+      Unit = {
+        Description = "Auto switch displays on hotplug (Hyprland)";
+        PartOf = ["hyprland-session.target"];
+        After = ["hyprland-session.target"];
+      };
+      Service = {
+        ExecStart = "%h/.local/bin/hypr-display-watcher";
+        Restart = "always";
+        RestartSec = 1;
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
     };
 
     # hyprpaper config + default wallpaper (Waypaper controls runtime)

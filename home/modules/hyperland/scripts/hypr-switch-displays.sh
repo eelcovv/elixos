@@ -12,7 +12,7 @@ LAPTOP="eDP-2"
 EXTERNAL="DP-1"
 
 # Adjust modes and scales as needed
-EX_MODE="3440x1440@59.97"
+EX_MODE="3440x1440@120.00"
 EX_SCALE="1"
 LAPTOP_MODE="preferred"
 LAPTOP_SCALE="1"
