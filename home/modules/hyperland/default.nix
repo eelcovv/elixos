@@ -136,7 +136,7 @@ in {
     };
 
     # NEW: expose calculator script from ./scripts to ~/.local/bin
-    home.file.".local/bin/calculator.sh" = {
+    home.file.".local/bin/calculator" = {
       source = "${scriptsDir}/calculator.sh";
       executable = true;
     };
