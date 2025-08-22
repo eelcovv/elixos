@@ -1,3 +1,4 @@
+# home/modules/development/rootless-podman-storage.nix
 {pkgs, ...}: {
   # User-level storage config for rootless Podman (per-user in ~/.config)
   xdg.configFile."containers/storage.conf".text = ''
