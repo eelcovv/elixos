@@ -89,8 +89,8 @@ in {
         set -euo pipefail
         user_id=$(id -u)
         group_id=$(id -g)
-        echo "Chowning $(pwd) recursively to ${user_id}:${group_id} ..."
-        chown -R "${user_id}:${group_id}" .
+        echo "Chowning $(pwd) recursively to ''${user_id}:''${group_id} ..."
+        chown -R "''${user_id}:''${group_id}" .
         echo "Done."
       '';
     };

@@ -6,13 +6,15 @@
 }: {
   imports = [
     ./openfoam.nix
+    ./paraview.nix
   ];
 
   # GUI/engineering tools that you want locally
   home.packages = with pkgs; [
     blender
     freecad-wayland
-    paraview
+    gsettings-desktop-schemas
+    hicolor-icon-theme
   ];
 
   # Enable OpenFOAM helpers; pick the tag you prefer (2312, 2406, 2412, ...)
