@@ -42,9 +42,30 @@ stop_hypridle() {
   fi
 }
 
+# ---- single-instance hyprlock launcher ----
+lock_once() {
+  # Pause media (failing like no player)
+  playerctl --all-players pause >/dev/null 2>&1 || true
+
+  # If Hyprlock is already running: Displays on and ready
+  if pgrep -x hyprlock >/dev/null 2>&1; then
+    notify "Lock" "hyprlock already running → dpms on"
+    hyprctl dispatch dpms on || true
+    return 0
+  fi
+
+  notify "Lock" "starting hyprlock"
+  # Displays so that all monitors draw the lock neatly
+  hyprctl dispatch dpms on || true
+
+  # Start Hyprlock in background;no 'exec', otherwise you will end this script
+  nohup hyprlock >/dev/null 2>&1 &
+}
+
 case "${1:-}" in
   # ---- Waybar endpoints ----
   status)
+    # Mini-delay so that status is correct after Toggle
     sleep 0.1
     if is_running; then
       printf '{"text":"RUNNING","class":"active","tooltip":"Screen locking active\nLeft: Deactivate"}\n'
@@ -65,23 +86,25 @@ case "${1:-}" in
 
   # ---- Hook actions for hypridle.conf ----
   lock)
-    notify "Lock" "hyprlock"
-    exec hyprlock
+    lock_once
     ;;
 
   dpms-off)
     notify "DPMS" "off"
-    exec hyprctl dispatch dpms off
+    hyprctl dispatch dpms off
     ;;
 
   dpms-on)
     notify "DPMS" "on"
-    exec hyprctl dispatch dpms on
+    hyprctl dispatch dpms on
     ;;
 
   suspend)
+    # Lock first, give Hyprlock fraction time to start
+    lock_once
+    sleep 0.3
     notify "Suspend" "systemctl suspend"
-    exec systemctl suspend
+    systemctl suspend
     ;;
 
   *)
