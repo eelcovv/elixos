@@ -17,25 +17,25 @@
     extraGroups = ["wheel" "networkmanager" "audio" "elixos"];
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = config.authorizedKeys.perUser.eelco;
 
-    # Enable subordinate ID ranges for rootless Podman user namespaces
+    # Fallback to [] if `config.authorizedKeys` is not defined on this host
+    openssh.authorizedKeys.keys = config.authorizedKeys.perUser.eelco or [];
+
+    # Rootless Podman user-namespace mapping (correct field names!)
     subUidRanges = [
       {
-        start = 100000;
+        startUid = 100000;
         count = 65536;
       }
     ];
     subGidRanges = [
       {
-        start = 100000;
+        startGid = 100000;
         count = 65536;
       }
     ];
   };
 
-  systemd.tmpfiles.rules = config.authorizedKeys.tmpfilesRules;
-
-  # (Optional) Ensure unprivileged user namespaces are allowed (usually default true)
-  security.unprivilegedUsernsClone = true;
+  # Als je authorized_keys module tmpfiles rules levert: robust fallback
+  systemd.tmpfiles.rules = config.authorizedKeys.tmpfilesRules or [];
 }

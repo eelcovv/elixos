@@ -99,6 +99,7 @@ This NixOS configuration module defines common system settings:
       ntfs3g
       parted
       rage
+      ripgrep
       sops
       util-linux
       vim
