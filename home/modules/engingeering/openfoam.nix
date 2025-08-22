@@ -11,6 +11,7 @@
   imageRef = "${cfg.image}:${cfg.tag}";
 
   # Source OpenFOAM environment inside the container (best-effort)
+  # IMPORTANT: escape $ to avoid expansion by the outer shell (set -u)
   sourceOF = ''
     for p in \
       /usr/lib/openfoam/openfoam*/etc/bashrc \
@@ -19,9 +20,9 @@
       /usr/share/openfoam*/etc/bashrc \
       /usr/bin/openfoam \
     ; do
-      if [ -f "$p" ]; then
+      if [ -f "\$p" ]; then
         # shellcheck source=/dev/null
-        source "$p" >/dev/null 2>&1 || true
+        source "\$p" >/dev/null 2>&1 || true
         break
       fi
     done
@@ -71,7 +72,7 @@ in {
           --user "$(id -u):$(id -g)"
           -v "$PWD":/case -w /case
           ${imageRef}
-          bash -lc "${sourceOF}; cd /case || exit 1; exec bash -i"
+          bash -lc '${sourceOF}; cd /case || exit 1; exec bash -i'
         )
 
         if ! out="$("''${run_keepid[@]}" 2>&1)"; then
@@ -80,7 +81,7 @@ in {
             --user "$(id -u):$(id -g)" \
             -v "$PWD":/case -w /case \
             ${imageRef} \
-            bash -lc "${sourceOF}; cd /case || exit 1; exec bash -i"
+            bash -lc '${sourceOF}; cd /case || exit 1; exec bash -i'
         fi
       '';
     };
