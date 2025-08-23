@@ -37,36 +37,46 @@ in {
       };
     };
 
-    # Install a 'paraview' shim that launches the Flatpak app
     wrapBinary = lib.mkOption {
       type = lib.types.bool;
       default = true;
       description = "Install ~/.local/bin/paraview that runs the Flatpak ParaView.";
     };
+
+    desktopEntries = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Create desktop entries for ParaView Flatpak.";
+      };
+      x11Variant = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Also create a desktop entry that forces the X11 (xcb) backend.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
-    # Ensure the flatpak CLI is available for the user
     home.packages = [pkgs.flatpak];
 
-    # Make sure ~/.local/bin is at the front of PATH so our wrapper is picked up
     home.sessionPath = lib.mkBefore ["${config.home.homeDirectory}/.local/bin"];
 
-    # Add Flathub remote (user scope) if it doesn't exist yet
+    # Make Flatpak-exported .desktop files visible in menus
+    home.sessionVariables.XDG_DATA_DIRS = "$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:$XDG_DATA_DIRS";
+
     home.activation.flatpakUserFlathub = lib.mkIf cfg.addFlathub (lib.hm.dag.entryAfter ["writeBoundary"] ''
       if ! ${flatpakBin} remotes --user --columns=name | grep -qx "flathub"; then
         ${flatpakBin} remote-add --if-not-exists --user flathub ${flathubRepo} || true
       fi
     '');
 
-    # Install ParaView (user scope) if missing
     home.activation.flatpakInstallParaView = lib.hm.dag.entryAfter ["flatpakUserFlathub"] ''
       if ! ${flatpakBin} list --app --user --columns=application | grep -qx "${cfg.appId}"; then
         ${flatpakBin} install -y --user flathub ${cfg.appId} || true
       fi
     '';
 
-    # Optional: user-level auto-update via systemd timer
     systemd.user.services."flatpak-update-user" = lib.mkIf cfg.autoUpdate.enable {
       Unit = {Description = "Flatpak update (user scope)";};
       Service = {
@@ -85,7 +95,6 @@ in {
       Install.WantedBy = ["timers.target"];
     };
 
-    # Convenience launcher to run the Flatpak explicitly
     home.file.".local/bin/paraview-flatpak" = {
       executable = true;
       text = ''
@@ -95,7 +104,6 @@ in {
       '';
     };
 
-    # 'paraview' shim that delegates to the Flatpak app
     home.file.".local/bin/paraview" = lib.mkIf cfg.wrapBinary {
       executable = true;
       text = ''
@@ -103,6 +111,29 @@ in {
         set -euo pipefail
         exec ${flatpakBin} run ${cfg.appId} "$@"
       '';
+    };
+
+    xdg.desktopEntries.paraview-flatpak = lib.mkIf cfg.desktopEntries.enable {
+      name = "ParaView (Flatpak)";
+      genericName = "Data analysis and visualization";
+      comment = "ParaView via Flatpak";
+      exec = "flatpak run ${cfg.appId} %U";
+      icon = cfg.appId;
+      terminal = false;
+      categories = ["Graphics" "Science" "Education"];
+      mimeType = ["application/x-paraview"];
+      startupNotify = true;
+    };
+
+    xdg.desktopEntries.paraview-flatpak-x11 = lib.mkIf (cfg.desktopEntries.enable && cfg.desktopEntries.x11Variant) {
+      name = "ParaView (Flatpak, X11)";
+      genericName = "Data analysis and visualization";
+      comment = "ParaView via Flatpak (forces X11 backend)";
+      exec = "env QT_QPA_PLATFORM=xcb flatpak run ${cfg.appId} %U";
+      icon = cfg.appId;
+      terminal = false;
+      categories = ["Graphics" "Science" "Education"];
+      startupNotify = true;
     };
   };
 }
