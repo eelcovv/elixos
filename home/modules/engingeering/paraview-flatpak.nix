@@ -36,11 +36,21 @@ in {
         description = "systemd OnCalendar for the user-level flatpak update timer.";
       };
     };
+
+    # Install a 'paraview' shim that launches the Flatpak app
+    wrapBinary = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Install ~/.local/bin/paraview that runs the Flatpak ParaView.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
     # Ensure the flatpak CLI is available for the user
     home.packages = [pkgs.flatpak];
+
+    # Make sure ~/.local/bin is at the front of PATH so our wrapper is picked up
+    home.sessionPath = lib.mkBefore ["${config.home.homeDirectory}/.local/bin"];
 
     # Add Flathub remote (user scope) if it doesn't exist yet
     home.activation.flatpakUserFlathub = lib.mkIf cfg.addFlathub (lib.hm.dag.entryAfter ["writeBoundary"] ''
@@ -58,9 +68,7 @@ in {
 
     # Optional: user-level auto-update via systemd timer
     systemd.user.services."flatpak-update-user" = lib.mkIf cfg.autoUpdate.enable {
-      Unit = {
-        Description = "Flatpak update (user scope)";
-      };
+      Unit = {Description = "Flatpak update (user scope)";};
       Service = {
         Type = "oneshot";
         ExecStart = "${flatpakBin} update -y --user";
@@ -79,6 +87,16 @@ in {
 
     # Convenience launcher to run the Flatpak explicitly
     home.file.".local/bin/paraview-flatpak" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+        exec ${flatpakBin} run ${cfg.appId} "$@"
+      '';
+    };
+
+    # 'paraview' shim that delegates to the Flatpak app
+    home.file.".local/bin/paraview" = lib.mkIf cfg.wrapBinary {
       executable = true;
       text = ''
         #!/usr/bin/env bash
