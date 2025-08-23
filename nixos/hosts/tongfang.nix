@@ -48,4 +48,13 @@
       inputs.disko.nixosModules.disko
       inputs.home-manager.nixosModules.home-manager
     ];
+  # 👇 Enable Flatpak profile on this host (uses ../modules/profiles/flatpak.nix)
+  profiles.flatpak = {
+    enable = true;
+    addSystemFlathub = true;
+    portals.hyprland = true;
+    portals.gtk = true;
+    # Optional: install system-scope apps automatically:
+    # systemApps = [ "org.paraview.ParaView" ];
+  };
 }
