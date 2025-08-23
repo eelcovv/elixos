@@ -8,6 +8,7 @@
     ./openfoam.nix
     # ./paraview.nix
     # ./paraview-container.nix
+    ./paraview-flatpak.nix
   ];
 
   # GUI/engineering tools that you want locally
