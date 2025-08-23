@@ -1,0 +1,166 @@
+# home/modules/engingeering/paraview.nix
+{ config, pkgs, lib, ... }:
+
+let
+  cfg = config.engineering.paraview;
+in
+{
+  options.engineering.paraview = {
+    enable = lib.mkEnableOption "ParaView tools (host + optional container launcher)";
+
+    host = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable host-side ParaView support.";
+      };
+      installPackage = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Install pkgs.paraview on the host.";
+      };
+      installPvClean = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Install the 'pv-clean' wrapper that starts ParaView in a clean environment.";
+      };
+    };
+
+    container = {
+      enable = lib.mkEnableOption "Enable pv-container (ParaView in a container)";
+      image = lib.mkOption {
+        type = lib.types.str;
+        default = "local/paraview:24.04";
+        description = ''
+          Container image to run for pv-container.
+          Tip: bouw zelf met een simpel Containerfile:
+            FROM ubuntu:24.04
+            ENV DEBIAN_FRONTEND=noninteractive
+            RUN apt-get update && \
+                apt-get install -y --no-install-recommends paraview mesa-utils && \
+                rm -rf /var/lib/apt/lists/*
+          Build:
+            podman build -t local/paraview:24.04 -f Containerfile
+        '';
+      };
+      runtime = lib.mkOption {
+        type = lib.types.enum [ "podman" "docker" ];
+        default = "podman";
+        description = "Container runtime to use for pv-container.";
+      };
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+
+    # Host packages
+    home.packages =
+      (lib.optionals (cfg.host.enable && cfg.host.installPackage) [ pkgs.paraview ]) ++
+      (lib.optionals (cfg.container.enable && cfg.container.runtime == "podman") [ pkgs.podman ]) ++
+      (lib.optionals (cfg.container.enable && cfg.container.runtime == "docker") [ pkgs.docker ]);
+
+    # Robust host launcher to avoid protobuf/Qt clashes
+    home.file.".local/bin/pv-clean" = lib.mkIf (cfg.host.enable && cfg.host.installPvClean) {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        # Start ParaView in a nearly-empty environment to avoid protobuf/Qt clashes.
+        set -euo pipefail
+
+        # Decide platform (Wayland or X11)
+        platform=""
+        if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ]; then
+          platform="wayland"
+        elif [ -n "${DISPLAY:-}" ]; then
+          platform="xcb"
+        fi
+
+        # Minimal PATH for NixOS
+        PATH_MIN="$HOME/.nix-profile/bin:/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin"
+
+        exec env -i \
+          HOME="$HOME" \
+          USER="$USER" \
+          PATH="$PATH_MIN" \
+          # GUI vars
+          WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-}" \
+          XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" \
+          DISPLAY="${DISPLAY:-}" \
+          XAUTHORITY="${XAUTHORITY:-}" \
+          # Force Qt platform if known
+          QT_QPA_PLATFORM="${platform}" \
+          # Keep it clean
+          LD_LIBRARY_PATH="" \
+          LD_PRELOAD="" \
+          LIBGL_ALWAYS_SOFTWARE=0 \
+          paraview "$@"
+      '';
+    };
+
+    # Container launcher (Wayland/X11 passthrough + /dev/dri)
+    home.file.".local/bin/pv-container" = lib.mkIf cfg.container.enable {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        # ParaView via container (Wayland/X11 passthrough, GPU via /dev/dri)
+        set -euo pipefail
+
+        RUNTIME="${cfg.container.runtime}"
+        IMAGE="${cfg.container.image}"
+
+        # Helper to exec the chosen runtime
+        run() {
+          if [ "$RUNTIME" = "podman" ]; then
+            exec podman "$@"
+          else
+            exec docker "$@"
+          fi
+        }
+
+        # Base mounts
+        mounts=( -v "$PWD":/case -w /case )
+
+        # GPU devices (Intel/AMD/NVIDIA via libglvnd). For NVIDIA, ensure host has the runtime set up.
+        if [ -e /dev/dri ]; then
+          mounts+=( --device /dev/dri )
+        fi
+
+        # Wayland/X11 detection
+        extra_env=( -e HOME=/root )
+        extra_mounts=()
+        if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] \
+           && [ -S "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}" ]; then
+          echo "[pv-container] Wayland: ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}"
+          extra_env+=( -e WAYLAND_DISPLAY -e XDG_RUNTIME_DIR -e QT_QPA_PLATFORM=wayland -e XDG_SESSION_TYPE=wayland )
+          # Map to container's root runtime dir
+          extra_mounts+=( -v "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:/run/user/0/${WAYLAND_DISPLAY}" )
+        else
+          echo "[pv-container] X11 fallback (DISPLAY=${DISPLAY:-})"
+          extra_env+=( -e DISPLAY -e QT_QPA_PLATFORM=xcb )
+          if [ -d /tmp/.X11-unix ]; then
+            extra_mounts+=( -v /tmp/.X11-unix:/tmp/.X11-unix )
+          fi
+          if [ -n "${XAUTHORITY:-}" ]; then
+            extra_env+=( -e XAUTHORITY="${XAUTHORITY}" )
+            mounts+=( -v "${XAUTHORITY}:${XAUTHORITY}:ro" )
+          fi
+        fi
+
+        # Optional theming mounts (best-effort)
+        theme_mounts=()
+        [ -d /usr/share/fonts ] && theme_mounts+=( -v /usr/share/fonts:/usr/share/fonts:ro )
+        [ -d /usr/share/icons ] && theme_mounts+=( -v /usr/share/icons:/usr/share/icons:ro )
+        [ -d /nix/store ] && theme_mounts+=( -v /nix/store:/nix/store:ro )
+
+        # Run ParaView
+        run run --rm -it \
+          --user 0:0 \
+          "''${mounts[@]}" "''${extra_mounts[@]}" "''${theme_mounts[@]}" \
+          "''${extra_env[@]}" \
+          "$IMAGE" \
+          paraview "$@"
+      '';
+    };
+  };
+}
+

@@ -6,7 +6,8 @@
 }: {
   imports = [
     ./openfoam.nix
-    ./paraview-container.nix
+    ./paraview.nix
+    # ./paraview-container.nix
   ];
 
   # GUI/engineering tools that you want locally
