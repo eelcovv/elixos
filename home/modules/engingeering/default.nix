@@ -30,6 +30,8 @@
     #  container.runtime = "podman";
     #};
 
+    paraviewFlatpak.enable = true;
+
     # Enable OpenFOAM helpers; pick the tag you prefer (2312, 2406, 2412, ...)
     openfoam = {
       enable = true;
