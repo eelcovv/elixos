@@ -60,13 +60,14 @@ in {
       ++ (lib.optionals (cfg.container.enable && cfg.container.runtime == "docker") [pkgs.docker]);
 
     # Clean-env host launcher to avoid protobuf/Qt clashes
-    home.file.".local/bin/pv-clean" = lib.mkIf (cfg.host.enable && cfg.host.installPvClean) {
+    home.file.".local/bin/pv-clean" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Start ParaView in a nearly-empty environment to avoid protobuf/Qt clashes.
+        # ParaView in een ultraschone env: blokkeer Qt plugin discovery en protobuf clashes.
         set -euo pipefail
 
+        # Detecteer platform
         platform=""
         if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -n "''${XDG_RUNTIME_DIR:-}" ]; then
           platform="wayland"
@@ -74,20 +75,36 @@ in {
           platform="xcb"
         fi
 
+        # Minimal PATH voor NixOS
         PATH_MIN="''${HOME}/.nix-profile/bin:/etc/profiles/per-user/''${USER}/bin:/run/current-system/sw/bin"
 
+        # Een niet-bestaand pad om Qt-plugin discovery uit te schakelen
+        QT_NOWHERE="/dev/null/qt-plugins"
+
+        # Start met lege env en geef alléén strikt noodzakelijke dingen door.
+        # Belangrijk: we zetten Qt-variabelen expliciet leeg of naar een dood pad.
         exec env -i \
           HOME="''${HOME}" \
           USER="''${USER}" \
           PATH="''${PATH_MIN}" \
+          # GUI-basis
           WAYLAND_DISPLAY="''${WAYLAND_DISPLAY:-}" \
           XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-}" \
           DISPLAY="''${DISPLAY:-}" \
           XAUTHORITY="''${XAUTHORITY:-}" \
+          # Qt: forceer platform en schakel thema-/plugin-detectie uit
           QT_QPA_PLATFORM="''${platform}" \
+          QT_QPA_PLATFORMTHEME="" \
+          QT_STYLE_OVERRIDE="" \
+          QT_PLUGIN_PATH="''${QT_NOWHERE}" \
+          QML2_IMPORT_PATH="''${QT_NOWHERE}" \
+          QML_IMPORT_PATH="''${QT_NOWHERE}" \
+          # Geen externe libs
           LD_LIBRARY_PATH="" \
           LD_PRELOAD="" \
+          # Overig defensief spul
           LIBGL_ALWAYS_SOFTWARE=0 \
+          # Start ParaView
           paraview "''$@"
       '';
     };

@@ -18,8 +18,22 @@
     hicolor-icon-theme
   ];
 
-  # Enable OpenFOAM helpers; pick the tag you prefer (2312, 2406, 2412, ...)
-  engineering.openfoam.enable = true;
-  engineering.openfoam.tag = "2406"; # optional override (default is 2406)
-  # engineering.openfoam.image = "docker.io/opencfd/openfoam-default"; # default
+  engineering = {
+    paraview = {
+      enable = true;
+      host.enable = true;
+      host.installPackage = true;
+      host.installPvClean = true;
+      container.enable = false; # zet op true als je container wilt
+      container.image = "local/paraview:24.04";
+      container.runtime = "podman";
+    };
+
+    # Enable OpenFOAM helpers; pick the tag you prefer (2312, 2406, 2412, ...)
+    openfoam = {
+      enable = true;
+      tag = "2406"; # optional override (default is 2406)
+      # image = "docker.io/opencfd/openfoam-default"; # default
+    };
+  };
 }
