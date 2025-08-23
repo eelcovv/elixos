@@ -1,36 +1,60 @@
-# Launch ParaView inside the image (or fallback to host pv-clean)
-exec podman run --rm -it \
-  --user 0:0 \
-  "${mounts[@]}" "${extra_mounts[@]}" "${theme_mounts[@]}" \
-  "${extra_env[@]}" \
-  "$IMAGE" \
-  bash -lc '
-    # Source openfoam Env as present
-    for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do
-      if [ -f "$p" ]; then
-        source "$p" >/dev/null 2>&1 || true
-        break
+# home/modules/engingeering/paraview-container.nix
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
+  home.file.".local/bin/pv-container" = {
+    executable = true;
+    text = ''
+      #!/usr/bin/env bash
+      # ParaView via container met Wayland/X11 passthrough (zonder OpenFOAM)
+      set -euo pipefail
+
+      IMAGE="''${IMAGE:-docker.io/kitware/paraview:latest}"
+
+      # Project map mount
+      mounts=( -v "$PWD":/case -w /case )
+
+      # GPU doorgeven (Intel/AMD/NVIDIA via /dev/dri)
+      if [ -e /dev/dri ]; then
+        mounts+=( --device /dev/dri )
       fi
-    done
-    cd /case || exit 1
-    if command -v paraview >/dev/null 2>&1; then
-      exec paraview
-    else
-      echo "[of-paraview] Paraview is missing in $ image-fall back on host (pv-clean)..." >&2
-      exit 127
-    fi
-  '
 
-# When we come here (exit 127), try Host Paraview
-status=$?
-if [ $status -eq 127 ]; then
-  if command -v pv-clean >/dev/null 2>&1; then
-    exec pv-clean
-  else
-    echo "[of-paraview] pv-clean niet gevonden en container heeft geen ParaView. Installeer 'paraview' op host of gebruik een image met ParaView." >&2
-    exit 1
-  fi
-else
-  exit $status
-fi
+      # Wayland/X11 detectie
+      extra_env=( -e HOME=/root )
+      extra_mounts=()
+      if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -n "''${XDG_RUNTIME_DIR:-}" ] \
+         && [ -S "''${XDG_RUNTIME_DIR}/''${WAYLAND_DISPLAY}" ]; then
+        echo "[pv-container] Wayland: ''${XDG_RUNTIME_DIR}/''${WAYLAND_DISPLAY}"
+        extra_env+=( -e WAYLAND_DISPLAY -e XDG_RUNTIME_DIR -e QT_QPA_PLATFORM=wayland -e XDG_SESSION_TYPE=wayland )
+        extra_mounts+=( -v "''${XDG_RUNTIME_DIR}/''${WAYLAND_DISPLAY}:/run/user/0/''${WAYLAND_DISPLAY}" )
+      else
+        echo "[pv-container] X11 fallback (DISPLAY=''${DISPLAY:-})"
+        extra_env+=( -e DISPLAY -e QT_QPA_PLATFORM=xcb )
+        if [ -d /tmp/.X11-unix ]; then
+          extra_mounts+=( -v /tmp/.X11-unix:/tmp/.X11-unix )
+        fi
+        if [ -n "''${XAUTHORITY:-}" ]; then
+          extra_env+=( -e XAUTHORITY )
+          mounts+=( -v "''${XAUTHORITY}:''${XAUTHORITY}:ro" )
+        fi
+      fi
 
+      # Optionele theming mounts
+      theme_mounts=()
+      [ -d /usr/share/fonts ] && theme_mounts+=( -v /usr/share/fonts:/usr/share/fonts:ro )
+      [ -d /usr/share/icons ] && theme_mounts+=( -v /usr/share/icons:/usr/share/icons:ro )
+      [ -d /nix/store ] && theme_mounts+=( -v /nix/store:/nix/store:ro )
+
+      # Start ParaView
+      exec podman run --rm -it \
+        --user 0:0 \
+        "''${mounts[@]}" "''${extra_mounts[@]}" "''${theme_mounts[@]}" \
+        "''${extra_env[@]}" \
+        "$IMAGE" \
+        paraview "$@"
+    '';
+  };
+}
