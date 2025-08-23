@@ -6,7 +6,6 @@
 }: {
   imports = [
     ./openfoam.nix
-    ./paraview.nix
   ];
 
   # GUI/engineering tools that you want locally
@@ -15,6 +14,7 @@
     freecad-wayland
     gsettings-desktop-schemas
     hicolor-icon-theme
+    paraview
   ];
 
   # Enable OpenFOAM helpers; pick the tag you prefer (2312, 2406, 2412, ...)

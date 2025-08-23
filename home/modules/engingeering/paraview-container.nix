@@ -5,7 +5,7 @@
   lib,
   ...
 }: {
-  # Containerized ParaView launcher (Wayland/X11 passthrough)
+  # Containerized ParaView launcher (Wayland/X11 passthrough) — robust mounts
   home.file.".local/bin/of-paraview" = {
     executable = true;
     text = ''
@@ -16,32 +16,40 @@
 
       IMAGE="''${IMAGE:-docker.io/opencfd/openfoam-default:2406}"
 
-      # Common mounts: project directory and GPU devices for acceleration
-      mounts=(
-        -v "$PWD":/case -w /case
-        --device /dev/dri
-      )
+      # Base mounts (project dir)
+      mounts=( -v "$PWD":/case -w /case )
 
-      # Detect Wayland or X11 and set up environment/mounts accordingly
-      if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -n "''${XDG_RUNTIME_DIR:-}" ] && [ -S "''${XDG_RUNTIME_DIR}/''${WAYLAND_DISPLAY}" ]; then
-        echo "[of-paraview] Using Wayland socket: $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
-        extra_env=( -e WAYLAND_DISPLAY -e XDG_RUNTIME_DIR -e HOME=/root -e QT_QPA_PLATFORM=wayland )
-        # Map the Wayland socket into the container (root inside: /run/user/0)
-        extra_mounts=( -v "''${XDG_RUNTIME_DIR}/''${WAYLAND_DISPLAY}:/run/user/0/''${WAYLAND_DISPLAY}" )
-      else
-        echo "[of-paraview] Falling back to X11 via XWayland (DISPLAY=$DISPLAY)"
-        extra_env=( -e DISPLAY -e HOME=/root -e QT_QPA_PLATFORM=xcb )
-        extra_mounts=( -v /tmp/.X11-unix:/tmp/.X11-unix )
+      # GPU devices if present (Intel/AMD/NVIDIA via libglvnd); ignore if missing
+      if [ -e /dev/dri ]; then
+        mounts+=( --device /dev/dri )
       fi
 
-      # Optional theming mounts (fonts/icons); harmless if missing
-      theme_mounts=(
-        -v /run/fonts:/run/fonts:ro
-        -v /usr/share/fonts:/usr/share/fonts:ro
-        -v /nix/store:/nix/store:ro
-      )
+      # Wayland vs X11 detection
+      extra_env=( -e HOME=/root )
+      extra_mounts=()
+      if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -n "''${XDG_RUNTIME_DIR:-}" ] \
+         && [ -S "''${XDG_RUNTIME_DIR}/''${WAYLAND_DISPLAY}" ]; then
+        echo "[of-paraview] Using Wayland socket: $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
+        extra_env+=( -e WAYLAND_DISPLAY -e XDG_RUNTIME_DIR -e QT_QPA_PLATFORM=wayland -e XDG_SESSION_TYPE=wayland )
+        # Map host user's Wayland socket into container root's runtime dir
+        extra_mounts+=( -v "''${XDG_RUNTIME_DIR}/''${WAYLAND_DISPLAY}:/run/user/0/''${WAYLAND_DISPLAY}" )
+      else
+        echo "[of-paraview] Falling back to X11 (DISPLAY=$DISPLAY)"
+        extra_env+=( -e DISPLAY -e QT_QPA_PLATFORM=xcb )
+        if [ -d /tmp/.X11-unix ]; then
+          extra_mounts+=( -v /tmp/.X11-unix:/tmp/.X11-unix )
+        fi
+      fi
 
-      # Run ParaView inside the container
+      # Optional theming mounts — only if they exist
+      theme_mounts=()
+      [ -d /usr/share/fonts ] && theme_mounts+=( -v /usr/share/fonts:/usr/share/fonts:ro )
+      [ -d /run/fonts ] && theme_mounts+=( -v /run/fonts:/run/fonts:ro )
+      [ -d /usr/share/icons ] && theme_mounts+=( -v /usr/share/icons:/usr/share/icons:ro )
+      # Nix store is immutable; mounting read-only is safe, but not strictly nodig
+      [ -d /nix/store ] && theme_mounts+=( -v /nix/store:/nix/store:ro )
+
+      # Launch ParaView inside the OpenFOAM image
       exec podman run --rm -it \
         --user 0:0 \
         "''${mounts[@]}" "''${extra_mounts[@]}" "''${theme_mounts[@]}" \
