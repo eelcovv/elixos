@@ -24,7 +24,12 @@ in {
       installPvClean = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Install the 'pv-clean' wrapper that starts ParaView in a clean environment.";
+        description = "Install the 'pv-clean' launcher that starts ParaView in a clean environment.";
+      };
+      wrapDefault = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Install a 'paraview' shim that delegates to pv-clean to avoid protobuf/Qt clashes.";
       };
     };
 
@@ -54,20 +59,24 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # Ensure required packages are present
     home.packages =
       (lib.optionals (cfg.host.enable && cfg.host.installPackage) [pkgs.paraview])
       ++ (lib.optionals (cfg.container.enable && cfg.container.runtime == "podman") [pkgs.podman])
       ++ (lib.optionals (cfg.container.enable && cfg.container.runtime == "docker") [pkgs.docker]);
 
+    # Ensure ~/.local/bin takes precedence in PATH so our wrappers are found first
+    home.sessionPath = lib.mkBefore ["${config.home.homeDirectory}/.local/bin"];
+
     # Clean-env host launcher to avoid protobuf/Qt clashes
-    home.file.".local/bin/pv-clean" = {
+    home.file.".local/bin/pv-clean" = lib.mkIf (cfg.host.enable && cfg.host.installPvClean) {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # ParaView in een ultraschone env: blokkeer Qt plugin discovery en protobuf clashes.
+        # ParaView in an ultra-clean environment: block Qt plugin discovery and avoid protobuf clashes.
         set -euo pipefail
 
-        # Detecteer platform
+        # Select platform (Wayland vs X11)
         platform=""
         if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -n "''${XDG_RUNTIME_DIR:-}" ]; then
           platform="wayland"
@@ -75,37 +84,47 @@ in {
           platform="xcb"
         fi
 
-        # Minimal PATH voor NixOS
+        # Minimal PATH for NixOS
         PATH_MIN="''${HOME}/.nix-profile/bin:/etc/profiles/per-user/''${USER}/bin:/run/current-system/sw/bin"
 
-        # Een niet-bestaand pad om Qt-plugin discovery uit te schakelen
+        # Point Qt plugin discovery to a non-existent directory
         QT_NOWHERE="/dev/null/qt-plugins"
 
-        # Start met lege env en geef alléén strikt noodzakelijke dingen door.
-        # Belangrijk: we zetten Qt-variabelen expliciet leeg of naar een dood pad.
+        # Start with an empty environment and pass only the essentials
         exec env -i \
           HOME="''${HOME}" \
           USER="''${USER}" \
           PATH="''${PATH_MIN}" \
-          # GUI-basis
+          # GUI basics
           WAYLAND_DISPLAY="''${WAYLAND_DISPLAY:-}" \
           XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-}" \
           DISPLAY="''${DISPLAY:-}" \
           XAUTHORITY="''${XAUTHORITY:-}" \
-          # Qt: forceer platform en schakel thema-/plugin-detectie uit
+          # Qt hardening
           QT_QPA_PLATFORM="''${platform}" \
           QT_QPA_PLATFORMTHEME="" \
           QT_STYLE_OVERRIDE="" \
           QT_PLUGIN_PATH="''${QT_NOWHERE}" \
           QML2_IMPORT_PATH="''${QT_NOWHERE}" \
           QML_IMPORT_PATH="''${QT_NOWHERE}" \
-          # Geen externe libs
+          # Library cleanliness
           LD_LIBRARY_PATH="" \
           LD_PRELOAD="" \
-          # Overig defensief spul
+          # Defensive
           LIBGL_ALWAYS_SOFTWARE=0 \
-          # Start ParaView
+          # Launch ParaView
           paraview "''$@"
+      '';
+    };
+
+    # Replace the default 'paraview' with a tiny shim that always calls pv-clean
+    home.file.".local/bin/paraview" = lib.mkIf (cfg.host.enable && cfg.host.wrapDefault) {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        # Always start ParaView via the clean launcher to avoid segfaults/clashes.
+        set -euo pipefail
+        exec pv-clean "''$@"
       '';
     };
 
@@ -128,12 +147,15 @@ in {
           fi
         }
 
+        # Base mounts (project workdir)
         mounts=( -v "''${PWD}":/case -w /case )
 
+        # GPU devices (Intel/AMD/NVIDIA via /dev/dri)
         if [ -e /dev/dri ]; then
           mounts+=( --device /dev/dri )
         fi
 
+        # Wayland/X11 detection
         extra_env=( -e HOME=/root )
         extra_mounts=()
         if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -n "''${XDG_RUNTIME_DIR:-}" ] \
@@ -153,11 +175,13 @@ in {
           fi
         fi
 
+        # Optional theming mounts (best-effort)
         theme_mounts=()
         [ -d /usr/share/fonts ] && theme_mounts+=( -v /usr/share/fonts:/usr/share/fonts:ro )
         [ -d /usr/share/icons ] && theme_mounts+=( -v /usr/share/icons:/usr/share/icons:ro )
         [ -d /nix/store ] && theme_mounts+=( -v /nix/store:/nix/store:ro )
 
+        # Launch ParaView inside the container
         run run --rm -it \
           --user 0:0 \
           "''${mounts[@]}" "''${extra_mounts[@]}" "''${theme_mounts[@]}" \
