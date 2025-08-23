@@ -6,7 +6,7 @@
 }: {
   imports = [
     ./openfoam.nix
-    ./paraview.nix
+    # ./paraview.nix
     # ./paraview-container.nix
   ];
 
@@ -19,15 +19,15 @@
   ];
 
   engineering = {
-    paraview = {
-      enable = true;
-      host.enable = true;
-      host.installPackage = true;
-      host.installPvClean = true;
-      container.enable = false; # zet op true als je container wilt
-      container.image = "local/paraview:24.04";
-      container.runtime = "podman";
-    };
+    #paraview = {
+    #  enable = true;
+    #  host.enable = true;
+    #  host.installPackage = true;
+    #  host.installPvClean = true;
+    #  container.enable = false; # zet op true als je container wilt
+    #  container.image = "local/paraview:24.04";
+    #  container.runtime = "podman";
+    #};
 
     # Enable OpenFOAM helpers; pick the tag you prefer (2312, 2406, 2412, ...)
     openfoam = {

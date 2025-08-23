@@ -69,62 +69,46 @@ in {
     home.sessionPath = lib.mkBefore ["${config.home.homeDirectory}/.local/bin"];
 
     # Clean-env host launcher to avoid protobuf/Qt clashes
-    home.file.".local/bin/pv-clean" = lib.mkIf (cfg.host.enable && cfg.host.installPvClean) {
+    home.file.".local/bin/pv-clean" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # ParaView in an ultra-clean environment: block Qt plugin discovery and avoid protobuf clashes.
+        # Ultra-clean env to avoid protobuf/Qt clashes.
         set -euo pipefail
-
-        # Select platform (Wayland vs X11)
-        platform=""
-        if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -n "''${XDG_RUNTIME_DIR:-}" ]; then
-          platform="wayland"
-        elif [ -n "''${DISPLAY:-}" ]; then
-          platform="xcb"
-        fi
 
         # Minimal PATH for NixOS
         PATH_MIN="''${HOME}/.nix-profile/bin:/etc/profiles/per-user/''${USER}/bin:/run/current-system/sw/bin"
 
-        # Point Qt plugin discovery to a non-existent directory
+        # Disable Qt plugin discovery
         QT_NOWHERE="/dev/null/qt-plugins"
 
-        # Start with an empty environment and pass only the essentials
         exec env -i \
           HOME="''${HOME}" \
           USER="''${USER}" \
           PATH="''${PATH_MIN}" \
-          # GUI basics
-          WAYLAND_DISPLAY="''${WAYLAND_DISPLAY:-}" \
-          XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-}" \
           DISPLAY="''${DISPLAY:-}" \
           XAUTHORITY="''${XAUTHORITY:-}" \
-          # Qt hardening
-          QT_QPA_PLATFORM="''${platform}" \
+          WAYLAND_DISPLAY="" \
+          XDG_RUNTIME_DIR="" \
+          QT_QPA_PLATFORM="xcb" \
           QT_QPA_PLATFORMTHEME="" \
           QT_STYLE_OVERRIDE="" \
           QT_PLUGIN_PATH="''${QT_NOWHERE}" \
           QML2_IMPORT_PATH="''${QT_NOWHERE}" \
           QML_IMPORT_PATH="''${QT_NOWHERE}" \
-          # Library cleanliness
           LD_LIBRARY_PATH="" \
           LD_PRELOAD="" \
-          # Defensive
           LIBGL_ALWAYS_SOFTWARE=0 \
-          # Launch ParaView
           paraview "''$@"
       '';
     };
 
-    # Replace the default 'paraview' with a tiny shim that always calls pv-clean
-    home.file.".local/bin/paraview" = lib.mkIf (cfg.host.enable && cfg.host.wrapDefault) {
+    home.file.".local/bin/paraview" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Always start ParaView via the clean launcher to avoid segfaults/clashes.
         set -euo pipefail
-        exec pv-clean "''$@"
+        exec env QT_QPA_PLATFORM=xcb pv-clean "''$@"
       '';
     };
 
