@@ -1,22 +1,28 @@
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   programs.direnv = {
     enable = true;
     nix-direnv = {
       enable = true;
-      package = pkgs.nix-direnv; # jouw override mag ook
     };
     config.global.hide_env_diff = true;
   };
 
   home.file.".direnvrc".text = ''
-    source "$(direnv stdlib)"
+    # Load the DirenV STDLIB (Correct): Evaluate the content
+    eval "$(direnv stdlib)"
 
-    # Helper om .venv (projectroot) te gebruiken via uv
+    # Helper to make/activate .venv automatically via uv
     layout_my_venv() {
       local venv=".venv"
       if [ ! -f "$venv/bin/activate" ]; then
         uv venv
       fi
+      # shellcheck disable=SC1091
       source "$venv/bin/activate"
     }
   '';
