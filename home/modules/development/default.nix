@@ -20,5 +20,6 @@
     wget
     tree
     direnv
+    gnumake
   ];
 }
