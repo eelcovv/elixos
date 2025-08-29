@@ -1,12 +1,14 @@
 # home/modules/uv.nix
 {pkgs, ...}: let
-  # Small helper wrappers to make system-only uv usage trivial.
   uvWrappers = [
     (pkgs.writeShellScriptBin "uv-system" ''
       # Always use only system interpreters (never download CPython).
       set -euo pipefail
-      export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE: -only-system}"
-      export UV_PYTHON_DOWNLOADS="${UV_PYTHON_DOWNLOADS: -never}"
+      export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE: -only-system}" # Nix interpolatie: OK (links)
+      export UV_PYTHON_DOWNLOADS="${UV_PYTHON_DOWNLOADS: -never}"         # Nix interpolatie: OK (links)
+      # Maar de rechters zijn Bash vars en moeten letterlijk zijn:
+      export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE: -only-system}"
+      export UV_PYTHON_DOWNLOADS="\${UV_PYTHON_DOWNLOADS: -never}"
       exec ${pkgs.uv}/bin/uv --system "$@"
     '')
 
@@ -20,13 +22,13 @@
         exit 2
       fi
       ver="$1"; shift
-      py_path="$(command -v "python${ver}" || true)"
+      py_path="$(command -v "python\${ver}" || true)"
       if [ -z "$py_path" ]; then
-        echo "python${ver} not found on PATH (install it via Home-Manager)" >&2
+        echo "python\${ver} not found on PATH (install it via Home-Manager)" >&2
         exit 1
       fi
-      export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE: -only-system}"
-      export UV_PYTHON_DOWNLOADS="${UV_PYTHON_DOWNLOADS: -never}"
+      export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE: -only-system}"
+      export UV_PYTHON_DOWNLOADS="\${UV_PYTHON_DOWNLOADS: -never}"
       export UV_PYTHON="$py_path"
       exec ${pkgs.uv}/bin/uv --system "$@"
     '')
@@ -34,8 +36,8 @@
     (pkgs.writeShellScriptBin "uv-python-list" ''
       # Show what uv detects as system interpreters.
       set -euo pipefail
-      export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE: -only-system}"
-      export UV_PYTHON_DOWNLOADS="${UV_PYTHON_DOWNLOADS: -never}"
+      export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE: -only-system}"
+      export UV_PYTHON_DOWNLOADS="\${UV_PYTHON_DOWNLOADS: -never}"
       exec ${pkgs.uv}/bin/uv --system python list
     '')
 
@@ -50,24 +52,23 @@
       fi
       ver="$1"; shift
       dst="$1"; shift
-      py_path="$(command -v "python${ver}" || true)"
+      py_path="$(command -v "python\${ver}" || true)"
       if [ -z "$py_path" ]; then
-        echo "python${ver} not found on PATH (install it via Home-Manager)" >&2
+        echo "python\${ver} not found on PATH (install it via Home-Manager)" >&2
         exit 1
       fi
-      export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE: -only-system}"
-      export UV_PYTHON_DOWNLOADS="${UV_PYTHON_DOWNLOADS: -never}"
+      export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE: -only-system}"
+      export UV_PYTHON_DOWNLOADS="\${UV_PYTHON_DOWNLOADS: -never}"
       export UV_PYTHON="$py_path"
       exec ${pkgs.uv}/bin/uv --system venv "$dst" "$@"
     '')
   ];
 in {
-  # Keep uv here so this module is self-contained (duplicate across modules is fine).
   home.packages = [pkgs.uv] ++ uvWrappers;
 
-  # Environment guard so uv never downloads interpreters on NixOS.
+  # Guard so uv never downloads interpreters on NixOS.
   home.sessionVariables = {
-    UV_PYTHON_PREFERENCE = "only-system"; # require system Pythons
-    UV_PYTHON_DOWNLOADS = "never"; # forbid CPython downloads
+    UV_PYTHON_PREFERENCE = "only-system";
+    UV_PYTHON_DOWNLOADS = "never";
   };
 }
