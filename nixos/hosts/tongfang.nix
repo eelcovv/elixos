@@ -18,7 +18,7 @@
       ../modules/profiles/desktop-software.nix
       ../modules/profiles/flatpak.nix
       ../modules/profiles/containers/podman.nix
-      ../modules/libs/python-runtimes.nix
+      ../modules/lib/python-runtimes.nix
     ]
     ++
     # 🔐 Secrets
