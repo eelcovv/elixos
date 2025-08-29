@@ -9,6 +9,31 @@
     ./authorized_keys.nix
   ];
 
+  # sops-nix config: pad naar age keyfile
+  sops.age.keyFile = "/etc/sops/age/keys.txt";
+
+  # secrets declaratie → komen in /run/secrets/pypi_token_main en pypi_token_davelab
+  sops.secrets = {
+    pypi_token_main = {
+      sopsFile = ../secrets/pypi_token_eelco.yaml;
+      key = "pypi_token"; # veldnaam in YAML
+      owner = "eelco"; # zodat de user het kan lezen
+      mode = "0400";
+    };
+    pypi_token_davelab = {
+      sopsFile = ../secrets/pypi_davelab_eelco.yaml;
+      key = "davelab_password"; # veldnaam in YAML
+      owner = "eelco";
+      mode = "0400";
+    };
+    davelab_username = {
+      sopsFile = ../secrets/pypi_davelab_eelco.yaml;
+      key = "davelab_username";
+      owner = "eelco";
+      mode = "0400";
+    };
+  };
+
   users.users.eelco = {
     isNormalUser = true;
     createHome = true;
@@ -18,10 +43,10 @@
     hashedPassword = "$6$/BFpWvnMkSUI03E7$wZPqzCZIVxEUdf1L46hkAL.ifLlW61v4iZvWCh9MC5X9UGbRPadOg43AJrw4gfRgWwBRt0u6UxIgmuZ5KuJFo.";
     shell = pkgs.zsh;
 
-    # Fallback to [] if `config.authorizedKeys` is not defined on this host
+    # authorized_keys: fallback op lege lijst als niet gedefinieerd
     openssh.authorizedKeys.keys = config.authorizedKeys.perUser.eelco or [];
 
-    # Rootless Podman user-namespace mapping (correct field names!)
+    # Rootless Podman user-namespace mapping
     subUidRanges = [
       {
         startUid = 100000;
