@@ -30,10 +30,11 @@
 
   home.packages = with pkgs; [
     alejandra
-    htop
-    wget
-    tree
     direnv
+    gcc
     gnumake
+    htop
+    tree
+    wget
   ];
 }
