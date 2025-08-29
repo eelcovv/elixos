@@ -34,12 +34,6 @@
       ../disks/ellie.nix
     ]
     ++
-    # 👤 Users
-    [
-      ../users/eelco.nix
-      ../users/por.nix
-    ]
-    ++
     # 🧩 External modules
     [
       inputs.disko.nixosModules.disko

@@ -39,7 +39,6 @@
       contabo = ./nixos/hosts/contabo.nix;
     };
 
-    # ALTIJD lijsten gebruiken per host
     hostUsersMap = {
       singer = ["eelco" "por"];
       tongfang = ["eelco"];
@@ -65,6 +64,9 @@
             home-manager.nixosModules.home-manager
             sops-nix.nixosModules.sops
           ]
+          # Auto-import OS user modules based on hostUsersMap:
+          ++ builtins.map (u: ./nixos/users + "/${u}.nix") users
+          # Home-Manager users only if present for this host:
           ++ (
             if enableHM && users != []
             then [

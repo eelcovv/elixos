@@ -35,11 +35,6 @@
       ../hardware/contabo/configuration.nix
     ]
     ++
-    # 👤 Users
-    [
-      ../users/eelco.nix
-    ]
-    ++
     # 🧩 External modules
     [
       inputs.home-manager.nixosModules.home-manager
