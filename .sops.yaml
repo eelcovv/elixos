@@ -1,5 +1,5 @@
 creation_rules:
-  - encrypted_regex: ^(age_key|id_ed25519.*)$
-    key_groups:
-      - age:
-          - age1uxl7zt4nmjv6rdv93yrh5jrmd83wfeagtygd8zqnhwd7hrglrarsc0qqnt
+- encrypted_regex: ^(.*)$
+  key_groups:
+  - age:
+    - age1uxl7zt4nmjv6rdv93yrh5jrmd83wfeagtygd8zqnhwd7hrglrarsc0qqnt
