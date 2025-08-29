@@ -32,6 +32,7 @@
     alejandra
     direnv
     gcc
+    nodejs
     gnumake
     htop
     tree
