@@ -42,7 +42,7 @@
 
       "davepypi" = {
         hostname = "138.199.192.73";
-        user = "eelco";
+        user = "admin";
         identityFile = ["~/.ssh/id_ed25519"];
         identitiesOnly = true;
       };
