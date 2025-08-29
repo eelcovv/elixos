@@ -3,15 +3,17 @@
   lib,
   ...
 }:
-# Nix-ld runtime support for non-Nix Python wheels (NumPy, PySide6, Matplotlib, etc.)
-# Exposes common system libraries so prebuilt wheels can link correctly on NixOS.
+# nixos/modules/lib/python-runtimes.nix
+# System-wide nix-ld config so foreign Python wheels (NumPy, PySide6, …)
+# can find common system libraries (libstdc++, zlib, XCB, Wayland, …).
 {
   programs.nix-ld = {
     enable = true;
 
+    # Keep this focused on runtime libs (no full apps here).
     libraries = with pkgs; [
-      # C/C++ runtime
-      stdenv.cc.cc.lib # libstdc++.so.6, libgcc_s.so.1
+      # C/C++ runtime: use GCC's libstdc++ explicitly
+      gcc.cc.lib # <- provides libstdc++.so.6 and libgcc_s.so.1
 
       # Core compression/crypto/glib
       zlib
@@ -37,7 +39,7 @@
       wayland
       libxkbcommon
 
-      # X11 stack (Qt/Matplotlib often benefit from xcb fallback)
+      # X11 stack (xcb fallback is often needed by Qt/Matplotlib)
       xorg.libX11
       xorg.libXcursor
       xorg.libXrandr
@@ -49,7 +51,7 @@
       xorg.libXext
       xorg.libXdamage
 
-      # XCB utils (note the xorg.* prefixes)
+      # XCB utils (note xorg.* prefixes)
       xorg.libxcb
       xorg.xcbutil
       xorg.xcbutilimage
@@ -57,9 +59,9 @@
       xorg.xcbutilwm
       xorg.xcbutilrenderutil
 
-      # Optional additions if needed by specific wheels:
-      # gfortran.cc.lib   # libgfortran.so.* (Fortran-backed wheels)
-      # vulkan-loader     # if you run Vulkan-backed apps/libraries
+      # Uncomment if you hit these deps:
+      # gfortran.cc.lib          # libgfortran.so.* (Fortran-backed wheels)
+      # vulkan-loader            # for Vulkan-backed libs/apps
     ];
   };
 }
