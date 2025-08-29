@@ -63,15 +63,17 @@ in {
 
       baseRt =
         [
-          pkgs.mesa # libGL etc.
+          pkgs.mesa
           pkgs.alsa-lib
-          pkgs.pipewire # audio (moderne systemen)
+          pkgs.pipewire
           pkgs.fontconfig
           pkgs.freetype
           pkgs.harfbuzz
           pkgs.zlib
           pkgs.glib
-          pkgs.gcc.cc.lib # libstdc++.so runtime
+          pkgs.stdenv.cc.cc.lib # libstdc++.so.6 / libgcc_s.so.1
+          pkgs.expat # veel native wheels verwachten expat
+          pkgs.icu # Qt/Matplotlib hebben vaak ICU nodig
           pkgs.pcre
           pkgs.openssl
           pkgs.libpng
@@ -83,7 +85,7 @@ in {
     in
       qtPkgs ++ x11Pkgs ++ waylandPkgs ++ baseRt;
 
-    # Een paar nuttige env vars voor Qt/QML (pas aan naar behoefte)
+    # Qt runtime pad (goed voor PySide6/Matplotlib-Qt)
     home.sessionVariables = {
       QT_QPA_PLATFORM = lib.mkDefault (
         if cfg.withWayland && cfg.withX11
@@ -94,6 +96,60 @@ in {
       );
       QT_PLUGIN_PATH = lib.mkDefault "${pkgs.qt6.qtbase.bin}/lib/qt-6/plugins";
       QML2_IMPORT_PATH = lib.mkDefault "${pkgs.qt6.qtdeclarative}/lib/qt-6/qml";
+
+      # Als je (nog) geen system-wide nix-ld gebruikt, helpt dit:
+      # Let op: LD_LIBRARY_PATH is een ‘big hammer’; nix-ld is netter.
+      LD_LIBRARY_PATH = lib.mkDefault (lib.makeLibraryPath (
+        [
+          pkgs.stdenv.cc.cc.lib
+          pkgs.zlib
+          pkgs.glib
+          pkgs.fontconfig
+          pkgs.freetype
+          pkgs.harfbuzz
+          pkgs.expat
+          pkgs.icu
+          pkgs.openssl
+          pkgs.libpng
+          pkgs.libjpeg
+          pkgs.libtiff
+          pkgs.mesa
+        ]
+        ++ (
+          if cfg.withX11
+          then [
+            pkgs.xorg.libX11
+            pkgs.xorg.libXcursor
+            pkgs.xorg.libXrandr
+            pkgs.xorg.libXi
+            pkgs.xorg.libXrender
+            pkgs.xorg.libXtst
+            pkgs.xorg.libXfixes
+            pkgs.xorg.libXcomposite
+            pkgs.xorg.libXext
+            pkgs.xorg.libXdamage
+            pkgs.libxcb
+            pkgs.xcbutil
+            pkgs.xcbutilimage
+            pkgs.xcbutilkeysyms
+            pkgs.xcbutilwm
+          ]
+          else []
+        )
+        ++ (
+          if cfg.withWayland
+          then [
+            pkgs.wayland
+            pkgs.libxkbcommon
+          ]
+          else []
+        )
+        ++ (
+          if cfg.withVulkan
+          then [pkgs.vulkan-loader]
+          else []
+        )
+      ));
     };
   };
 }
