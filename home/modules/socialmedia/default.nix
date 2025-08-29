@@ -4,5 +4,6 @@
     whatsapp-for-linux
     signal-desktop
     nextcloud-client
+    nextcloud-talk-desktop
   ];
 }
