@@ -15,19 +15,19 @@
   # secrets declaratie → komen in /run/secrets/pypi_token_main en pypi_token_davelab
   sops.secrets = {
     pypi_token_main = {
-      sopsFile = ../secrets/pypi_token_eelco.yaml;
+      sopsFile = ../secrets/pypi/token_eelco.yaml;
       key = "pypi_token"; # veldnaam in YAML
       owner = "eelco"; # zodat de user het kan lezen
       mode = "0400";
     };
     pypi_token_davelab = {
-      sopsFile = ../secrets/pypi_davelab_eelco.yaml;
+      sopsFile = ../secrets/pypi/davelab_eelco.yaml;
       key = "davelab_password"; # veldnaam in YAML
       owner = "eelco";
       mode = "0400";
     };
     davelab_username = {
-      sopsFile = ../secrets/pypi_davelab_eelco.yaml;
+      sopsFile = ../secrets/pypi/davelab_eelco.yaml;
       key = "davelab_username";
       owner = "eelco";
       mode = "0400";
