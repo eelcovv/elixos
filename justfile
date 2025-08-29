@@ -389,6 +389,16 @@ all-update USER HOST:
 	sudo nixos-rebuild switch --flake .#{{HOST}}
 	sudo -u {{USER}} -H home-manager switch --flake .#{{USER}}@{{HOST}}
 
+# Run system switch on remote host via your normal user + sudo (no root SSH)
+system-switch-remote HOST USER="eelco":
+	nixos-rebuild switch --flake .#{{HOST}} --target-host {{USER}}@{{HOST}} --use-remote-sudo
+
+# Update flake inputs locally, then switch remotely via your user + sudo
+system-update-remote HOST USER="eelco":
+	nix flake update nixpkgs home-manager
+	nixos-rebuild switch --flake .#{{HOST}} --target-host {{USER}}@{{HOST}} --use-remote-sudo
+
+
 # ========== NETWORK INSTALL HELPERS ==========
 ssh-copy-key:
 	@echo "📤 Creating .ssh dir and copying authorized_keys to remote"
