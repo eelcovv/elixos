@@ -367,6 +367,27 @@ switch HOST:
 home USER HOST:
 	sudo -u {{USER}} -H home-manager switch --flake .#{{USER}}@{{HOST}}
 
+# ========== UPDATE HELPERS ==========
+
+# Only update flake inputs (no rebuild/switch)
+flake-update:
+	nix flake update nixpkgs home-manager
+
+# Update inputs and run Home Manager switch
+home-update USER HOST:
+	just flake-update
+	sudo -u {{USER}} -H home-manager switch --flake .#{{USER}}@{{HOST}}
+
+# Update inputs and run full system switch
+system-update HOST:
+	just flake-update
+	sudo nixos-rebuild switch --flake .#{{HOST}}
+
+# Update inputs, rebuild system and apply Home Manager in one run
+all-update USER HOST:
+	just flake-update
+	sudo nixos-rebuild switch --flake .#{{HOST}}
+	sudo -u {{USER}} -H home-manager switch --flake .#{{USER}}@{{HOST}}
 
 # ========== NETWORK INSTALL HELPERS ==========
 ssh-copy-key:
