@@ -1,6 +1,9 @@
 {
   description = "Eelco's NixOS Configuration";
 
+  ##############################################################################
+  # Inputs
+  ##############################################################################
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
@@ -13,6 +16,9 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
+  ##############################################################################
+  # Outputs
+  ##############################################################################
   outputs = inputs @ {
     self,
     nixpkgs,
@@ -24,11 +30,13 @@
   }: let
     system = "x86_64-linux";
 
+    # Users and hosts used to auto-generate system and HM configs
     allUsers = ["eelco" "por"];
     allHosts = ["singer" "tongfang" "ellie" "alloy" "contabo" "generic-vm"];
 
     enableHM = true;
 
+    # Per-host top-level NixOS modules
     hostFiles = {
       tongfang = ./nixos/hosts/tongfang.nix;
       generic-vm = ./nixos/hosts/generic-vm.nix;
@@ -39,6 +47,7 @@
       contabo = ./nixos/hosts/contabo.nix;
     };
 
+    # Which users live on which host
     hostUsersMap = {
       singer = ["eelco" "por"];
       tongfang = ["eelco"];
@@ -49,24 +58,34 @@
       test-vm = [];
     };
 
+    # Build one NixOS system for a given host
     mkHost = hostName: let
       users = hostUsersMap.${hostName} or [];
     in
       nixpkgs.lib.nixosSystem {
+        # Make flake inputs available to NixOS modules
         specialArgs = {
           inherit inputs self;
           userModulesPath = ./home/users;
         };
+
         modules =
           [
+            # Host base module
             hostFiles.${hostName}
+
+            # Disko at system level (partitioning/formatting)
             disko.nixosModules.disko
-            home-manager.nixosModules.home-manager
+
+            # sops-nix at system level (provides `sops.*` options and /run/secrets)
             sops-nix.nixosModules.sops
+
+            # Home-Manager as a NixOS module (no HM sops here)
+            home-manager.nixosModules.home-manager
           ]
-          # Auto-import OS user modules based on hostUsersMap:
+          # Auto-import OS user modules based on hostUsersMap
           ++ builtins.map (u: ./nixos/users + "/${u}.nix") users
-          # Home-Manager users only if present for this host:
+          # Home-Manager users only if present on this host
           ++ (
             if enableHM && users != []
             then [
@@ -74,44 +93,72 @@
                 home-manager.useGlobalPkgs = true;
                 home-manager.useUserPackages = true;
 
-                # Maak een attrset { eelco = import ...; por = import ...; }
-                home-manager.users =
-                  nixpkgs.lib.genAttrs users (u: import (./home/users + "/${u}"));
+                # Define HM users as an attrset { eelco = { imports = [ ... ]; }; por = ...; }
+                home-manager.users = nixpkgs.lib.genAttrs users (u: {
+                  imports = [
+                    # Pass flake inputs/userModulesPath to all HM submodules
+                    {
+                      _module.args = {
+                        inherit inputs self;
+                        userModulesPath = ./home/users;
+                      };
+                    }
+
+                    # Your actual HM user configuration
+                    (./home/users + "/${u}")
+                  ];
+                });
               }
             ]
             else []
           );
       };
   in {
-    devShells = flake-utils.lib.eachDefaultSystem (system: {
-      devShells.default = (import nixpkgs {inherit system;}).mkShell {
-        packages = with (import nixpkgs {inherit system;}); [
-          pre-commit
-          alejandra
-          rage
-          sops
-          yq-go
-          OVMF
-          qemu
-          git
-          openssh
-          age
-          just
-          prettier
-          nodejs
-        ];
-        shellHook = ''
-          echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
-        '';
-      };
-    });
+    ############################################################################
+    # DevShells for all default systems
+    ############################################################################
+    devShells = flake-utils.lib.eachDefaultSystem (
+      sys: let
+        pkgs = import nixpkgs {system = sys;};
+      in {
+        default = pkgs.mkShell {
+          # Common dev tools
+          packages = with pkgs; [
+            pre-commit
+            alejandra
+            rage
+            sops
+            yq-go
+            OVMF
+            qemu
+            git
+            openssh
+            age
+            just
+            prettier
+            nodejs
+          ];
+          shellHook = ''
+            echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
+          '';
+        };
+      }
+    );
 
+    ############################################################################
+    # NixOS hosts
+    ############################################################################
     nixosConfigurations = builtins.mapAttrs (name: _: mkHost name) hostFiles;
 
+    ############################################################################
+    # Standalone Home-Manager profiles (outside NixOS)
+    ############################################################################
     homeConfigurations = builtins.listToAttrs (
-      builtins.concatMap (
+      builtins.concatMap
+      (
         user:
-          builtins.map (host: {
+          builtins.map
+          (host: {
             name = "${user}@${host}";
             value = home-manager.lib.homeManagerConfiguration {
               pkgs = import nixpkgs {
@@ -119,12 +166,17 @@
                 config = {allowUnfree = true;};
               };
               modules = [
+                # Make inputs available to HM modules
+                {
+                  _module.args = {
+                    inherit inputs self;
+                    userModulesPath = ./home/users;
+                  };
+                }
+
+                # Your HM user configuration
                 (./home/users + "/${user}")
               ];
-              extraSpecialArgs = {
-                inherit inputs self;
-                userModulesPath = ./home/users;
-              };
             };
           })
           allHosts
@@ -132,14 +184,20 @@
       allUsers
     );
 
-    packages.x86_64-linux =
+    ############################################################################
+    # Convenience: buildable system derivations per host (exclude test-vm)
+    ############################################################################
+    packages.${system} =
       builtins.mapAttrs
       (_: cfg: cfg.config.system.build.toplevel)
       (builtins.removeAttrs (builtins.mapAttrs (n: _: mkHost n) hostFiles) ["test-vm"]);
 
-    apps.x86_64-linux.disko-install = {
+    ############################################################################
+    # App entry for disko CLI
+    ############################################################################
+    apps.${system}.disko-install = {
       type = "app";
-      program = "${disko.packages.x86_64-linux.disko}/bin/disko";
+      program = "${disko.packages.${system}.disko}/bin/disko";
     };
   };
 }
