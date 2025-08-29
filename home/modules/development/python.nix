@@ -4,30 +4,37 @@
   lib,
   ...
 }: let
-  # Choose which interpreters you want installed system-wide.
-  # Keep 'Full' for at least one version if you often need headers/Tk.
-  modernPythons =
-    [
-      pkgs.python310
-      pkgs.python311
-      pkgs.python312Full
-    ]
-    # Only add these if your nixpkgs actually has them:
-    ++ (lib.optional (pkgs ? python313) pkgs.python313)
-    ++ (lib.optional (pkgs ? python314) pkgs.python314);
-in {
-  # System-wide interpreters available on PATH for uv to use with --system.
-  home.packages = modernPythons;
+  # One "full" interpreter for headers, pkgconfig, etc.
+  pyFull = pkgs.python312Full;
 
-  # TIP (optional, not required):
-  # If you also want Python 3.8/3.9, expose them via an extra nixpkgs input
-  # in your flake and import them in a separate module, then append here.
-  #
-  # For example (in a separate legacy-python.nix):
-  #   let
-  #     legacy38 = (import inputs.nixpkgs-23_05 { system = pkgs.system; }).python38;
-  #     legacy39 = (import inputs.nixpkgs-23_11 { system = pkgs.system; }).python39;
-  #   in { home.packages = [ legacy38 legacy39 ]; }
-  #
-  # Then import both modules in your Home-Manager config.
+  # Other interpreters: bins only (avoid lib/include/pkgconfig collisions)
+  otherPyBins = pkgs.buildEnv {
+    name = "python-multi-bins";
+    paths =
+      [
+        pkgs.python310
+        pkgs.python311
+        # Skip 3.12 here (we already have python312Full separately)
+      ]
+      ++ (
+        if pkgs ? python313
+        then [pkgs.python313]
+        else []
+      )
+      ++ (
+        if pkgs ? python314
+        then [pkgs.python314]
+        else []
+      );
+    pathsToLink = ["/bin"];
+    # In case two packages provide same binary name (rare), allow it.
+    # Usually unnecessary, but harmless here.
+    ignoreCollisions = true;
+  };
+in {
+  # Result: one full Python (3.12) + A bundle with only /bin of the rest
+  home.packages = [
+    pyFull
+    otherPyBins
+  ];
 }

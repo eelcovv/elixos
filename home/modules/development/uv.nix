@@ -15,9 +15,9 @@
         exit 2
       fi
       ver="$1"; shift
-      py_path="$(command -v python\${ver} || true)"
+      py_path="$(command -v python$ver || true)"
       if [ -z "$py_path" ]; then
-        echo "python\${ver} not found on PATH (install it via Home-Manager)" >&2
+        echo "python$ver not found on PATH (install it via Home-Manager)" >&2
         exit 1
       fi
       export UV_PYTHON="$py_path"
@@ -38,9 +38,9 @@
       fi
       ver="$1"; shift
       dst="$1"; shift
-      py_path="$(command -v python\${ver} || true)"
+      py_path="$(command -v python$ver || true)"
       if [ -z "$py_path" ]; then
-        echo "python\${ver} not found on PATH (install it via Home-Manager)" >&2
+        echo "python$ver not found on PATH (install it via Home-Manager)" >&2
         exit 1
       fi
       export UV_PYTHON="$py_path"
