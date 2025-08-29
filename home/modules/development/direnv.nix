@@ -1,16 +1,30 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   programs.direnv = {
     enable = true;
     nix-direnv = {
       enable = true;
-      # Until https://github.com/nix-community/home-manager/pull/5773
-      package = lib.mkIf (config.nix.package != null)
-        (pkgs.nix-direnv.override { nix = config.nix.package; });
+      package =
+        lib.mkIf (config.nix.package != null)
+        (pkgs.nix-direnv.override {nix = config.nix.package;});
     };
-    config.global = {
-      hide_env_diff = true;
-    };
+    config.global.hide_env_diff = true;
   };
+
+  home.file.".direnvrc".text = ''
+    source_url "https://raw.githubusercontent.com/direnv/direnv/master/stdlib.sh"
+
+    # (optioneel) eigen fallback helper om .venv te gebruiken met uv:
+    layout_my_venv() {
+      local venv=".venv"
+      if [ ! -f "$venv/bin/activate" ]; then
+        uv venv
+      fi
+      source "$venv/bin/activate"
+    }
+  '';
 }
