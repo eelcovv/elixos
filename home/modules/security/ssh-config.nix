@@ -40,9 +40,9 @@
         identitiesOnly = true;
       };
 
-      "contaboroot" = {
-        hostname = "194.146.13.222";
-        user = "root";
+      "davepypi" = {
+        hostname = "138.199.192.73";
+        user = "eelco";
         identityFile = ["~/.ssh/id_ed25519"];
         identitiesOnly = true;
       };
