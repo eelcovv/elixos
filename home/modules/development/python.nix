@@ -4,35 +4,48 @@
   lib,
   ...
 }: let
-  # One "full" interpreter for headers, pkgconfig, etc.
+  # Keep exactly one "full" interpreter for headers/pkgconfig/etc.
   pyFull = pkgs.python312Full;
 
-  # Other interpreters: bins only (avoid lib/include/pkgconfig collisions)
+  # Bundle other Python versions but link only their /bin, then prune unversioned tools.
   otherPyBins = pkgs.buildEnv {
     name = "python-multi-bins";
     paths =
       [
         pkgs.python310
         pkgs.python311
-        # Skip 3.12 here (we already have python312Full separately)
+        # intentionally skip 3.12 here; we expose python312Full separately
       ]
-      ++ (
-        if pkgs ? python313
-        then [pkgs.python313]
-        else []
-      )
-      ++ (
-        if pkgs ? python314
-        then [pkgs.python314]
-        else []
-      );
+      ++ lib.optional (pkgs ? python313) pkgs.python313
+      ++ lib.optional (pkgs ? python314) pkgs.python314;
+
+    # Only expose /bin from the above interpreters → no lib/include/pkgconfig collisions.
     pathsToLink = ["/bin"];
-    # In case two packages provide same binary name (rare), allow it.
-    # Usually unnecessary, but harmless here.
+
+    # If two packages still drop the same filename under /bin, allow it temporarily;
+    # we will prune duplicates below.
     ignoreCollisions = true;
+
+    # Prune unversioned helpers to avoid /bin name clashes with the full Python.
+    # Keep only python3.X and pip3.X; drop idle3, pydoc3, 2to3, python3, pip3, etc.
+    postBuild = ''
+      set -eu
+      if [ -d "$out/bin" ]; then
+        for f in "$out/bin/"*; do
+          bn="$(basename "$f")"
+          case "$bn" in
+            python3.*|pip3.*)
+              # keep versioned
+              ;;
+            *)
+              rm -f "$f"
+              ;;
+          esac
+        done
+      fi
+    '';
   };
 in {
-  # Result: one full Python (3.12) + A bundle with only /bin of the rest
   home.packages = [
     pyFull
     otherPyBins
