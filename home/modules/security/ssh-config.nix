@@ -4,70 +4,69 @@
   pkgs,
   ...
 }: {
-  # Generate ~/.ssh/config from this text
-  programs.ssh.enable = true;
-  programs.ssh.extraConfig = ''
-    # ~/.ssh/config
-    # -----------------------------------------------------------------------------
-    # Specific hosts first, so their settings are not overridden by Host *
-    # -----------------------------------------------------------------------------
+  programs.ssh = {
+    enable = true;
+    enableDefaultConfig = false;
 
-    # GitHub via 443 (stable connection when using a VPN)
-    Host github.com
-      HostName ssh.github.com
-      User git
-      Port 443
-      IdentityFile ~/.ssh/id_ed25519
-      IdentitiesOnly yes
+    matchBlocks = {
+      "github.com" = {
+        hostname = "ssh.github.com";
+        user = "git";
+        port = 443;
+        identityFile = ["~/.ssh/id_ed25519"];
+        identitiesOnly = true;
+      };
 
-    # GitHub alias via 443
-    Host github-443
-      HostName ssh.github.com
-      User git
-      Port 443
-      IdentityFile ~/.ssh/id_ed25519
-      IdentitiesOnly yes
+      "github-443" = {
+        hostname = "ssh.github.com";
+        user = "git";
+        port = 443;
+        identityFile = ["~/.ssh/id_ed25519"];
+        identitiesOnly = true;
+      };
 
-    # GitHub via standard SSH port (22)
-    Host github-22
-      HostName github.com
-      User git
-      Port 22
-      IdentityFile ~/.ssh/id_ed25519
-      IdentitiesOnly yes
+      "github-22" = {
+        hostname = "github.com";
+        user = "git";
+        port = 22;
+        identityFile = ["~/.ssh/id_ed25519"];
+        identitiesOnly = true;
+      };
 
-    # Contabo (user eelco)
-    Host contabo
-      HostName 194.146.13.222
-      User eelco
-      IdentityFile ~/.ssh/id_ed25519
-      IdentitiesOnly yes
+      "contabo" = {
+        hostname = "194.146.13.222";
+        user = "eelco";
+        identityFile = ["~/.ssh/id_ed25519"];
+        identitiesOnly = true;
+      };
 
-    # Contabo (root)
-    Host contaboroot
-      HostName 194.146.13.222
-      User root
-      IdentityFile ~/.ssh/id_ed25519
-      IdentitiesOnly yes
+      "contaboroot" = {
+        hostname = "194.146.13.222";
+        user = "root";
+        identityFile = ["~/.ssh/id_ed25519"];
+        identitiesOnly = true;
+      };
 
-    # -----------------------------------------------------------------------------
-    # Global defaults (applied to all hosts, only if not overridden above)
-    # -----------------------------------------------------------------------------
-    Host *
-      ForwardAgent no
-      AddKeysToAgent no
-      Compression no
-      ServerAliveInterval 15
-      ServerAliveCountMax 2
-      HashKnownHosts no
-      UserKnownHostsFile ~/.ssh/known_hosts
-      ControlMaster no
-      ControlPath ~/.ssh/master-%r@%n:%p
-      ControlPersist no
-      IdentityFile ~/.ssh/id_ed25519
-      IdentitiesOnly yes
-      ConnectTimeout 8
-      IPQoS none
-      # Note: No Port here, so host-specific ports (like GitHub 443) take effect
-  '';
+      "*" = {
+        forwardAgent = false;
+        addKeysToAgent = "no";
+        compression = false;
+        serverAliveInterval = 15;
+        serverAliveCountMax = 2;
+        hashKnownHosts = false;
+        userKnownHostsFile = "~/.ssh/known_hosts";
+        controlMaster = "no";
+        controlPath = "~/.ssh/master-%r@%n:%p";
+        controlPersist = "no";
+        identityFile = ["~/.ssh/id_ed25519"];
+        identitiesOnly = true;
+
+        # Options that do not (yet) have a dedicated HM option
+        extraOptions = {
+          ConnectTimeout = "8";
+          IPQoS = "none";
+        };
+      };
+    };
+  };
 }
