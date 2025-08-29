@@ -4,20 +4,19 @@
   ...
 }:
 # nixos/modules/lib/python-runtimes.nix
-# System-wide nix-ld config so foreign Python wheels (NumPy, PySide6, Matplotlib, …)
-# can find common system libraries (libstdc++, libGL.so.1, XCB, Wayland, …).
 {
   programs.nix-ld = {
     enable = true;
 
     libraries = with pkgs; [
       # C/C++ runtime
-      gcc.cc.lib # libstdc++.so.6, libgcc_s.so.1
+      gcc.cc.lib
 
       # Core
       zlib
       glib
       openssl
+      dbus # <- provides libdbus-1.so.3
 
       # Fonts & text shaping
       fontconfig
@@ -32,9 +31,10 @@
       libtiff
 
       # OpenGL / GLVND
-      libGL # provides libGL.so.1 (via libglvnd/mesa)
-      libGLU # provides libGLU.so.1 (some Qt paths still expect it)
-      mesa # generic GL stack bits; fine to keep
+      libGL
+      libGLU
+      mesa
+      libdrm # common GPU userspace (harmless to include)
 
       # Wayland
       wayland
@@ -59,8 +59,8 @@
       xorg.xcbutilwm
       xorg.xcbutilrenderutil
 
-      # Optional if you encounter them:
-      # gfortran.cc.lib          # libgfortran.so.*
+      # Optional if encountered:
+      # gfortran.cc.lib
       # vulkan-loader
     ];
   };
