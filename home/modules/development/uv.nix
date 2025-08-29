@@ -2,9 +2,15 @@
 {pkgs, ...}: let
   uvWrappers = [
     (pkgs.writeShellScriptBin "uv-system" ''
-      # Run uv with --system; rely on sessionVariables for env defaults.
+      # Run uv; policy via env (sessionVariables)
       set -euo pipefail
-      exec ${pkgs.uv}/bin/uv --system "$@"
+      exec ${pkgs.uv}/bin/uv "$@"
+    '')
+
+    (pkgs.writeShellScriptBin "uv-python-list" ''
+      # List interpreters uv can see
+      set -euo pipefail
+      exec ${pkgs.uv}/bin/uv python list
     '')
 
     (pkgs.writeShellScriptBin "uv-py" ''
@@ -21,12 +27,7 @@
         exit 1
       fi
       export UV_PYTHON="$py_path"
-      exec ${pkgs.uv}/bin/uv --system "$@"
-    '')
-
-    (pkgs.writeShellScriptBin "uv-python-list" ''
-      set -euo pipefail
-      exec ${pkgs.uv}/bin/uv --system python list
+      exec ${pkgs.uv}/bin/uv "$@"
     '')
 
     (pkgs.writeShellScriptBin "uv-venv" ''
@@ -44,13 +45,13 @@
         exit 1
       fi
       export UV_PYTHON="$py_path"
-      exec ${pkgs.uv}/bin/uv --system venv "$dst" "$@"
+      exec ${pkgs.uv}/bin/uv venv "$dst" "$@"
     '')
   ];
 in {
   home.packages = [pkgs.uv] ++ uvWrappers;
 
-  # Central defaults; wrappers hoeven geen Bash default-expansies.
+  # Centrale defaults: geen Bash default-expansies nodig in wrappers
   home.sessionVariables = {
     UV_PYTHON_PREFERENCE = "only-system";
     UV_PYTHON_DOWNLOADS = "never";
