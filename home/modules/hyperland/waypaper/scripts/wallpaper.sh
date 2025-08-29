@@ -3,7 +3,8 @@
 # and run theming tools. Uses 'notify' from helper-functions.sh.
 set -euo pipefail
 
-QUIET="${QUIET:-1}"  # 1 = quiet, 0 = notifications
+# No popups as standard;Set Quiet = 0 to see them temporarily
+: "${QUIET:=0}"
 
 
 # ---------- Helper + fallback notify ----------
@@ -12,17 +13,31 @@ if [[ -r "$HELPER" ]]; then
   # shellcheck disable=SC1090
   source "$HELPER" || true
 fi
+
+
 if [[ "$(type -t notify 2>/dev/null)" != "function" ]]; then
   notify() {
     local title="$1"; shift
     local body="${*:-}"
+
+    # Always Console + Syslog Logging
     printf '%s: %s\n' "$title" "$body"
     command -v logger >/dev/null 2>&1 && logger -t wallpaper -- "$title: $body" || true
 
-    [ "$QUIET" = "1" ] && return 0
-    command -v notify-send >/dev/null 2>&1 && notify-send "$title" "$body" || true
+    # Only desktop notification as a Quiet = 0
+    if [[ "$QUIET" = "0" ]]; then
+      # Use a sync key so that popups replace each other instead of stacking
+      # (less spam if you still have quiet = 0)
+      if command -v notify-send >/dev/null 2>&1; then
+        notify-send \
+          --hint=string:x-canonical-private-synchronous:wallpaper \
+          "$title" "$body" || true
+      fi
+    fi
   }
 fi
+
+
 
 # ---------- Small wait for Hyprland to be ready ----------
 _waitForHypr() {
