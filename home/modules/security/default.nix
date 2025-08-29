@@ -13,6 +13,6 @@
   home.packages = with pkgs; [
     gnome-keyring
     veracrypt
-    vmware-horizon-client
+    omnissa-horizon-client
   ];
 }
