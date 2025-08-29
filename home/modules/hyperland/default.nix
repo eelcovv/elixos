@@ -202,8 +202,8 @@ in {
     };
 
     # Make sure no legacy randomizer/timer is enabled (avoid conflicts)
-    systemd.user.services."waypaper-random".Install.WantedBy = lib.mkForce [];
-    systemd.user.timers."waypaper-random".Install.WantedBy = lib.mkForce [];
+    # systemd.user.services."waypaper-random".Install.WantedBy = lib.mkForce [];
+    # systemd.user.timers."waypaper-random".Install.WantedBy = lib.mkForce [];
 
     # Hard cleanup + mask any legacy units that might still exist in the user dir
     home.activation.purgeLegacyWallpaperUnits = lib.hm.dag.entryAfter ["reloadSystemd"] ''

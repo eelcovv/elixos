@@ -3,6 +3,9 @@
 # and run theming tools. Uses 'notify' from helper-functions.sh.
 set -euo pipefail
 
+QUIET="${QUIET:-1}"  # 1 = quiet, 0 = notifications
+
+
 # ---------- Helper + fallback notify ----------
 HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"
 if [[ -r "$HELPER" ]]; then
@@ -15,6 +18,8 @@ if [[ "$(type -t notify 2>/dev/null)" != "function" ]]; then
     local body="${*:-}"
     printf '%s: %s\n' "$title" "$body"
     command -v logger >/dev/null 2>&1 && logger -t wallpaper -- "$title: $body" || true
+
+    [ "$QUIET" = "1" ] && return 0
     command -v notify-send >/dev/null 2>&1 && notify-send "$title" "$body" || true
   }
 fi
