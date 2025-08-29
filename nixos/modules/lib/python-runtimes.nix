@@ -12,6 +12,7 @@
       # C/C++ runtime
       gcc.cc.lib
       stdenv.cc.cc.lib
+      glibc
 
       # Core
       zlib
