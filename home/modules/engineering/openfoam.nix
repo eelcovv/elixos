@@ -1,29 +1,52 @@
+# home/modules/engineering/openfoam.nix
 {
   config,
   pkgs,
+  lib,
   ...
 }: let
-  # pad naar je scripts-map
-  scripts = ./scripts/openfoam;
-in {
-  # tools in PATH
-  home.packages = [
-    pkgs.coreutils
-    pkgs.bashInteractive
-    pkgs.docker # of pkgs.podman, als je ooit wilt wisselen
-  ];
+  inherit (lib) mkEnableOption mkIf mkOption types;
 
-  # optioneel: engine/image/tag als env voor de scripts
-  home.sessionVariables = {
-    OPENFOAM_ENGINE = "docker"; # of "podman"
-    OPENFOAM_IMAGE = "docker.io/opencfd/openfoam-default";
-    OPENFOAM_TAG = "2406";
+  cfg = config.engineering.openfoam;
+
+  # Relatief pad naar de scriptsmap, vanaf dit bestand:
+  scriptsDir = ../../scripts/openfoam;
+in {
+  options.engineering.openfoam = {
+    enable = mkEnableOption "OpenFOAM helpers (containerized)";
+
+    engine = mkOption {
+      type = types.enum ["docker" "podman"];
+      default = "docker";
+      description = "Container engine to use for OpenFOAM helpers.";
+    };
+
+    image = mkOption {
+      type = types.str;
+      default = "docker.io/opencfd/openfoam-default";
+      description = "Container image reference (without tag).";
+    };
+
+    tag = mkOption {
+      type = types.str;
+      default = "2406";
+      description = "OpenFOAM image tag.";
+    };
   };
 
-  # Symlink de scripts naar ~/.local/bin
-  home.file.".local/bin/of-shell".source = scripts + "/of-shell";
-  home.file.".local/bin/of-shell-root".source = scripts + "/of-shell-root";
-  home.file.".local/bin/of-run".source = scripts + "/of-run";
-  home.file.".local/bin/of-fix-perms".source = scripts + "/of-fix-perms";
-  home.file.".local/bin/mkfoam".source = scripts + "/mkfoam";
+  config = mkIf cfg.enable {
+    home.packages = [pkgs.coreutils pkgs.bashInteractive pkgs.docker];
+
+    home.sessionVariables = {
+      OPENFOAM_ENGINE = cfg.engine;
+      OPENFOAM_IMAGE = cfg.image;
+      OPENFOAM_TAG = cfg.tag;
+    };
+
+    home.file.".local/bin/of-shell".source = scriptsDir + "/of-shell";
+    home.file.".local/bin/of-shell-root".source = scriptsDir + "/of-shell-root";
+    home.file.".local/bin/of-run".source = scriptsDir + "/of-run";
+    home.file.".local/bin/of-fix-perms".source = scriptsDir + "/of-fix-perms";
+    home.file.".local/bin/mkfoam".source = scriptsDir + "/mkfoam";
+  };
 }
