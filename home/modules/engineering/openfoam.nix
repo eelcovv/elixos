@@ -43,10 +43,10 @@ in {
       OPENFOAM_TAG = cfg.tag;
     };
 
-    home.file.".local/bin/of-shell".source = scriptsDir + "/of-shell";
-    home.file.".local/bin/of-shell-root".source = scriptsDir + "/of-shell-root";
-    home.file.".local/bin/of-run".source = scriptsDir + "/of-run";
-    home.file.".local/bin/of-fix-perms".source = scriptsDir + "/of-fix-perms";
-    home.file.".local/bin/mkfoam".source = scriptsDir + "/mkfoam";
+    home.file.".local/bin/of-shell".source = scriptsDir + "/of-shell.sh";
+    home.file.".local/bin/of-shell-root".source = scriptsDir + "/of-shell-root.sh";
+    home.file.".local/bin/of-run".source = scriptsDir + "/of-run.sh";
+    home.file.".local/bin/of-fix-perms".source = scriptsDir + "/of-fix-perms.sh";
+    home.file.".local/bin/mkfoam".source = scriptsDir + "/mkfoam.sh";
   };
 }

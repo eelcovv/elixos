@@ -19,24 +19,13 @@
     hicolor-icon-theme
   ];
 
-  engineering = {
-    #paraview = {
-    #  enable = true;
-    #  host.enable = true;
-    #  host.installPackage = true;
-    #  host.installPvClean = true;
-    #  container.enable = false; # zet op true als je container wilt
-    #  container.image = "local/paraview:24.04";
-    #  container.runtime = "podman";
-    #};
+  # Zet opties direct onder 'engineering.*' (geen extra 'engineering = { ... }' blok)
+  engineering.paraviewFlatpak.enable = true;
 
-    paraviewFlatpak.enable = true;
-
-    # Enable OpenFOAM helpers; pick the tag you prefer (2312, 2406, 2412, ...)
-    #openfoam = {
-    #  enable = true;
-    #  tag = "2406"; # optional override (default is 2406)
-    #  # image = "docker.io/opencfd/openfoam-default"; # default
-    #};
+  engineering.openfoam = {
+    enable = true;
+    engine = "docker"; # of "podman"
+    image = "docker.io/opencfd/openfoam-default";
+    tag = "2406";
   };
 }
