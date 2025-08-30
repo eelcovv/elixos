@@ -8,6 +8,4 @@
     docker-buildx
     docker-compose
   ];
-
-  virtualisation.docker.rootless.enable = true;
 }
