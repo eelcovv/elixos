@@ -1,21 +1,44 @@
-# home/modules/engingeering/openfoam.nix
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: let
+# home/modules/engineering/openfoam.nix
+{ config, pkgs, lib, ... }:
+let
   inherit (lib) mkEnableOption mkIf mkOption types;
+
   cfg = config.engineering.openfoam;
 
-  # Full image reference (OpenCFD official image)
   imageRef = "${cfg.image}:${cfg.tag}";
-in {
-  # -----------------------------
-  # Module options
-  # -----------------------------
+
+  engineBin =
+    if cfg.engine == "podman" then "podman" else "docker";
+
+  # Bash snippet to source any OpenFOAM bashrc
+  sourceOF = ''
+    for p in /usr/lib/openfoam/openfoam*/etc/bashrc \
+             /opt/OpenFOAM-*/etc/bashrc \
+             /opt/openfoam*/etc/bashrc \
+             /usr/share/openfoam*/etc/bashrc \
+             /usr/bin/openfoam; do
+      if [ -f "$p" ]; then
+        # suppress noisy output
+        # shellcheck disable=SC1090
+        source "$p" >/dev/null 2>&1 || true
+        break
+      fi
+    done
+  '';
+
+  basePkgs = [ pkgs.coreutils pkgs.bashInteractive ];
+  dockerPkgs = if cfg.engine == "docker" then [ pkgs.docker ] else [ ];
+  podmanPkgs = if cfg.engine == "podman" then [ pkgs.podman ] else [ ];
+in
+{
   options.engineering.openfoam = {
-    enable = mkEnableOption "OpenFOAM helpers (Podman-based)";
+    enable = mkEnableOption "OpenFOAM helpers (containerized)";
+
+    engine = mkOption {
+      type = types.enum [ "docker" "podman" ];
+      default = "docker";
+      description = "Container engine to use for OpenFOAM helpers.";
+    };
 
     tag = mkOption {
       type = types.str;
@@ -30,82 +53,95 @@ in {
     };
   };
 
-  # -----------------------------
-  # Implementation
-  # -----------------------------
   config = mkIf cfg.enable {
-    # Tools in PATH
-    home.packages = with pkgs; [
-      podman
-      coreutils
-      bashInteractive
-    ];
+    home.packages = basePkgs ++ dockerPkgs ++ podmanPkgs;
 
-    # of-shell: run as root in the container for maximum compatibility
+    # Interactive shell as current user (keeps file ownership)
     home.file.".local/bin/of-shell" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Interactive OpenFOAM shell (root in container). Simple and reliable.
-        # NOTE: files created in /case will be owned by root:root on the host.
-        #       Use 'of-fix-perms' afterwards if needed.
         set -euo pipefail
-        exec podman run --rm -it \
-          --user 0:0 \
+        uid=$(id -u)
+        gid=$(id -g)
+        exec ${engineBin} run --rm -it \
+          --user "${uid}:${gid}" \
           -v "$PWD":/case -w /case \
           ${imageRef} \
-          bash -lc 'for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f "$p" ]; then source "$p" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo "[of-shell] cwd=$(pwd), uid=$(id -u), gid=$(id -g)"; exec bash -i'
+          bash -lc '${sourceOF}
+            cd /case || exit 1
+            echo "[of-shell] cwd=$(pwd), uid=$(id -u), gid=$(id -g)"
+            exec bash -i'
       '';
     };
 
-    # of-run: run a single OpenFOAM command (root in container)
+    # Interactive shell as root in container
+    home.file.".local/bin/of-shell-root" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+        exec ${engineBin} run --rm -it \
+          --user 0:0 \
+          -v "$PWD":/case -w /case \
+          ${imageRef} \
+          bash -lc '${sourceOF}
+            cd /case || exit 1
+            echo "[of-shell-root] cwd=$(pwd), uid=$(id -u), gid=$(id -g)"
+            exec bash -i'
+      '';
+    };
+
+    # Run a single OpenFOAM command (as current user)
     home.file.".local/bin/of-run" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Run an OpenFOAM command in the current directory (root in container).
-        # NOTE: files created in /case will be owned by root:root on the host.
         set -euo pipefail
         if [ $# -lt 1 ]; then
           echo "Usage: of-run <command> [args...]" >&2
           exit 2
         fi
+        uid=$(id -u)
+        gid=$(id -g)
         cmd="$*"
-        exec podman run --rm \
-          --user 0:0 \
+        exec ${engineBin} run --rm \
+          --user "${uid}:${gid}" \
           -v "$PWD":/case -w /case \
           ${imageRef} \
-          bash -lc "for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f \"\$p\" ]; then source \"\$p\" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo \"[of-run] \$cmd\"; eval \$cmd"
+          bash -lc '${sourceOF}
+            cd /case || exit 1
+            echo "[of-run] '"$cmd"'"
+            eval '"$cmd"''
       '';
     };
 
-    # of-fix-perms: convenience helper to chown the current case back to your user
+    # Fix ownership when you used root-in-container
     home.file.".local/bin/of-fix-perms" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Fix ownership of files created by root-in-container to the current user.
-        # Usage: run from your case directory after container work.
         set -euo pipefail
         user_id=$(id -u)
         group_id=$(id -g)
-        echo "Chowning $(pwd) recursively to ''${user_id}:''${group_id} ..."
-        chown -R "''${user_id}:''${group_id}" .
+        echo "Chowning $(pwd) recursively to ${user_id}:${group_id} ..."
+        chmod -R u+rwX,g+rwX .
+        chown -R "${user_id}:${group_id}" .
         echo "Done."
       '';
     };
 
-    # mkfoam: tiny helper for ParaView
+    # ParaView helper
     home.file.".local/bin/mkfoam" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
-        # Create a .foam file for ParaView to open the case directory directly.
         set -euo pipefail
-        name="''${1:-case}"
-        touch "''${name}.foam"
-        echo "Created: ''${name}.foam (open in ParaView)."
+        name="${1:-case}"
+        touch "${name}.foam"
+        echo "Created: ${name}.foam (open in ParaView)."
       '';
     };
   };
 }
+
