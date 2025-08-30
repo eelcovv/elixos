@@ -33,10 +33,10 @@
     paraviewFlatpak.enable = true;
 
     # Enable OpenFOAM helpers; pick the tag you prefer (2312, 2406, 2412, ...)
-    openfoam = {
-      enable = true;
-      tag = "2406"; # optional override (default is 2406)
-      # image = "docker.io/opencfd/openfoam-default"; # default
-    };
+    #openfoam = {
+    #  enable = true;
+    #  tag = "2406"; # optional override (default is 2406)
+    #  # image = "docker.io/opencfd/openfoam-default"; # default
+    #};
   };
 }
