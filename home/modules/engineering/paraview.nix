@@ -1,4 +1,3 @@
-# home/modules/engingeering/paraview.nix
 {
   config,
   pkgs,

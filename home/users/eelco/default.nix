@@ -33,7 +33,7 @@
       ../../modules/databases
       ../../modules/development
       ../../modules/editors
-      ../../modules/engingeering
+      ../../modules/engineering
       ../../modules/graphics
       ../../modules/hyperland
       ../../modules/internet

@@ -26,7 +26,7 @@ The elixos structure looks like:
     │   │   ├── desktop
     │   │   ├── development
     │   │   ├── editors
-    │   │   ├── engingeering
+    │   │   ├── engineering
     │   │   ├── graphics
     │   │   ├── hyperland
     │   │   ├── internet
