@@ -141,9 +141,8 @@ in {
       fi
     '';
 
-    # Extra safety: only run the effect script if it exists AND is executable.
-    # This prevents activation failures on headless/servers.
-    home.activation.ensureDefaultWallpaper = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    # Unique name to avoid clashing with another module's "ensureDefaultWallpaper"
+    home.activation.ensureWallpaperEffectGuard = lib.hm.dag.entryAfter ["writeBoundary"] ''
       S="$HOME/.config/hypr/settings/wallpaper-effect.sh"
       if [ -x "$S" ]; then
         "$S" || true
