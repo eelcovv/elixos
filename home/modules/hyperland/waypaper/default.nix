@@ -4,8 +4,10 @@
   lib,
   ...
 }: let
+  # Directory containing helper scripts to install into ~/.local/bin
   scriptsDir = ./scripts;
 
+  # Helper to install a script from ./scripts/<name> into ~/.local/bin/<name>
   installScript = name: {
     ".local/bin/${name}" = {
       source = scriptsDir + "/${name}";
@@ -23,6 +25,7 @@ in {
   options = {
     hyprland = {
       wallpaper = {
+        # Toggle the whole Waypaper/Hypr helpers module (handy to disable on servers)
         enable = lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
 
         random = {
@@ -50,9 +53,10 @@ in {
   # Config
   ################
   config = lib.mkIf config.hyprland.wallpaper.enable {
-    # Do NOT auto-start user units during rebuild (avoid blocking UI during HM switch)
+    # Don't autostart user units during rebuild (keeps HM switch snappy & non-blocking)
     systemd.user.startServices = false;
 
+    # Runtime tools used by your wallpaper helpers (safe even if not all are used)
     home.packages =
       (with pkgs; [
         waypaper
@@ -85,48 +89,68 @@ in {
       }
     ];
 
-    # Seed writable settings (kept for your scripts; harmless if unused)
+    # Seed writable settings used by your scripts.
+    # NOTE: We create wallpaper-effect.sh as an executable, harmless placeholder script
+    # so any activation hook calling it won't fail on headless hosts.
     home.activation.wallpaperSettingsSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
-      set -eu
-      S="$HOME/.config/hypr/settings"
-      mkdir -p "$S"
+            set -eu
+            S="$HOME/.config/hypr/settings"
+            mkdir -p "$S"
 
-      seed_file() {
-        local path="$1" default="$2"
-        if [ -L "$path" ]; then rm -f "$path"; fi
-        if [ ! -f "$path" ]; then
-          printf "%s\n" "$default" >"$path"
-          chmod 0644 "$path"
-        fi
-      }
+            # Generic seeding helper for plain files
+            seed_file() {
+              path="$1"; default="$2"; mode="''${3:-0644}"
+              if [ -L "$path" ]; then rm -f "$path"; fi
+              if [ ! -f "$path" ]; then
+                printf "%s\n" "$default" >"$path"
+                chmod "$mode" "$path"
+              fi
+            }
 
-      seed_file "$S/wallpaper-effect.sh" "off"
-      seed_file "$S/blur.sh" "50x30"
-      seed_file "$S/wallpaper-automation.sh" "300"
+            # Provide an executable, no-op wallpaper-effect script
+            if [ ! -f "$S/wallpaper-effect.sh" ]; then
+              cat > "$S/wallpaper-effect.sh" << 'EOF'
+      #!/usr/bin/env sh
+      # Hyprland wallpaper effect placeholder; disabled on this host.
+      # This script intentionally does nothing and exits 0.
+      exit 0
+      EOF
+              chmod 0755 "$S/wallpaper-effect.sh"
+            else
+              # If it exists but isn't executable, make it so (avoids "Permission denied")
+              chmod +x "$S/wallpaper-effect.sh" || true
+            fi
 
-      if [ ! -e "$S/wallpaper_cache" ]; then
-        : > "$S/wallpaper_cache"
-        chmod 0644 "$S/wallpaper_cache"
-      fi
+            # Other seed settings remain regular text files
+            seed_file "$S/blur.sh" "50x30" 0644
+            seed_file "$S/wallpaper-automation.sh" "300" 0644
+
+            if [ ! -e "$S/wallpaper_cache" ]; then
+              : > "$S/wallpaper_cache"
+              chmod 0644 "$S/wallpaper_cache"
+            fi
     '';
 
-    # If no wallpapers exist, kick the central fetcher once (non-fatal if absent)
+    # If no wallpapers exist yet, ask the central fetcher to populate (non-fatal if missing)
     home.activation.wallpapersSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
       set -eu
       WALLS="$HOME/.config/wallpapers"
-      if [ -z "$(find "$WALLS" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) | head -n1)" ]; then
+      if ! find "$WALLS" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) | head -n1 | grep -q .; then
         echo ":: No wallpapers found; deferring to central fetcher"
         systemctl --user start waypaper-fetch.service || true
       fi
     '';
 
-    # IMPORTANT:
-    # Do NOT define or start wallpaper services here.
-    # Hyprpaper is managed centrally in the Hyprland module to avoid duplicates.
-    # If you ever want to reintroduce a timer, do it via hyprpaper IPC only,
-    # and ensure it 'After=hyprland-session.target' with proper env.
+    # Extra safety: only run the effect script if it exists AND is executable.
+    # This prevents activation failures on headless/servers.
+    home.activation.ensureDefaultWallpaper = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      S="$HOME/.config/hypr/settings/wallpaper-effect.sh"
+      if [ -x "$S" ]; then
+        "$S" || true
+      fi
+    '';
 
-    # Keep ~/.local/bin in PATH
+    # Ensure ~/.local/bin is in PATH for the installed helper scripts
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }
