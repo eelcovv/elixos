@@ -26,7 +26,6 @@
       ../modules/profiles/containers/docker.nix
       ../modules/lib/python-runtimes.nix
     ]
-    ]
     ++
     # 🛠️ Services
     [
