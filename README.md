@@ -663,6 +663,36 @@ After that, copy the generated `hardware-configuration.nix` to:
 
 You can then proceed with `nixos-rebuild` or `nixos-install` using your flake-based configuration.
 
+At this point you have two choises: for very larges memory size you can just do nixos-install (step) 2. However, installing nixos requires to operate with your RAM as your hard drive, therefore
+on normal machines, you memory will not be suffition. To fix that follow step 1. 
+
+1. Normal memory
+
+Make sure you have mounted you partitions by running 
+
+```shell
+lsblk
+```
+
+Normally, if you have just paritioned your harddrive, they should be mounted. 
+
+Clone your repository to /mnt/home
+
+```shell
+cd /mnt/home
+git clone /tmp/elixos.git -b main
+```
+
+Now run the install script
+
+```shell
+cd /mnt/home/elixos
+./scripts/bootstrap/build-on-laptop.sh
+```
+
+This should install your nixos by using your hardrive to store all nixos packages.
+
+2. Large memmory
 Now you can install your laptop with
 
 ```shell
