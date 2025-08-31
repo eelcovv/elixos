@@ -6,8 +6,8 @@
   networking.hostName = "contabo";
 
   desktop.enableGnome = true;
-  desktop.enableKde = false;
-  desktop.enableHyperland = false;
+  desktop.enableKde = true;
+  desktop.enableHyperland = true;
 
   services.displayManager.gdm.wayland = lib.mkForce false;
 
