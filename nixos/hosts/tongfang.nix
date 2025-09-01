@@ -16,6 +16,7 @@
       ../modules/profiles/desktop-options.nix
       ../modules/profiles/desktop-configs.nix
       ../modules/profiles/desktop-software.nix
+      ../modules/profiles/session.nix
       ../modules/profiles/flatpak.nix
       #../modules/profiles/containers/podman.nix
       ../modules/profiles/containers/docker.nix
