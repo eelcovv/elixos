@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
 # of-shell-root: Open an interactive OpenFOAM-enabled shell as root inside a container.
 #
-# Key points:
-# - Same as of-shell, but runs as root (UID=0, GID=0).
-# - Useful for debugging container environment or fixing permissions inside container.
-#
-# Usage:
-#   of-shell-root
-#   of-shell-root <command> [args...]
+# Same as of-shell, but runs as root. Also tries to pass vi-mode via ~/.inputrc if present.
 
 set -euo pipefail
 
@@ -15,9 +9,15 @@ ENGINE="${OPENFOAM_ENGINE:-docker}"
 IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
 TAG="${OPENFOAM_TAG:-2406}"
 
+MOUNTS=(-v "$PWD:$PWD" -w "$PWD")
+if [ -f "$HOME/.inputrc" ]; then
+  # root's home is /root in the container
+  MOUNTS+=(-v "$HOME/.inputrc:/root/.inputrc:ro")
+fi
+
 exec "${ENGINE}" run --rm -it \
   --user 0:0 \
-  -v "$PWD:$PWD" -w "$PWD" \
+  "${MOUNTS[@]}" \
   "${IMAGE}:${TAG}" \
   -- bash -i "$@"
 

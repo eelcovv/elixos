@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # of-shell: Open an interactive OpenFOAM-enabled shell inside a container.
 #
-# Key points:
+# Features:
 # - Runs as the current host user (UID/GID mapping).
 # - Mounts the current working directory and sets it as workdir.
-# - Allocates TTY (-it) for full interactive experience.
-# - Uses "bash -i" so OpenFOAM shell functions are available.
+# - Allocates TTY (-it) for interactive use.
+# - Inherits vi-style editing by bind-mounting host ~/.inputrc if present.
 #
 # Usage:
 #   of-shell
@@ -13,16 +13,24 @@
 
 set -euo pipefail
 
-ENGINE="${OPENFOAM_ENGINE:-docker}"   # Container engine (docker or podman)
+ENGINE="${OPENFOAM_ENGINE:-docker}"            # docker or podman
 IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
 TAG="${OPENFOAM_TAG:-2406}"
 
-UID="$(id -u)"
-GID="$(id -g)"
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
+
+# Build mount array
+MOUNTS=(-v "$PWD:$PWD" -w "$PWD")
+# If you have a host ~/.inputrc, map it to the container user to enable vi-mode.
+if [ -f "$HOME/.inputrc" ]; then
+  # container username is "openfoam" in this image
+  MOUNTS+=(-v "$HOME/.inputrc:/home/openfoam/.inputrc:ro")
+fi
 
 exec "${ENGINE}" run --rm -it \
-  --user "${UID}:${GID}" \
-  -v "$PWD:$PWD" -w "$PWD" \
+  --user "${HOST_UID}:${HOST_GID}" \
+  "${MOUNTS[@]}" \
   "${IMAGE}:${TAG}" \
   -- bash -i "$@"
 
