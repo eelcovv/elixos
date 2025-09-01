@@ -3,9 +3,12 @@
 # and run theming tools. Uses 'notify' from helper-functions.sh.
 set -euo pipefail
 
-# No popups as standard;Set Quiet = 0 to see them temporarily
 : "${QUIET:=0}"
 
+# --- single-run lock (prevents overlap) ---
+lockfile="/tmp/wallpaper.sh.lock"
+exec 99>"$lockfile"
+flock -n 99 || exit 0
 
 # ---------- Helper + fallback notify ----------
 HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"
@@ -13,31 +16,17 @@ if [[ -r "$HELPER" ]]; then
   # shellcheck disable=SC1090
   source "$HELPER" || true
 fi
-
-
 if [[ "$(type -t notify 2>/dev/null)" != "function" ]]; then
   notify() {
     local title="$1"; shift
     local body="${*:-}"
-
-    # Always Console + Syslog Logging
     printf '%s: %s\n' "$title" "$body"
     command -v logger >/dev/null 2>&1 && logger -t wallpaper -- "$title: $body" || true
-
-    # Only desktop notification as a Quiet = 0
-    if [[ "$QUIET" = "0" ]]; then
-      # Use a sync key so that popups replace each other instead of stacking
-      # (less spam if you still have quiet = 0)
-      if command -v notify-send >/dev/null 2>&1; then
-        notify-send \
-          --hint=string:x-canonical-private-synchronous:wallpaper \
-          "$title" "$body" || true
-      fi
+    if [[ "$QUIET" = "0" ]] && command -v notify-send >/dev/null 2>&1; then
+      notify-send --hint=string:x-canonical-private-synchronous:wallpaper "$title" "$body" || true
     fi
   }
 fi
-
-
 
 # ---------- Small wait for Hyprland to be ready ----------
 _waitForHypr() {
@@ -58,8 +47,7 @@ mkdir -p "$hypr_cache_folder"
 generatedversions="$hypr_cache_folder/wallpaper-generated"
 mkdir -p "$generatedversions"
 
-waypaperrunning="$hypr_cache_folder/waypaper-running"
-[[ -f "$waypaperrunning" ]] && rm -f "$waypaperrunning" && exit 0
+# NOTE: removed the old waypaperrunning guard
 
 force_generate=0
 cachefile="$hypr_cache_folder/current_wallpaper"
@@ -92,7 +80,6 @@ else
   wallpaper="$1"
 fi
 [[ "$wallpaper" == ~* ]] && wallpaper="${wallpaper/#\~/$HOME}"
-
 echo "$wallpaper" > "$cachefile"
 tmpwallpaper="$wallpaper"
 wallpaperfilename="$(basename "$wallpaper")"
@@ -100,12 +87,8 @@ notify "Wallpaper" "Source: $wallpaperfilename"
 
 # ---------- Read & validate effect (always initialise!) ----------
 effect="off"
-if [[ -f "$effectfile" ]]; then
-  effect="$(<"$effectfile")"
-fi
-# expand ~ if someone put it there
+[[ -f "$effectfile" ]] && effect="$(<"$effectfile")"
 [[ "$effect" == ~* ]] && effect="${effect/#\~/$HOME}"
-# only allow "off" or a file under effects_dir
 if [[ "$effect" != "off" && ! -r "$effects_dir/$effect" ]]; then
   notify "Effect" "Invalid effect '$effect' → using off"
   effect="off"
@@ -136,11 +119,15 @@ else
   echo "$state_key" > "$last_applied"
 fi
 
-# ---------- Set wallpaper via Waypaper/Hyprpaper ----------
-_waitForHypr
-notify "Wallpaper" "Setting: $used_wallpaper"
-touch "$waypaperrunning"
-waypaper --backend hyprpaper --wallpaper "$used_wallpaper" || notify "Wallpaper" "waypaper failed (ignored)"
+# ---------- Set wallpaper (only if not already set by Waypaper) ----------
+if [[ "${WALLPAPER_ALREADY_SET:-0}" != "1" ]]; then
+  _waitForHypr
+  notify "Wallpaper" "Setting: $used_wallpaper"
+  # Set quietly via Waypaper (handles hyprpaper IPC & preload)
+  if command -v waypaper >/dev/null 2>&1; then
+    waypaper --backend hyprpaper --wallpaper "$used_wallpaper" >/dev/null 2>&1 || true
+  fi
+fi
 
 # ---------- Matugen & Wallust ----------
 if [[ "$run_theme" == "1" ]]; then
@@ -150,9 +137,8 @@ if [[ "$run_theme" == "1" ]]; then
   wallust run "$used_wallpaper" || notify "Wallust" "failed (ignored)"
 fi
 
-# ---------- UI reloads (no duplicates): only if theme changed ----------
+# ---------- UI reloads (only if theme changed) ----------
 if [[ "$run_theme" == "1" ]]; then
-  # Waybar
   if systemctl --user is-active --quiet waybar.service 2>/dev/null; then
     pkill -USR2 waybar || true
   else
@@ -162,7 +148,6 @@ if [[ "$run_theme" == "1" ]]; then
       "$HOME/.config/waybar/launch.sh" || true
     fi
   fi
-  # Dock
   if systemctl --user list-units --type=service --all 2>/dev/null | grep -q '^nwg-dock-hyprland\.service'; then
     systemctl --user try-restart nwg-dock-hyprland.service || true
   else
