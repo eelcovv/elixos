@@ -2,18 +2,16 @@
 # Set a wallpaper by name or path.
 # - Without extension: try .png first, then .jpg
 # - With path or extension: use exactly that file
-# Default: route via wallpaper.sh (effects + theming). Use --raw to call waypaper directly.
+# Always route via wallpaper.sh (effects + theming). No direct Waypaper call.
 set -euo pipefail
 
 DIR="${WALLPAPER_DIR:-$HOME/.config/wallpapers}"
-BACKEND="${WALLPAPER_BACKEND:-hyprpaper}"
-RAW=0
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [--dir DIR] [--backend BACKEND] [--raw] <name|path>
+Usage: $(basename "$0") [--dir DIR] <name|path>
 
---raw   Bypass pipeline and call waypaper directly (no effects/matugen/wallust).
+Always routes via wallpaper.sh (no --raw mode in this variant).
 EOF
   exit 1
 }
@@ -22,8 +20,6 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dir)      [[ $# -ge 2 ]] || usage; DIR="$2"; shift 2 ;;
-    --backend)  [[ $# -ge 2 ]] || usage; BACKEND="$2"; shift 2 ;;
-    --raw)      RAW=1; shift ;;
     -h|--help)  usage ;;
     *)          break ;;
   esac
@@ -66,14 +62,6 @@ else
   fi
 fi
 
-# Prefer pipeline (effects + theming)
-if [[ "$RAW" -eq 0 ]]; then
-  echo ":: Setting via pipeline: $F"
-  exec "$HOME/.local/bin/wallpaper.sh" "$F"
-fi
-
-# Raw mode: direct waypaper
-echo ":: Setting (raw) wallpaper: $F"
-WP_DIR="$(dirname "$F")"
-waypaper --backend "$BACKEND" --folder "$WP_DIR" --wallpaper "$F"
+echo ":: Setting via pipeline: $F"
+exec "$HOME/.local/bin/wallpaper.sh" "$F"
 
