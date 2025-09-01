@@ -87,6 +87,9 @@ This NixOS configuration module defines common system settings:
       ];
     };
 
+    # add ~/.local/bin to the path
+    environment.localBinInPath = true;
+
     environment.systemPackages = with pkgs; let
       inherit (config.system) build;
     in [

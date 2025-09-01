@@ -8,6 +8,12 @@
     ./fonts.nix
   ];
 
+  # Voeg ~/.local/bin (en desgewenst ~/bin) toe aan PATH via HM
+  home.sessionPath = [
+    "$HOME/.local/bin"
+    "$HOME/bin"
+  ];
+
   home.packages = with pkgs; [
     htop
     wget
