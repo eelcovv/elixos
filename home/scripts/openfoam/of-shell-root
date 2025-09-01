@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# of-shell-root: Same as of-shell, but run as root inside the container.
+# of-shell-root: same as of-shell, but run as root inside the container
 set -euo pipefail
 
 ENGINE="${OPENFOAM_ENGINE:-docker}"
@@ -15,5 +15,5 @@ exec "${ENGINE}" run --rm "${TTY_OPTS[@]}" \
   --user 0:0 \
   -v "$PWD:$PWD" -w "$PWD" \
   "${IMAGE}:${TAG}" \
-  / bash -i
+  -- bash -i
 

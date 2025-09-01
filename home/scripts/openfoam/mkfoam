@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# mkfoam: Create a minimal ParaView .foam file for the current case directory.
+# mkfoam: create a minimal ParaView .foam file
 set -euo pipefail
 name="${1:-case}"
 touch "${name}.foam"

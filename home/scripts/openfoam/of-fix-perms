@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# of-fix-perms: Fix file ownership/permissions in the current directory to the host user.
+# of-fix-perms: fix ownership/permissions in current directory
 set -euo pipefail
 uid=$(id -u)
 gid=$(id -g)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# of-run: Run an OpenFOAM command non-interactively and propagate its exit code.
+# of-run: run an OpenFOAM command non-interactively; propagates exit code
 # Usage: of-run <command> [args...]
 set -euo pipefail
 
@@ -21,5 +21,5 @@ exec "${ENGINE}" run --rm \
   "${UIDGID_ARGS[@]}" \
   -v "$PWD:$PWD" -w "$PWD" \
   "${IMAGE}:${TAG}" \
-  / "$@"
+  -- "$@"
 
