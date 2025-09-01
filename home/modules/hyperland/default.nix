@@ -192,7 +192,6 @@ in {
         ExecStartPre = "${waitForHypr}";
         Environment = [
           "XDG_RUNTIME_DIR=%t"
-          "WAYLAND_DISPLAY=wayland-0"
         ];
         ExecStart = "${pkgs.hyprpaper}/bin/hyprpaper -c ${config.xdg.configHome}/hypr/hyprpaper.conf";
         Restart = "on-failure";

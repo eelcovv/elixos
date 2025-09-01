@@ -151,5 +151,58 @@ in {
 
     # Ensure ~/.local/bin is in PATH for the installed helper scripts
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
+
+    ###############################
+    # NEW: random at login + rotate
+    ###############################
+
+    # Set a random wallpaper once at session start (after hyprpaper is up)
+    systemd.user.services."wallpaper-initial-random" = {
+      Unit = {
+        Description = "Set a random wallpaper at session start";
+        After = ["hyprpaper.service" "hyprland-session.target"];
+        PartOf = ["hyprland-session.target"];
+        Requires = ["hyprpaper.service"];
+      };
+      Service = {
+        Type = "oneshot";
+        Environment = [
+          "WALLPAPER_DIR=%h/.config/wallpapers"
+          "QUIET=1"
+        ];
+        ExecStart = "%h/.local/bin/wallpaper-random.sh";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    # Rotate wallpaper periodically (defaults to every 30 minutes below)
+    systemd.user.services."wallpaper-rotate" = {
+      Unit = {
+        Description = "Rotate wallpaper periodically";
+        PartOf = ["hyprland-session.target"];
+        After = ["hyprpaper.service"];
+      };
+      Service = {
+        Type = "oneshot";
+        Environment = [
+          "WALLPAPER_DIR=%h/.config/wallpapers"
+          "QUIET=1"
+        ];
+        ExecStart = "%h/.local/bin/wallpaper-random.sh";
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
+    systemd.user.timers."wallpaper-rotate" = {
+      Unit = {Description = "Timer for wallpaper rotation";};
+      Timer = {
+        # Kick once shortly after login, then repeat every 30 minutes.
+        OnBootSec = "1m";
+        OnUnitActiveSec = "30m";
+        Unit = "wallpaper-rotate.service";
+        AccuracySec = "30s";
+      };
+      Install = {WantedBy = ["timers.target" "hyprland-session.target"];};
+    };
   };
 }
