@@ -6,10 +6,9 @@
   ...
 }: let
   inherit (lib) mkEnableOption mkIf mkOption types;
-
   cfg = config.engineering.openfoam;
 
-  # Relatief pad naar de scriptsmap, vanaf dit bestand:
+  # Resolve scripts directory robustly at eval time.
   scriptsDir = ../../scripts/openfoam;
 in {
   options.engineering.openfoam = {
@@ -35,7 +34,10 @@ in {
   };
 
   config = mkIf cfg.enable {
-    home.packages = [pkgs.coreutils pkgs.bashInteractive pkgs.docker];
+    home.packages = [pkgs.coreutils pkgs.bashInteractive];
+
+    # Make sure ~/.local/bin is on PATH (Home Manager usually put this, but just in case)
+    home.sessionPath = ["$HOME/.local/bin"];
 
     home.sessionVariables = {
       OPENFOAM_ENGINE = cfg.engine;
@@ -43,10 +45,26 @@ in {
       OPENFOAM_TAG = cfg.tag;
     };
 
-    home.file.".local/bin/of-shell".source = scriptsDir + "/of-shell.sh";
-    home.file.".local/bin/of-shell-root".source = scriptsDir + "/of-shell-root.sh";
-    home.file.".local/bin/of-run".source = scriptsDir + "/of-run.sh";
-    home.file.".local/bin/of-fix-perms".source = scriptsDir + "/of-fix-perms.sh";
-    home.file.".local/bin/mkfoam".source = scriptsDir + "/mkfoam.sh";
+    # Install Helper Scripts AS Executables (Symlinks to your Repo files)
+    home.file.".local/bin/of-shell" = {
+      source = scriptsDir + "/of-shell.sh";
+      executable = true;
+    };
+    home.file.".local/bin/of-shell-root" = {
+      source = scriptsDir + "/of-shell-root.sh";
+      executable = true;
+    };
+    home.file.".local/bin/of-run" = {
+      source = scriptsDir + "/of-run.sh";
+      executable = true;
+    };
+    home.file.".local/bin/of-fix-perms" = {
+      source = scriptsDir + "/of-fix-perms.sh";
+      executable = true;
+    };
+    home.file.".local/bin/mkfoam" = {
+      source = scriptsDir + "/mkfoam.sh";
+      executable = true;
+    };
   };
 }
