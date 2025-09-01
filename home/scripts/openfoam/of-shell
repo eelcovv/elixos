@@ -1,24 +1,28 @@
 #!/usr/bin/env bash
-# of-shell: open an interactive shell with OpenFOAM env (Docker/Podman)
+# of-shell: Open an interactive OpenFOAM-enabled shell inside a container.
+#
+# Key points:
+# - Runs as the current host user (UID/GID mapping).
+# - Mounts the current working directory and sets it as workdir.
+# - Allocates TTY (-it) for full interactive experience.
+# - Uses "bash -i" so OpenFOAM shell functions are available.
+#
+# Usage:
+#   of-shell
+#   of-shell <command> [args...]
+
 set -euo pipefail
 
-ENGINE="${OPENFOAM_ENGINE:-docker}"                       # docker or podman
+ENGINE="${OPENFOAM_ENGINE:-docker}"   # Container engine (docker or podman)
 IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
 TAG="${OPENFOAM_TAG:-2406}"
 
-UIDGID_ARGS=()
-if [ "${ENGINE}" = "docker" ] || [ "${ENGINE}" = "podman" ]; then
-  UIDGID_ARGS=(--user "$(id -u)":"$(id -g)")
-fi
+UID="$(id -u)"
+GID="$(id -g)"
 
-TTY_OPTS=()
-if [ -t 0 ] && [ -t 1 ]; then
-  TTY_OPTS=(-it)
-fi
-
-exec "${ENGINE}" run --rm "${TTY_OPTS[@]}" \
-  "${UIDGID_ARGS[@]}" \
+exec "${ENGINE}" run --rm -it \
+  --user "${UID}:${GID}" \
   -v "$PWD:$PWD" -w "$PWD" \
   "${IMAGE}:${TAG}" \
-  -- bash -i
+  -- bash -i "$@"
 

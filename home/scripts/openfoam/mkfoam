@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
-# mkfoam: create a minimal ParaView .foam file
+# mkfoam: Create a minimal ParaView .foam file in the current directory.
+#
+# Key points:
+# - Generates <name>.foam file (default: case.foam).
+# - ParaView detects .foam files and auto-loads OpenFOAM cases.
+#
+# Usage:
+#   mkfoam [name]
+# Example:
+#   mkfoam mycase   → creates mycase.foam
+
 set -euo pipefail
-name="${1:-case}"
-touch "${name}.foam"
-echo "Created: ${name}.foam (open in ParaView)."
+
+NAME="${1:-case}"
+touch "${NAME}.foam"
+echo "Created: ${NAME}.foam (open in ParaView)."
 

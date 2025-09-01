@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
-# of-run: run an OpenFOAM command; needs interactive bash so shell functions (foamVersion) exist
-# Usage: of-run <command> [args...]
+# of-run: Run an OpenFOAM command inside a container (non-interactively).
+#
+# Key points:
+# - Starts interactive bash (-i) so shell functions (foamVersion, etc.) are loaded.
+# - Allocates TTY (-t) to avoid job-control warnings.
+# - Mounts current working directory and sets it as workdir.
+# - Runs with mapped host UID/GID.
+#
+# Usage:
+#   of-run <command> [args...]
+# Example:
+#   of-run foamVersion
+#   of-run simpleFoam -help
+
 set -euo pipefail
 
 if [ $# -lt 1 ]; then
@@ -12,14 +24,10 @@ ENGINE="${OPENFOAM_ENGINE:-docker}"
 IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
 TAG="${OPENFOAM_TAG:-2406}"
 
-UIDGID_ARGS=()
-if [ "${ENGINE}" = "docker" ] || [ "${ENGINE}" = "podman" ]; then
-  UIDGID_ARGS=(--user "$(id -u)":"$(id -g)")
-fi
+UIDGID_ARGS=(--user "$(id -u)":"$(id -g)")
 
 CMD="$*"
 
-# Belangrijk verschil: voeg -t toe, geen -i
 exec "${ENGINE}" run --rm -t \
   "${UIDGID_ARGS[@]}" \
   -v "$PWD:$PWD" -w "$PWD" \

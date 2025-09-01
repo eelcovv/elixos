@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
-# of-fix-perms: fix ownership/permissions in current directory
+# of-fix-perms: Fix ownership and permissions in the current directory.
+#
+# Key points:
+# - Recursively sets ownership of all files/dirs to current user UID/GID.
+# - Ensures read/write/execute permissions for user and group.
+# - Use after running container commands that created root-owned files.
+#
+# Usage:
+#   of-fix-perms
+
 set -euo pipefail
-uid=$(id -u)
-gid=$(id -g)
-echo "Chowning $(pwd) recursively to ${uid}:${gid} ..."
+
+UID="$(id -u)"
+GID="$(id -g)"
+
+echo "Fixing ownership and permissions in $(pwd) ..."
 chmod -R u+rwX,g+rwX .
-chown -R "${uid}:${gid}" .
+chown -R "${UID}:${GID}" .
 echo "Done."
 
