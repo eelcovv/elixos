@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# of-run: run an OpenFOAM command in batch; loads bashrc so shell functions work
+# of-run: run an OpenFOAM command; needs interactive bash so shell functions (foamVersion) exist
 # Usage: of-run <command> [args...]
 set -euo pipefail
 
@@ -17,31 +17,12 @@ if [ "${ENGINE}" = "docker" ] || [ "${ENGINE}" = "podman" ]; then
   UIDGID_ARGS=(--user "$(id -u)":"$(id -g)")
 fi
 
-# Bouw het commando (alles na sourcen wordt in dezelfde shell uitgevoerd)
-USER_CMD="$*"
+CMD="$*"
 
-exec "${ENGINE}" run --rm \
+# Belangrijk verschil: voeg -t toe, geen -i
+exec "${ENGINE}" run --rm -t \
   "${UIDGID_ARGS[@]}" \
   -v "$PWD:$PWD" -w "$PWD" \
   "${IMAGE}:${TAG}" \
-  -- bash -lc '
-    # Source de OF-bashrc (robuste zoeklijst voor varianten)
-    for p in \
-      /usr/lib/openfoam/openfoam*/etc/bashrc \
-      /opt/OpenFOAM-*/etc/bashrc \
-      /opt/openfoam*/etc/bashrc \
-      /usr/share/openfoam*/etc/bashrc \
-      /usr/bin/openfoam
-    do
-      if [ -f "$p" ]; then
-        # /usr/bin/openfoam kan een wrapper zijn die zelf source’t
-        case "$p" in
-          */openfoam) . "$p" ;;
-          *) . "$p" ;;
-        esac
-        break
-      fi
-    done
-    exec '"$USER_CMD"'
-  '
+  -- bash -ic "$CMD"
 
