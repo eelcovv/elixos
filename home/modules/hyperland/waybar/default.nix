@@ -32,6 +32,8 @@ in {
         After = ["hyprland-session.target"];
         PartOf = ["hyprland-session.target"];
         Conflicts = ["waybar.service"];
+        # Only start if Hyprland Runtime exists
+        ConditionPathExistsGlob = "%t/hypr/*";
       };
       Service = {
         Type = "simple";

@@ -163,6 +163,7 @@ in {
         After = ["hyprpaper.service" "hyprland-session.target"];
         PartOf = ["hyprland-session.target"];
         Requires = ["hyprpaper.service"];
+        ConditionPathExistsGlob = "%t/hypr/*";
       };
       Service = {
         Type = "oneshot";

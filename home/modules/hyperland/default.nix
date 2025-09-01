@@ -57,7 +57,6 @@ in {
         Requires = ["graphical-session.target"];
         After = ["graphical-session.target"];
       };
-      Install = {WantedBy = ["default.target"];};
     };
 
     # ---------------------------
@@ -186,6 +185,7 @@ in {
         Description = "Hyprland wallpaper daemon (hyprpaper)";
         After = ["graphical-session.target" "hyprland-session.target"];
         PartOf = ["hyprland-session.target"];
+        ConditionPathExistsGlob = "%t/hypr/*";
       };
       Service = {
         Type = "simple";

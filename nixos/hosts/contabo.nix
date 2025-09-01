@@ -9,8 +9,6 @@
   desktop.enableKde = true;
   desktop.enableHyperland = true;
 
-  services.displayManager.gdm.wayland = lib.mkForce false;
-
   # Definine host-specifi sshUsers
   sshUsers = ["eelco"];
   configuredUsers = ["eelco"];
