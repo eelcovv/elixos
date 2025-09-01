@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
+# of-shell-root: Same as of-shell, but run as root inside the container.
 set -euo pipefail
-engine="${OPENFOAM_ENGINE:-docker}"
-image="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
-tag="${OPENFOAM_TAG:-2406}"
 
-exec "${engine}" run --rm -it \
+ENGINE="${OPENFOAM_ENGINE:-docker}"
+IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
+TAG="${OPENFOAM_TAG:-2406}"
+
+TTY_OPTS=()
+if [ -t 0 ] && [ -t 1 ]; then
+  TTY_OPTS=(-it)
+fi
+
+exec "${ENGINE}" run --rm "${TTY_OPTS[@]}" \
   --user 0:0 \
-  -v "$PWD":/case -w /case \
-  "${image}:${tag}" \
-  bash -lc 'for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f "$p" ]; then source "$p" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo "[of-shell-root] cwd=$(pwd), uid=$(id -u), gid=$(id -g)"; exec bash -i'
+  -v "$PWD:$PWD" -w "$PWD" \
+  "${IMAGE}:${TAG}" \
+  / bash -i
+

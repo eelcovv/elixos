@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
+# of-shell: Open an interactive shell with the OpenFOAM environment (Docker/Podman).
 set -euo pipefail
-uid=$(id -u)
-gid=$(id -g)
-engine="${OPENFOAM_ENGINE:-docker}"   # docker of podman
-image="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
-tag="${OPENFOAM_TAG:-2406}"
 
-exec "${engine}" run --rm -it \
-  --user "${uid}:${gid}" \
-  -v "$PWD":/case -w /case \
-  "${image}:${tag}" \
-  bash -lc 'for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f "$p" ]; then source "$p" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo "[of-shell] cwd=$(pwd), uid=$(id -u), gid=$(id -g)"; exec bash -i'
+ENGINE="${OPENFOAM_ENGINE:-docker}"                       # docker or podman
+IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
+TAG="${OPENFOAM_TAG:-2406}"
+
+UIDGID_ARGS=()
+if [ "${ENGINE}" = "docker" ] || [ "${ENGINE}" = "podman" ]; then
+  UIDGID_ARGS=(--user "$(id -u)":"$(id -g)")
+fi
+
+TTY_OPTS=()
+if [ -t 0 ] && [ -t 1 ]; then
+  TTY_OPTS=(-it)
+fi
+
+# Mount the current directory and use it as workdir inside the container.
+exec "${ENGINE}" run --rm "${TTY_OPTS[@]}" \
+  "${UIDGID_ARGS[@]}" \
+  -v "$PWD:$PWD" -w "$PWD" \
+  "${IMAGE}:${TAG}" \
+  / bash -i
+

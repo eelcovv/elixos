@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+# of-fix-perms: Fix file ownership/permissions in the current directory to the host user.
 set -euo pipefail
-user_id=$(id -u)
-group_id=$(id -g)
-echo "Chowning $(pwd) recursively to ${user_id}:${group_id} ..."
+uid=$(id -u)
+gid=$(id -g)
+echo "Chowning $(pwd) recursively to ${uid}:${gid} ..."
 chmod -R u+rwX,g+rwX .
-chown -R "${user_id}:${group_id}" .
+chown -R "${uid}:${gid}" .
 echo "Done."
+

@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
+# of-run: Run an OpenFOAM command non-interactively and propagate its exit code.
+# Usage: of-run <command> [args...]
 set -euo pipefail
+
 if [ $# -lt 1 ]; then
   echo "Usage: of-run <command> [args...]" >&2
   exit 2
 fi
-uid=$(id -u)
-gid=$(id -g)
-cmd="$*"
-engine="${OPENFOAM_ENGINE:-docker}"
-image="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
-tag="${OPENFOAM_TAG:-2406}"
 
-exec "${engine}" run --rm \
-  --user "${uid}:${gid}" \
-  -v "$PWD":/case -w /case \
-  "${image}:${tag}" \
-  bash -lc 'for p in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/OpenFOAM-*/etc/bashrc /opt/openfoam*/etc/bashrc /usr/share/openfoam*/etc/bashrc /usr/bin/openfoam; do if [ -f "$p" ]; then source "$p" >/dev/null 2>&1 || true; break; fi; done; cd /case || exit 1; echo "[of-run] '"$cmd"'"; eval '"$cmd"''
+ENGINE="${OPENFOAM_ENGINE:-docker}"
+IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
+TAG="${OPENFOAM_TAG:-2406}"
+
+UIDGID_ARGS=()
+if [ "${ENGINE}" = "docker" ] || [ "${ENGINE}" = "podman" ]; then
+  UIDGID_ARGS=(--user "$(id -u)":"$(id -g)")
+fi
+
+exec "${ENGINE}" run --rm \
+  "${UIDGID_ARGS[@]}" \
+  -v "$PWD:$PWD" -w "$PWD" \
+  "${IMAGE}:${TAG}" \
+  / "$@"
+
