@@ -9,6 +9,8 @@
   sshUsers = ["eelco"];
   configuredUsers = ["eelco"];
 
+  services.displayManager.gdm.enable = true;
+  services.displayManager.gdm.wayland = true;
   services.displayManager.defaultSession = "hyprland";
 
   imports =
@@ -55,5 +57,13 @@
     portals.gtk = true;
     # Optional: install system-scope apps automatically:
     # systemApps = [ "org.paraview.ParaView" ];
+  };
+
+  profiles.session.seedRememberLast = {
+    enable = true;
+    mapping = {
+      eelco = "hyprland";
+      por = "plasma";
+    };
   };
 }

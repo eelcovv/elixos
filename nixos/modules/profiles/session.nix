@@ -7,44 +7,35 @@
   t = lib.types;
 in {
   options.profiles.session.seedRememberLast = {
-    enable = lib.mkEnableOption "Seed AccountsService so GDM kan 'remember last' starten";
-    # username -> sessie-id, bv. "hyprland" | "gnome" | "gnome-xorg" | "plasma"
+    enable = lib.mkEnableOption "Seed per-user sessie via AccountsService";
     mapping = lib.mkOption {
       type = t.attrsOf t.str;
       default = {};
       example = {
         eelco = "hyprland";
-        por = "gnome";
+        por = "plasma";
       };
-      description = "For each user the initial session to seed (only if a traffic jam does not yet exist).";
     };
   };
 
   config = lib.mkIf config.profiles.session.seedRememberLast.enable {
-    # Optioneel: waarschuwing als GDM niet aan staat
-    assertions = [
-      {
-        assertion = config.services.displayManager.gdm.enable or false;
-        message = "profile.session.seedremembertlast expects GDM as a display manager.";
-      }
-    ];
-
-    # Write 1x a Seed file per user if it does not yet exist (TMPFiles 'C' = Create IF Absent)
-    systemd.tmpfiles.rules = let
-      mkRule = user: sess: let
-        sessionType =
-          if sess == "gnome-xorg" || sess == "plasma"
-          then "x11"
-          else "wayland";
-        contents = pkgs.writeText "accounts-${user}" ''
-          [User]
-          XSession=${sess}
-          Session=${sess}
-          SessionType=${sessionType}
-          SystemAccount=false
-        '';
-      in "C /var/lib/AccountsService/users/${user} 0644 root root - ${contents}";
-    in
-      lib.mapAttrsToList mkRule config.profiles.session.seedRememberLast.mapping;
+    systemd.tmpfiles.rules =
+      lib.mapAttrsToList
+      (
+        user: sess: let
+          st =
+            if sess == "plasmax11" || sess == "gnome-xorg"
+            then "x11"
+            else "wayland";
+          txt = pkgs.writeText "accounts-${user}" ''
+            [User]
+            XSession=${sess}
+            Session=${sess}
+            SessionType=${st}
+            SystemAccount=false
+          '';
+        in "C /var/lib/AccountsService/users/${user} 0644 root root - ${txt}"
+      )
+      config.profiles.session.seedRememberLast.mapping;
   };
 }
