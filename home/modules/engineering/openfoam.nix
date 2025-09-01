@@ -47,23 +47,23 @@ in {
 
     # Install Helper Scripts AS Executables (Symlinks to your Repo files)
     home.file.".local/bin/of-shell" = {
-      source = scriptsDir + "/of-shell.sh";
+      source = scriptsDir + "/of-shell";
       executable = true;
     };
     home.file.".local/bin/of-shell-root" = {
-      source = scriptsDir + "/of-shell-root.sh";
+      source = scriptsDir + "/of-shell-root";
       executable = true;
     };
     home.file.".local/bin/of-run" = {
-      source = scriptsDir + "/of-run.sh";
+      source = scriptsDir + "/of-run";
       executable = true;
     };
     home.file.".local/bin/of-fix-perms" = {
-      source = scriptsDir + "/of-fix-perms.sh";
+      source = scriptsDir + "/of-fix-perms";
       executable = true;
     };
     home.file.".local/bin/mkfoam" = {
-      source = scriptsDir + "/mkfoam.sh";
+      source = scriptsDir + "/mkfoam";
       executable = true;
     };
   };
