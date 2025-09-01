@@ -70,8 +70,6 @@ This NixOS configuration module defines common system settings:
 
     programs.dconf.enable = true;
 
-    systemd.user.startServices = "sd-switch";
-
     services.openssh.enable = true;
     services.pipewire.enable = true;
     networking.networkmanager.enable = true;
