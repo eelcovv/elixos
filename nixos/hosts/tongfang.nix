@@ -9,6 +9,8 @@
   sshUsers = ["eelco"];
   configuredUsers = ["eelco"];
 
+  services.displayManager.defaultSession = "hyprland";
+
   imports =
     # 🧱 Basic modules
     [
