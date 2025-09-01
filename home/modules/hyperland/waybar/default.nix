@@ -29,15 +29,16 @@ in {
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
-        After = ["hyprland-session.target"];
+        After = ["hyprland-session.target" "hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
         Conflicts = ["waybar.service"];
       };
       Service = {
         Type = "simple";
+        # Wait until hyprctl responds (prevents starting too early)
         ExecStartPre = "${waitForHypr}";
         ExecStart = "${pkgs.waybar}/bin/waybar -l info -c ${cfgPath}/config.jsonc -s ${cfgPath}/style.css";
-        # Waybar ondersteunt USR2 voor live reload:
+        # Waybar supports USR2 for live reload
         ExecReload = "${pkgs.coreutils}/bin/kill -USR2 $MAINPID";
         Restart = "on-failure";
         RestartSec = "500ms";

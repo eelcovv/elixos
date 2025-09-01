@@ -200,6 +200,21 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
+    # this service is added in order to create a dependency for other services (waybar) to wait for
+    systemd.user.services."hyprland-env" = {
+      Unit = {
+        Description = "Import Hyprland/Wayland environment into systemd --user";
+        PartOf = ["hyprland-session.target"];
+        After = ["hyprland-session.target"];
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.bash}/bin/bash -lc 'dbus-update-activation-environment --systemd --all; systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE'";
+        RemainAfterExit = true;
+      };
+      Install = {WantedBy = ["hyprland-session.target"];};
+    };
+
     # Make sure no legacy randomizer/timer is enabled (avoid conflicts)
     # systemd.user.services."waypaper-random".Install.WantedBy = lib.mkForce [];
     # systemd.user.timers."waypaper-random".Install.WantedBy = lib.mkForce [];
