@@ -18,29 +18,36 @@
 # ⚠️ Note: Redistribution of PTGui binaries is not allowed — avoid putting this file in public repositories.
 # ============================================
 {
+  config,
   pkgs,
   lib,
   ...
-}: let
-  version = "Pro 13.2";
+}: {
+  options.programs.ptgui.enable = lib.mkEnableOption "PTGui panorama stitcher";
 
-  # Attempt to require the PTGui tarball; do not fail if it has not been provided.
-  _req = builtins.tryEval (pkgs.requireFile {
-    name = "PTGui_13.2.tar.gz";
-    sha256 = "sha256-UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
-    url = "https://www.ptgui.com/"; # informational only
-  });
+  config = lib.mkIf config.programs.ptgui.enable (
+    let
+      version = "Pro 13.2";
 
-  src =
-    if _req.success
-    then _req.value
-    else (builtins.trace "⚠️ PTGui tarball not found/provided — PTGui will be skipped" null);
+      # Attempt to require the PTGui tarball; do not fail if it has not been provided.
+      _req = builtins.tryEval (pkgs.requireFile {
+        name = "PTGui_13.2.tar.gz";
+        sha256 = "sha256-UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
+        url = "https://www.ptgui.com/"; # informational only
+      });
 
-  ptgui =
-    if src != null
-    then pkgs.callPackage ./ptgui.nix {inherit src version;}
-    else null;
-in {
-  # Only add PTGui to home.packages if 'src' is available
-  home.packages = lib.optionals (ptgui != null) [ptgui];
+      src =
+        if _req.success
+        then _req.value
+        else (builtins.trace "⚠️ PTGui tarball not found/provided — PTGui will be skipped" null);
+
+      ptgui =
+        if src != null
+        then pkgs.callPackage ./ptgui.nix {inherit src version;}
+        else null;
+    in {
+      # Only add PTGui to home.packages if 'src' is available
+      home.packages = lib.optionals (ptgui != null) [ptgui];
+    }
+  );
 }
