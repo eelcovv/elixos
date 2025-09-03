@@ -14,6 +14,7 @@
   # GUI/engineering tools that you want locally
   home.packages = with pkgs; [
     blender
+    meshlab
     freecad-wayland
     gsettings-desktop-schemas
     hicolor-icon-theme

@@ -13,5 +13,9 @@
     gimp
     graphicsmagick
     krita
+    grim
+    slurp
+    swappy
+    wl-clipboard
   ];
 }
