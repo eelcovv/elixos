@@ -89,7 +89,17 @@ in {
         Environment = [
           "PATH=%h/.local/bin:%h/.nix-profile/bin:/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/usr/bin:/bin"
         ];
-        ExecStart = "${pkgs.systemd}/bin/systemctl --user import-environment PATH";
+        Service = {
+          Type = "oneshot";
+          ExecStart =
+            "${pkgs.bash}/bin/bash -lc '"
+            + "dbus-update-activation-environment --systemd --all; "
+            + "${pkgs.systemd}/bin/systemctl --user import-environment "
+            + "WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP "
+            + "XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE'";
+          RemainAfterExit = true;
+        };
+
         RemainAfterExit = true;
       };
       Install = {WantedBy = ["default.target"];};

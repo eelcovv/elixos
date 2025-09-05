@@ -25,20 +25,17 @@ in {
     programs.waybar.package = pkgs.waybar;
     # Gebruik onze eigen systemd unit (voorkomt dubbele starts):
     programs.waybar.systemd.enable = false;
-
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
-        After = ["hyprland-session.target" "hyprland-env.service"];
+        After = ["graphical-session.target" "hyprland-session.target" "hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
         Conflicts = ["waybar.service"];
       };
       Service = {
         Type = "simple";
-        # Wait until hyprctl responds (prevents starting too early)
         ExecStartPre = "${waitForHypr}";
         ExecStart = "${pkgs.waybar}/bin/waybar -l info -c ${cfgPath}/config.jsonc -s ${cfgPath}/style.css";
-        # Waybar supports USR2 for live reload
         ExecReload = "${pkgs.coreutils}/bin/kill -USR2 $MAINPID";
         Restart = "on-failure";
         RestartSec = "500ms";
@@ -47,7 +44,7 @@ in {
           "WAYBAR_STYLE=%h/.config/waybar/style.css"
         ];
       };
-      Install = {WantedBy = ["hyprland-session.target"];};
+      Install.WantedBy = ["hyprland-session.target"];
     };
 
     # Publiceer themes (read-only vanuit de store)
