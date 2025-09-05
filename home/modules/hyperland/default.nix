@@ -54,8 +54,6 @@ in {
     systemd.user.targets."hyprland-session" = {
       Unit = {
         Description = "Hyprland graphical session (user)";
-        Requires = ["graphical-session.target"];
-        After = ["graphical-session.target"];
       };
     };
 
