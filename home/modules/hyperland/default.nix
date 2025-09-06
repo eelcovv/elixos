@@ -212,6 +212,7 @@ in {
       };
       Install = {WantedBy = ["hyprland-session.target"];};
     };
+    systemd.user.services."hyprland-env".Install.WantedBy = lib.mkForce [];
 
     # Make sure no legacy randomizer/timer is enabled (avoid conflicts)
     # systemd.user.services."waypaper-random".Install.WantedBy = lib.mkForce [];

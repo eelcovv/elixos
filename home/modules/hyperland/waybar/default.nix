@@ -34,11 +34,13 @@ in {
       };
       Service = {
         Type = "simple";
-        ExecStartPre = "${waitForHypr}"; # laat staan
-        # mini-wacht (zet er één extra pre-step bij)
+        ExecStartPre = "${waitForHypr}";
         ExecStartPre = "${pkgs.coreutils}/bin/sleep 0.25";
 
-        # Zet runtime dir expliciet, net als bij hyprpaper
+        # Import env rechtstreeks hier (blokkeert niet als dbus er nog niet is)
+        ExecStartPre = "${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE";
+        ExecStartPre = "${pkgs.dbus}/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE || true";
+
         Environment = [
           "XDG_RUNTIME_DIR=%t"
           "WAYBAR_CONFIG=%h/.config/waybar/config.jsonc"
