@@ -227,6 +227,8 @@
   },
 
   // Network (CLICKABLE → nm-applet toggle via jouw script)
+  // ... rest ongewijzigd ...
+
   "network": {
     "format": "{ifname}",
     "format-wifi": " {essid} ({signalStrength}%)",
@@ -237,9 +239,13 @@
     "tooltip-format-ethernet": " {ifname}\nIP: {ipaddr}\n up: {bandwidthUpBits} down: {bandwidthDownBits}",
     "tooltip-format-disconnected": "Disconnected",
     "max-length": 50,
+
+    // Klik = tray-applet togglen via jouw script onder ~/.config/hypr/scripts
     "on-click": "~/.config/hypr/scripts/nm-applet.sh toggle",
     "on-click-right": "~/.config/hypr/scripts/nm-applet.sh stop"
   },
+
+  // ... rest ongewijzigd ...
 
   // Battery
   "battery": {
@@ -263,36 +269,38 @@
       "power-saver": ""
     }
   },
-
-  // Pulseaudio (CLICKABLE → pavucontrol)
   "pulseaudio": {
     "format": "{icon}  {volume}%",
-    "format-bluetooth": "{volume}% {icon} {format_source}",
-    "format-bluetooth-muted": " {icon} {format_source}",
-    "format-muted": " {format_source}",
-    "format-source": "{volume}% ",
-    "format-source-muted": "",
-    "format-icons": {
-      "headphone": " ",
-      "hands-free": " ",
-      "headset": " ",
-      "phone": " ",
-      "portable": " ",
-      "car": " ",
-      "default": ["", "", ""]
-    },
-    "on-click": "pavucontrol"
+    "on-click": "pavucontrol",
+    "format-icons": { "default": ["", "", ""] }
   },
 
-  // Bluetooth (CLICKABLE → blueman-manager)
   "bluetooth": {
     "format": " {status}",
-    "format-disabled": "",
-    "format-off": "",
-    "interval": 30,
     "on-click": "blueman-manager",
-    "format-no-controller": ""
+    "interval": 30
   },
+
+  "custom/exit": {
+    "format": "",
+    "on-click": "~/.config/hypr/scripts/wlogout.sh",
+    "on-click-right": "hyprlock",
+    "tooltip-format": "Left: Power menu\nRight: Lock screen"
+  },
+
+  "custom/hypridle": {
+    "format": "",
+    "return-type": "json",
+    "escape": true,
+    "exec-on-event": true,
+    "interval": 60,
+    "exec": "~/.config/hypr/scripts/hypridle.sh status",
+    "on-click": "~/.config/hypr/scripts/hypridle.sh toggle"
+  },
+
+  "tray": { "icon-size": 21, "spacing": 10 },
+
+  // Pulseaudio (CLICKABLE → pavucontrol)
 
   // User (kept)
   "user": { "format": "{user}", "interval": 60, "icon": false },

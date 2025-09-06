@@ -67,48 +67,50 @@ in {
       Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # (Optioneel) publiceer thema’s read-only uit de store
+    # Themapack (read-only uit de store)
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
-    # >>> Declaratieve config-bestanden (GEEN seeding, altijd exact deze inhoud) <<<
+    # -------------------------------------------------------
+    # SEED: schrijfbare user-files (éénmalig aanmaken)
+    # → laat theme-switchers deze bestanden overschrijven
+    # -------------------------------------------------------
+    home.activation.ensureWaybarSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      set -eu
+      cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+      mkdir -p "$cfg_dir"
 
-    # Hoofd lay-out: plaatst modules links/centrum/rechts en include’t modules & quicklinks
-    xdg.configFile."waybar/config.jsonc".text = ''
-      {
-        "layer": "top",
-        "position": "top",
-        "include": [
-          "${cfgPath}/modules.jsonc",
-          "${cfgPath}/waybar-quicklinks.json"
-        ],
-        "modules-left": [
-          "hyprland/workspaces",
-          "wlr/taskbar",
-          "hyprland/window"
-        ],
-        "modules-center": [
-          "group/quicklinks"
-        ],
-        "modules-right": [
-          "group/tools",
-          "group/hardware",
-          "tray",
-          "network",
-          "bluetooth",
-          "pulseaudio",
-          "backlight",
-          "battery",
-          "power-profiles-daemon",
-          "clock",
-          "custom/notification",
-          "group/settings",
-          "custom/exit"
-        ]
-      }
+      # Seed alleen als ze ontbreken (scripts mogen later overschrijven)
+      if [ ! -f "$cfg_dir/config.jsonc" ]; then
+        install -Dm0644 "${themesDir}/default/config.jsonc" "$cfg_dir/config.jsonc"
+      fi
+      if [ ! -f "$cfg_dir/style.css" ]; then
+        install -Dm0644 "${themesDir}/default/style.css" "$cfg_dir/style.css"
+      fi
+      if [ ! -f "$cfg_dir/colors.css" ]; then
+        printf '/* default colors */\n' >"$cfg_dir/colors.css"
+        chmod 0644 "$cfg_dir/colors.css"
+      fi
+      if [ ! -f "$cfg_dir/modules.jsonc" ]; then
+        # We willen onze declaratieve modules.jsonc hieronder plaatsen,
+        # maar seed een lege als fallback; de xdg.configFile (hieronder)
+        # zal 'm daarna overschrijven (symlink naar store).
+        printf '{}\n' >"$cfg_dir/modules.jsonc"
+        chmod 0644 "$cfg_dir/modules.jsonc"
+      fi
+      if [ ! -f "$cfg_dir/waybar-quicklinks.json" ]; then
+        printf '[]\n' >"$cfg_dir/waybar-quicklinks.json"
+        chmod 0644 "$cfg_dir/waybar-quicklinks.json"
+      fi
+
+      ln -sfn "$cfg_dir/config.jsonc" "$cfg_dir/config"
     '';
 
-    # Alle module-definities, inclusief klik-actie voor geluid/netwerk/exit enz.
+    # -------------------------------------------------------
+    # Declaratieve *inhoud* voor modules + quicklinks
+    # (mag readonly, want hier hoeft de theme-switcher niets te wijzigen)
+    # -------------------------------------------------------
+
     xdg.configFile."waybar/modules.jsonc".text = ''
       {
         "hyprland/workspaces": {
@@ -129,13 +131,8 @@ in {
           "on-click": "activate",
           "on-click-middle": "close",
           "ignore-list": ["Alacritty", "kitty"],
-          "app_ids-mapping": {
-            "firefoxdeveloperedition": "firefox-developer-edition"
-          },
-          "rewrite": {
-            "Firefox Web Browser": "Firefox",
-            "Foot Server": "Terminal"
-          }
+          "app_ids-mapping": { "firefoxdeveloperedition": "firefox-developer-edition" },
+          "rewrite": { "Firefox Web Browser": "Firefox", "Foot Server": "Terminal" }
         },
 
         "hyprland/window": {
@@ -152,10 +149,7 @@ in {
 
         "custom/empty": { "format": "" },
 
-        "custom/tools": {
-          "format": "",
-          "tooltip-format": "Tools"
-        },
+        "custom/tools": { "format": "", "tooltip-format": "Tools" },
 
         "custom/cliphist": {
           "format": "",
@@ -238,25 +232,12 @@ in {
 
         "tray": { "icon-size": 21, "spacing": 10 },
 
-        "clock": {
-          "format": "{:%H:%M %a}",
-          "on-click": "flatpak run com.ml4w.calendar",
-          "timezone": "",
-          "tooltip": false
-        },
+        "clock": { "format": "{:%H:%M %a}", "on-click": "flatpak run com.ml4w.calendar", "timezone": "", "tooltip": false },
 
         "custom/system": { "format": "", "tooltip": false },
 
-        "cpu": {
-          "format": "/ C {usage}% ",
-          "on-click": "~/.local/bin/system-monitor"
-        },
-
-        "memory": {
-          "format": "/ M {}% ",
-          "on-click": "~/.local/bin/system-monitor"
-        },
-
+        "cpu": { "format": "/ C {usage}% ", "on-click": "~/.local/bin/system-monitor" },
+        "memory": { "format": "/ M {}% ", "on-click": "~/.local/bin/system-monitor" },
         "disk": {
           "interval": 30,
           "format": "D {percentage_used}% ",
@@ -268,21 +249,13 @@ in {
 
         "group/hardware": {
           "orientation": "inherit",
-          "drawer": {
-            "transition-duration": 300,
-            "children-class": "not-memory",
-            "transition-left-to-right": false
-          },
+          "drawer": { "transition-duration": 300, "children-class": "not-memory", "transition-left-to-right": false },
           "modules": [ "custom/system", "disk", "cpu", "memory", "hyprland/language" ]
         },
 
         "group/tools": {
           "orientation": "inherit",
-          "drawer": {
-            "transition-duration": 300,
-            "children-class": "not-memory",
-            "transition-left-to-right": false
-          },
+          "drawer": { "transition-duration": 300, "children-class": "not-memory", "transition-left-to-right": false },
           "modules": [ "custom/tools", "custom/cliphist", "custom/hypridle", "custom/hyprshade" ]
         },
 
@@ -293,11 +266,7 @@ in {
 
         "group/settings": {
           "orientation": "inherit",
-          "drawer": {
-            "transition-duration": 300,
-            "children-class": "not-memory",
-            "transition-left-to-right": true
-          },
+          "drawer": { "transition-duration": 300, "children-class": "not-memory", "transition-left-to-right": true },
           "modules": [ "custom/settings", "custom/waybarthemes", "custom/wallpaper" ]
         },
 
@@ -328,12 +297,7 @@ in {
           "format": "{icon}",
           "tooltip-format": "Power profile: {profile}\\nDriver: {driver}",
           "tooltip": true,
-          "format-icons": {
-            "default": "",
-            "performance": "",
-            "balanced": "",
-            "power-saver": ""
-          }
+          "format-icons": { "default": "", "performance": "", "balanced": "", "power-saver": "" }
         },
 
         "pulseaudio": {
@@ -374,7 +338,6 @@ in {
       }
     '';
 
-    # Quicklinks (pas aan naar smaak)
     xdg.configFile."waybar/waybar-quicklinks.json".text = ''
       {
         "custom/quicklink_browser": {
@@ -405,10 +368,11 @@ in {
       }
     '';
 
-    # Style (kies eigen CSS of reuse theme)
-    xdg.configFile."waybar/style.css".source = "${themesDir}/default/style.css";
+    # Style: laat de theme-switcher dit bestand later overschrijven; we seeden alleen default
+    # (NIET declaratief vastzetten!)
+    # --> GEEN xdg.configFile."waybar/style.css" hier.
 
-    # Handige helpers die we in modules aanroepen
+    # Kleine helper die we via modules klikken
     home.file.".local/bin/system-monitor" = {
       text = ''
         #!/usr/bin/env bash
@@ -427,6 +391,7 @@ in {
       executable = true;
     };
 
+    # Theme pick/switch helpers (als je die scripts hebt)
     home.file.".local/bin/waybar-pick-theme" = {
       source = waybarDir + "/scripts/waybar-pick-theme.sh";
       executable = true;
