@@ -34,16 +34,23 @@ in {
       };
       Service = {
         Type = "simple";
-        ExecStartPre = "${waitForHypr}";
-        ExecStart = "${pkgs.waybar}/bin/waybar -l info -c ${cfgPath}/config.jsonc -s ${cfgPath}/style.css";
-        ExecReload = "${pkgs.coreutils}/bin/kill -USR2 $MAINPID";
-        Restart = "on-failure";
-        RestartSec = "500ms";
+        ExecStartPre = "${waitForHypr}"; # laat staan
+        # mini-wacht (zet er één extra pre-step bij)
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 0.25";
+
+        # Zet runtime dir expliciet, net als bij hyprpaper
         Environment = [
+          "XDG_RUNTIME_DIR=%t"
           "WAYBAR_CONFIG=%h/.config/waybar/config.jsonc"
           "WAYBAR_STYLE=%h/.config/waybar/style.css"
         ];
+
+        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/style.css";
+        ExecReload = "${pkgs.coreutils}/bin/kill -USR2 $MAINPID";
+        Restart = "on-failure";
+        RestartSec = "1s";
       };
+
       Install.WantedBy = ["hyprland-session.target"];
     };
 

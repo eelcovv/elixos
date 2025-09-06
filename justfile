@@ -552,6 +552,41 @@ switch-theme theme:
     pkill waybar && waybar &
 
 
+# Herlaad HM, reload systemd --user en start Waybar netjes opnieuw
+hm := "home-manager switch -b hm-backup"
+
+# Volledige hypr-session herstart (zonder Hyprland zelf te killen)
+hypr-session-restart:
+    systemctl --user reset-failed || true
+    systemctl --user stop waybar.service waybar-managed.service || true
+    pkill -x waybar || true
+    systemctl --user stop hyprpaper.service swaync.service || true
+    systemctl --user stop hyprland-session.target || true
+    sleep 0.5
+    systemctl --user start hyprland-session.target
+    just waybar-logs
+
+# Alleen Waybar hard herstarten
+waybar-restart:
+    systemctl --user reset-failed waybar-managed.service || true
+    systemctl --user stop waybar.service waybar-managed.service || true
+    pkill -x waybar || true
+    sleep 0.3
+    systemctl --user start hyprland-env.service
+    systemctl --user start waybar-managed.service
+    just waybar-logs
+
+# Laatste 200 regels Waybar-logs (user journal)
+waybar-logs:
+    journalctl --user -u waybar-managed.service -n 200 --no-pager -xe
+
+# HM switch + daemon-reload + Waybar restart
+hm-reload-waybar:
+    {{hm}}
+    systemctl --user daemon-reload
+    just waybar-restart
+
+
 # Set a specific wallpaper by path (must be in ~/.config/wallpapers or pass full path)
 # - Works with filename (e.g. "default.png") or path ("/path/to/img.png", "~/img.png", "./img.png")
 # Set wallpaper by name or path (extensie optioneel: probeert .png, dan .jpg)
