@@ -10,6 +10,7 @@
 
   cfgPath = "${config.xdg.configHome}/waybar";
 
+  # Wait until Hyprland IPC is ready to avoid race conditions
   waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
     for i in $(seq 1 50); do
       if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then
@@ -21,46 +22,50 @@
   '';
 in {
   config = {
+    # Enable Waybar, but do not let HM auto-manage the systemd unit
     programs.waybar.enable = true;
     programs.waybar.package = pkgs.waybar;
-    # Gebruik onze eigen systemd unit (voorkomt dubbele starts):
     programs.waybar.systemd.enable = false;
+
+    # Custom, robust systemd --user unit for Waybar
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
+        # Depend on Hyprland session and the env-importer (Option A keeps this)
         After = ["graphical-session.target" "hyprland-session.target" "hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
-        Conflicts = ["waybar.service"];
+        Conflicts = ["waybar.service"]; # avoid double starts
       };
       Service = {
         Type = "simple";
-        ExecStartPre = "${waitForHypr}";
-        ExecStartPre = "${pkgs.coreutils}/bin/sleep 0.25";
 
-        # Import env rechtstreeks hier (blokkeert niet als dbus er nog niet is)
-        ExecStartPre = "${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE";
-        ExecStartPre = "${pkgs.dbus}/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE || true";
+        # Multiple ExecStartPre commands must be a list
+        ExecStartPre = [
+          "${waitForHypr}"
+          "${pkgs.coreutils}/bin/sleep 0.25"
+        ];
 
+        # Ensure runtime dir when launched by systemd --user
         Environment = [
           "XDG_RUNTIME_DIR=%t"
           "WAYBAR_CONFIG=%h/.config/waybar/config.jsonc"
           "WAYBAR_STYLE=%h/.config/waybar/style.css"
         ];
 
+        # Trace level exposes JSONC mistakes or module load errors quickly
         ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/style.css";
         ExecReload = "${pkgs.coreutils}/bin/kill -USR2 $MAINPID";
         Restart = "on-failure";
         RestartSec = "1s";
       };
-
       Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # Publiceer themes (read-only vanuit de store)
+    # Publish read-only themes from the store
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
-    # Seed lokale, muteerbare bestanden (geen store-symlinks)
+    # Seed writable user files on first deploy (no store symlinks)
     home.activation.ensureWaybarSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
@@ -85,11 +90,11 @@ in {
         chmod 0644 "$cfg_dir/waybar-quicklinks.json"
       fi
 
-      # Compat-symlink die sommige tools verwachten:
+      # Compat symlink some tools expect
       ln -sfn "$cfg_dir/config.jsonc" "$cfg_dir/config"
     '';
 
-    # Tools
+    # Helper tools in PATH
     home.file.".local/bin/waybar-switch-theme" = {
       source = scriptsDir + "/waybar-switch-theme.sh";
       executable = true;
@@ -99,6 +104,7 @@ in {
       executable = true;
     };
 
+    # Make sure local bin is at the end of PATH for the session
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }

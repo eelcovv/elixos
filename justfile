@@ -572,9 +572,9 @@ waybar-restart:
     systemctl --user stop waybar.service waybar-managed.service || true
     pkill -x waybar || true
     sleep 0.3
-    systemctl --user start hyprland-env.service
     systemctl --user start waybar-managed.service
     just waybar-logs
+
 
 # Laatste 200 regels Waybar-logs (user journal)
 waybar-logs:
