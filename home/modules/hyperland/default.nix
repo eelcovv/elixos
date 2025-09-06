@@ -233,7 +233,7 @@ in {
       systemctl --user reset-failed hyprpaper.service 2>/dev/null || true
     '';
 
-    home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
+    home.sessionPath = lib.mkAfter ["$HOME/.config/hypr/scripts"];
 
     # Wallpaper options (have no effect on wiring here)
     hyprland.wallpaper.enable = true;

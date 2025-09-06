@@ -14,14 +14,8 @@
     "active-only": false,
     "all-outputs": true,
     "format": "{}",
-    "format-icons": {
-      "urgent": "",
-      "active": "",
-      "default": ""
-    },
-    "persistent-workspaces": {
-      "*": 5
-    }
+    "format-icons": { "urgent": "", "active": "", "default": "" },
+    "persistent-workspaces": { "*": 5 }
   },
 
   // Taskbar
@@ -55,11 +49,9 @@
   },
 
   // Empty
-  "custom/empty": {
-    "format": ""
-  },
+  "custom/empty": { "format": "" },
 
-    // Tools
+  // Tools
   "custom/tools": {
     "format": "",
     "tooltip-format": "Tools"
@@ -82,24 +74,22 @@
     "tooltip-format": "Left: Select a wallpaper\nRight: Select wallpaper effect"
   },
 
-  // Waybar Themes
+  // Waybar Themes (use your local-bin helper)
   "custom/waybarthemes": {
     "format": "",
-    "on-click": "~/.config/waybar/themeswitcher.sh",
+    "on-click": "~/.local/bin/waybar-pick-theme",
     "tooltip-format": "Select a waybar theme"
   },
 
-  // Rofi Application Launcher
+  // Rofi Application Launcher (label)
   "custom/appmenu": {
-    // START APPS LABEL
     "format": "Apps",
-    // END APPS LABEL
     "on-click": "sleep 0.2;pkill rofi || rofi -show drun -replace",
     "on-click-right": "~/.config/hypr/scripts/keybindings.sh",
     "tooltip-format": "Left: Open the application launcher\nRight: Show all keybindings"
   },
 
-  // Rofi Application Launcher
+  // Rofi Application Launcher (icon)
   "custom/appmenuicon": {
     "format": "",
     "on-click": "sleep 0.2;rofi -show drun -replace",
@@ -110,7 +100,7 @@
   // Power Menu
   "custom/exit": {
     "format": "",
-    "on-click": "~/.config/ml4w/scripts/wlogout.sh",
+    "on-click": "~/.config/hypr/scripts/wlogout.sh",
     "on-click-right": "hyprlock",
     "tooltip-format": "Left: Power menu\nRight: Lock screen"
   },
@@ -120,18 +110,13 @@
     "tooltip-format": "Left: Notifications\nRight: Do not disturb",
     "format": "{icon}",
     "format-icons": {
-      "notification":
-        "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
+      "notification": "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
       "none": "",
-      "dnd-notification":
-        "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
+      "dnd-notification": "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
       "dnd-none": "",
-      "inhibited-notification":
-        "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
+      "inhibited-notification": "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
       "inhibited-none": "",
-      "dnd-inhibited-notification":
-        "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
-      "dnd-inhibited-none": ""
+      "dnd-inhibited-notification": "<span rise='8pt'><span foreground='red'><sup></sup></span></span>"
     },
     "return-type": "json",
     "exec-if": "which swaync-client",
@@ -157,17 +142,11 @@
     "numlock": true,
     "capslock": true,
     "format": "{name} {icon}",
-    "format-icons": {
-      "locked": "",
-      "unlocked": ""
-    }
+    "format-icons": { "locked": "", "unlocked": "" }
   },
 
   // System tray
-  "tray": {
-    "icon-size": 21,
-    "spacing": 10
-  },
+  "tray": { "icon-size": 21, "spacing": 10 },
 
   // Clock
   "clock": {
@@ -178,34 +157,30 @@
   },
 
   // System
-  "custom/system": {
-    "format": "",
-    "tooltip": false
-  },
+  "custom/system": { "format": "", "tooltip": false },
 
   // CPU
   "cpu": {
     "format": "/ C {usage}% ",
-    "on-click": "~/.config/waybar/scripts/system-monitor.sh"
+    "on-click": "~/.local/bin/system-monitor"
   },
 
   // Memory
   "memory": {
     "format": "/ M {}% ",
-    "on-click": "~/.config/waybar/scripts/system-monitor.sh"
+    "on-click": "~/.local/bin/system-monitor"
   },
 
-  // Harddisc space used
+  // Disk usage
   "disk": {
     "interval": 30,
     "format": "D {percentage_used}% ",
     "path": "/",
-    "on-click": "~/.config/waybar/scripts/system-monitor.sh"
+    "on-click": "~/.local/bin/system-monitor"
   },
 
-  "hyprland/language": {
-    "format": "/ K {short}"
-  },
+  // Keyboard layout short
+  "hyprland/language": { "format": "/ K {short}" },
 
   // Group Hardware
   "group/hardware": {
@@ -234,13 +209,10 @@
     ]
   },
 
-  // Group Links
+  // Group Links (kept)
   "group/links": {
     "orientation": "horizontal",
-    "modules": [
-      "custom/chatgpt",
-      "custom/empty"
-    ]
+    "modules": ["custom/chatgpt", "custom/empty"]
   },
 
   // Group Settings
@@ -251,14 +223,10 @@
       "children-class": "not-memory",
       "transition-left-to-right": true
     },
-    "modules": [
-      "custom/settings",
-      "custom/waybarthemes",
-      "custom/wallpaper"
-    ]
+    "modules": ["custom/settings", "custom/waybarthemes", "custom/wallpaper"]
   },
 
-  // Network
+  // Network (CLICKABLE → nm-applet toggle via jouw script)
   "network": {
     "format": "{ifname}",
     "format-wifi": " {essid} ({signalStrength}%)",
@@ -269,23 +237,17 @@
     "tooltip-format-ethernet": " {ifname}\nIP: {ipaddr}\n up: {bandwidthUpBits} down: {bandwidthDownBits}",
     "tooltip-format-disconnected": "Disconnected",
     "max-length": 50,
-    "on-click": "~/.config/waybar/scripts/networkmanager.sh",
-    "on-click-right": "~/.config/ml4w/scripts/nm-applet.sh toggle",
+    "on-click": "~/.config/hypr/scripts/nm-applet.sh toggle",
+    "on-click-right": "~/.config/hypr/scripts/nm-applet.sh stop"
   },
 
   // Battery
   "battery": {
-    "states": {
-      // "good": 95,
-      "warning": 30,
-      "critical": 15
-    },
+    "states": { "warning": 30, "critical": 15 },
     "format": "{icon} {capacity}%",
     "format-charging": "  {capacity}%",
     "format-plugged": "  {capacity}%",
     "format-alt": "{icon}  {time}",
-    // "format-good": "", // An empty format will hide the module
-    // "format-full": "",
     "format-icons": [" ", " ", " ", " ", " "]
   },
 
@@ -302,9 +264,8 @@
     }
   },
 
-  // Pulseaudio
+  // Pulseaudio (CLICKABLE → pavucontrol)
   "pulseaudio": {
-    // "scroll-step": 1, // %, can be a float
     "format": "{icon}  {volume}%",
     "format-bluetooth": "{volume}% {icon} {format_source}",
     "format-bluetooth-muted": " {icon} {format_source}",
@@ -323,7 +284,7 @@
     "on-click": "pavucontrol"
   },
 
-  // Bluetooth
+  // Bluetooth (CLICKABLE → blueman-manager)
   "bluetooth": {
     "format": " {status}",
     "format-disabled": "",
@@ -333,14 +294,10 @@
     "format-no-controller": ""
   },
 
-  // Other
-  "user": {
-    "format": "{user}",
-    "interval": 60,
-    "icon": false
-  },
+  // User (kept)
+  "user": { "format": "{user}", "interval": 60, "icon": false },
 
-  // backlight:
+  // Backlight
   "backlight": {
     "format": "{icon} {percent}%",
     "format-icons": [

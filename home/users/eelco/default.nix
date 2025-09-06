@@ -19,7 +19,7 @@
   '';
 
   # Extent path with .local/bin
-  home.sessionPath = ["$HOME/.local/bin"];
+  home.sessionPath = lib.mkDefault ["$HOME/.local/bin"];
 
   home.sessionVariables.LD_LIBRARY_PATH = lib.makeLibraryPath [
     pkgs.stdenv.cc.cc.lib
