@@ -90,7 +90,7 @@ in {
     ];
 
     # Declaratief, uitvoerbaar placeholder-effectscript (no-op) zodat guards nooit falen
-    xdg.configFile."hypr/settings/wallpaper-effect.sh" = {
+    xdg.configFile."hypr/settings/wallpaper-effects.sh" = {
       text = ''
         #!/usr/bin/env sh
         # Hyprland wallpaper effect placeholder; disabled on this host.
@@ -117,7 +117,7 @@ in {
         fi
       }
 
-      # Let op: geen aanmaak/chmod van $S/wallpaper-effect.sh hier; die is declaratief geregeld.
+      # Let op: geen aanmaak/chmod van $S/wallpaper-effects.sh hier; die is declaratief geregeld.
 
       # Andere seed settings blijven reguliere tekstbestanden
       seed_file "$S/blur.sh" "50x30" 0644
@@ -141,7 +141,7 @@ in {
 
     # Guard: voer het effectscript alleen uit als het bestaat én uitvoerbaar is
     home.activation.ensureWallpaperEffectGuard = lib.hm.dag.entryAfter ["writeBoundary"] ''
-      S="$HOME/.config/hypr/settings/wallpaper-effect.sh"
+      S="$HOME/.config/hypr/settings/wallpaper-effects.sh"
       if [ -x "$S" ]; then
         "$S" || true
       fi
