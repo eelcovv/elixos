@@ -30,7 +30,10 @@
   boot.initrd.luks.devices = {
     cryptroot.device = "/dev/disk/by-partlabel/disk-my-disk-luks-root";
     cryptswap.device = "/dev/disk/by-partlabel/disk-my-disk-luks-swap";
-    crypthome.device = "/dev/disk/by-partlabel/disk-my-disk-luks-home";
+  };
+  boot.luks.devices.crypthome = {
+    device = "/dev/disk/by-partlabel/disk-my-disk-luks-home";
+    allowDiscards = true;
   };
 
   # Optioneel: expliciet hibernate/resume device (swap is versleuteld → via mapper)
