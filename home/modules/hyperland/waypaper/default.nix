@@ -89,17 +89,6 @@ in {
       }
     ];
 
-    # Declaratief, uitvoerbaar placeholder-effectscript (no-op) zodat guards nooit falen
-    xdg.configFile."hypr/settings/wallpaper-effects.sh" = {
-      text = ''
-        #!/usr/bin/env sh
-        # Hyprland wallpaper effect placeholder; disabled on this host.
-        # This script intentionally does nothing and exits 0.
-        exit 0
-      '';
-      mode = "0755";
-    };
-
     # Seed writable settings used by your scripts (alleen aanmaken als ze nog niet bestaan).
     # Let op: deze blijven mutabel (geen symlinks naar de store) en kunnen later door jou/scrips overschreven worden.
     home.activation.wallpaperSettingsSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
