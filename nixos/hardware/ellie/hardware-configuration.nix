@@ -1,5 +1,5 @@
-# Hardware configuration for "ellie" matching the disko layout above.
-# Uses by-partlabel for initrd LUKS unlock so it remains stable across reorders.
+# Hardware configuration for "ellie" that matches the singer-style disko setup.
+# Uses by-partlabel for LUKS unlock in the initrd.
 {
   config,
   lib,
@@ -11,34 +11,31 @@
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
 
-  # Kernel/initrd modules: keep minimal; adjust if you know the CPU vendor.
+  # Core modules; extend if nodig (e.g. "amdgpu" in userspace, maar niet in initrd)
   boot.initrd.availableKernelModules = ["nvme" "xhci_pci"];
   boot.initrd.kernelModules = [];
   boot.kernelModules = [
-    /*
-    e.g. "kvm-amd" or "kvm-intel" if you like
-    */
+    "kvm-intel"
   ];
   boot.extraModulePackages = [];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 
-  # If this is AMD, you can enable microcode like this:
-  # hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-  # For Intel, use:
+  # Microcode (kies AMD of Intel)
+  # hardware.cpu.amd.updateMicrocode   = lib.mkDefault config.hardware.enableRedistributableFirmware;
   # hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
-  # Match the GPT partition names from disko for LUKS unlock in initrd
+  # LUKS devices openen in initrd op basis van GPT partlabels die Disko aanmaakt:
+  # disk.my-disk + partitions.{luks-root,luks-swap,luks-home}  → disk-my-disk-<naam>
   boot.initrd.luks.devices = {
-    cryptroot.device = "/dev/disk/by-partlabel/ellie-root";
-    cryptswap.device = "/dev/disk/by-partlabel/ellie-swap";
-    crypthome.device = "/dev/disk/by-partlabel/ellie-home";
+    cryptroot.device = "/dev/disk/by-partlabel/disk-my-disk-luks-root";
+    cryptswap.device = "/dev/disk/by-partlabel/disk-my-disk-luks-swap";
+    crypthome.device = "/dev/disk/by-partlabel/disk-my-disk-luks-home";
   };
 
-  # Optional: make resume explicit (not needed if disko set resumeDevice=true)
-  # boot.resumeDevice = "/dev/mapper/cryptswap";
+  # Optioneel: expliciet hibernate/resume device (swap is versleuteld → via mapper)
+  boot.resumeDevice = "/dev/mapper/cryptswap";
 
-  # NOTE:
-  # With disko, fileSystems and swapDevices are generated/mounted per the disko spec.
-  # You can keep NixOS' generated fileSystems minimal or remove conflicting entries.
+  # Met Disko worden fileSystems/swapDevices uit de layout gemount; laat nixos-generate-config
+  # hier verder minimaal of verwijder conflicterende entries.
 }
