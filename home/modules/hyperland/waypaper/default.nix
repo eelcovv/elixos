@@ -89,46 +89,44 @@ in {
       }
     ];
 
-    # Seed writable settings used by your scripts.
-    # NOTE: We create wallpaper-effect.sh as an executable, harmless placeholder script
-    # so any activation hook calling it won't fail on headless hosts.
+    # Declaratief, uitvoerbaar placeholder-effectscript (no-op) zodat guards nooit falen
+    xdg.configFile."hypr/settings/wallpaper-effect.sh" = {
+      text = ''
+        #!/usr/bin/env sh
+        # Hyprland wallpaper effect placeholder; disabled on this host.
+        # This script intentionally does nothing and exits 0.
+        exit 0
+      '';
+      mode = "0755";
+    };
+
+    # Seed writable settings used by your scripts (alleen aanmaken als ze nog niet bestaan).
+    # Let op: deze blijven mutabel (geen symlinks naar de store) en kunnen later door jou/scrips overschreven worden.
     home.activation.wallpaperSettingsSeed = lib.hm.dag.entryAfter ["linkGeneration"] ''
-            set -eu
-            S="$HOME/.config/hypr/settings"
-            mkdir -p "$S"
+      set -eu
+      S="$HOME/.config/hypr/settings"
+      mkdir -p "$S"
 
-            # Generic seeding helper for plain files
-            seed_file() {
-              path="$1"; default="$2"; mode="''${3:-0644}"
-              if [ -L "$path" ]; then rm -f "$path"; fi
-              if [ ! -f "$path" ]; then
-                printf "%s\n" "$default" >"$path"
-                chmod "$mode" "$path"
-              fi
-            }
+      # Generic seeding helper for plain files (only create when missing)
+      seed_file() {
+        path="$1"; default="$2"; mode="''${3:-0644}"
+        if [ -L "$path" ]; then rm -f "$path"; fi
+        if [ ! -f "$path" ]; then
+          printf "%s\n" "$default" >"$path"
+          chmod "$mode" "$path"
+        fi
+      }
 
-            # Provide an executable, no-op wallpaper-effect script
-            if [ ! -f "$S/wallpaper-effect.sh" ]; then
-              cat > "$S/wallpaper-effect.sh" << 'EOF'
-      #!/usr/bin/env sh
-      # Hyprland wallpaper effect placeholder; disabled on this host.
-      # This script intentionally does nothing and exits 0.
-      exit 0
-      EOF
-              chmod 0755 "$S/wallpaper-effect.sh"
-            else
-              # If it exists but isn't executable, make it so (avoids "Permission denied")
-              chmod +x "$S/wallpaper-effect.sh" || true
-            fi
+      # Let op: geen aanmaak/chmod van $S/wallpaper-effect.sh hier; die is declaratief geregeld.
 
-            # Other seed settings remain regular text files
-            seed_file "$S/blur.sh" "50x30" 0644
-            seed_file "$S/wallpaper-automation.sh" "300" 0644
+      # Andere seed settings blijven reguliere tekstbestanden
+      seed_file "$S/blur.sh" "50x30" 0644
+      seed_file "$S/wallpaper-automation.sh" "300" 0644
 
-            if [ ! -e "$S/wallpaper_cache" ]; then
-              : > "$S/wallpaper_cache"
-              chmod 0644 "$S/wallpaper_cache"
-            fi
+      if [ ! -e "$S/wallpaper_cache" ]; then
+        : > "$S/wallpaper_cache"
+        chmod 0644 "$S/wallpaper_cache"
+      fi
     '';
 
     # If no wallpapers exist yet, ask the central fetcher to populate (non-fatal if missing)
@@ -141,7 +139,7 @@ in {
       fi
     '';
 
-    # Unique name to avoid clashing with another module's "ensureDefaultWallpaper"
+    # Guard: voer het effectscript alleen uit als het bestaat én uitvoerbaar is
     home.activation.ensureWallpaperEffectGuard = lib.hm.dag.entryAfter ["writeBoundary"] ''
       S="$HOME/.config/hypr/settings/wallpaper-effect.sh"
       if [ -x "$S" ]; then
