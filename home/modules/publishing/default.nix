@@ -1,38 +1,38 @@
 {
-  config,
-  lib,
   pkgs,
+  lib,
   ...
 }: let
-  # Full set: everything works without hassle
   tex = pkgs.texlive.combined.scheme-full;
-  # -alternative (slimmer set): uncomwet if you want smaller-
-  # tex = pkgs.texlive.combine {
-  #   inherit (pkgs.texlive)
-  #     scheme-medium
-  #     xetex
-  #     luatex
-  #     latexmk
-  #     l3build
-  #     texlive-scripts
-  #     collection-xetex
-  #     collection-luatex
-  #     collection-latexrecommended
-  #     collection-fontsrecommended;
-  # };
 in {
   home.packages = [
     tex
+    pkgs.perl # l3Build uses Perl;can be handy
+    pkgs.l3build # From Tex Live;Some channels ship it loose
   ];
 
-  # Provide consistent Texmf paths (no Global /Nix /Store Writables required)
+  # XDG conforming paths, but without overwriting Texmfvar/Texmfconfig
   home.sessionVariables = {
-    TEXMFHOME = "${config.home.homeDirectory}/.texmf";
-    TEXMFVAR = "${config.xdg.cacheHome}/texmf-var";
+    TEXMFHOME = "$HOME/.local/share/texmf";
+    TEXMFCACHE = "$HOME/.cache/texmf-var"; # schrijfbare cache
+    # Very important: do not put Texmfvar/Texmfconfig/Texmfcnf yourself
   };
 
-  #Create directories before you start building
-  home.activation.texmfDirs = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    mkdir -p "${config.home.homeDirectory}/.texmf" "${config.xdg.cacheHome}/texmf-var"
+  # Ensure that directories exist with normal permissions
+  home.file.".local/share/texmf/.keep".text = "";
+  home.file.".cache/texmf-var/.keep".text = "";
+
+  # Easy command with correct ENV
+  programs.bash.initExtra = ''
+    alias l3bi='env -u TEXMFVAR -u TEXMFCONFIG \
+      TEXMFCACHE="$HOME/.cache/texmf-var" \
+      TEXMFHOME="$HOME/.local/share/texmf" \
+      l3build install --full'
+  '';
+  programs.zsh.initExtra = ''
+    alias l3bi='env -u TEXMFVAR -u TEXMFCONFIG \
+      TEXMFCACHE="$HOME/.cache/texmf-var" \
+      TEXMFHOME="$HOME/.local/share/texmf" \
+      l3build install --full'
   '';
 }
