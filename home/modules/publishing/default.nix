@@ -8,7 +8,6 @@ in {
   home.packages = [
     tex
     pkgs.perl # l3Build uses Perl;can be handy
-    pkgs.l3build # From Tex Live;Some channels ship it loose
   ];
 
   # XDG conforming paths, but without overwriting Texmfvar/Texmfconfig
