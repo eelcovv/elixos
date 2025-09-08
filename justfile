@@ -562,8 +562,6 @@ waybar-hard-reset:
 	echo "🛑 Stopping Waybar units (ignore failures)..."
 	systemctl --user stop waybar-managed.service 2>/dev/null || true
 	systemctl --user stop waybar.service         2>/dev/null || true
-
-	echo "🔪 Killing leftover waybar processes..."
 	pkill -9 -x waybar 2>/dev/null || true
 
 	echo "🧹 Removing stale Waybar socket (if any)..."
@@ -574,7 +572,10 @@ waybar-hard-reset:
 	systemctl --user reset-failed waybar-managed.service waybar.service 2>/dev/null || true
 	systemctl --user daemon-reload
 
-	echo "🚀 Starting Waybar (prefer managed, fallback to plain, no-block)..."
+	echo "🎯 Ensuring hyprland-session.target is active..."
+	systemctl --user start hyprland-session.target
+
+	echo "🚀 Starting Waybar (prefer managed, no-block)..."
 	if systemctl --user start --no-block waybar-managed.service 2>/dev/null; then
 		target="waybar-managed.service"
 	else
@@ -582,7 +583,7 @@ waybar-hard-reset:
 		target="waybar.service"
 	fi
 
-	# Watchdog: max 5s
+	# Watchdog 5s
 	for _ in $(seq 1 50); do
 		if pgrep -x waybar >/dev/null; then
 			echo "✅ $target started"
@@ -591,8 +592,15 @@ waybar-hard-reset:
 		sleep 0.1
 	done
 
-	echo "❌ $target did not come up in time, showing recent logs:"
-	journalctl --user -n 120 -u waybar-managed.service -u waybar.service --no-pager -xe || true
+	echo "❌ $target did not come up in time"
+	echo "— status:"
+	systemctl --user status "$target" --no-pager || true
+	echo "— show:"
+	systemctl --user show "$target" -p LoadState -p ActiveState -p SubState -p ExecMainPID -p ExecMainStatus -p UnitFileState || true
+	echo "— cat:"
+	systemctl --user cat "$target" || true
+	echo "— recent logs:"
+	journalctl --user -u waybar-managed.service -u waybar.service -n 200 --no-pager -xe || true
 	exit 1
 
 

@@ -1,4 +1,3 @@
-# home/modules/hyperland/waybar/default.nix
 {
   config,
   pkgs,
@@ -54,23 +53,27 @@ in {
       };
       Service = {
         Type = "simple";
+        # belangrijk: runtime dir voor user services
+        Environment = ["XDG_RUNTIME_DIR=%t"];
         ExecStartPre = [
           "${waitForHypr}"
           "${pkgs.coreutils}/bin/sleep 0.25"
         ];
-        # Geen verwarrende WAYBAR_CONFIG/STYLE env vars; gebruik dezelfde paden als de werkende CLI:
+        # zelfde paden als je cli die werkt
         ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config -s ${cfgPath}/style.css";
         Restart = "on-failure";
         RestartSec = "1s";
+        # optioneel: forceer logging naar journal (meestal default, kan helpen)
+        StandardOutput = "journal";
+        StandardError = "journal";
       };
       Install.WantedBy = ["hyprland-session.target"];
     };
 
     # ---------------------------
-    # Scripts / helpers
+    # Script: waybar-hypridle (naar ~/.local/bin)
     # ---------------------------
-    # Installeer jouw waybar-hypridle.sh naar ~/.config/hypr/scripts/ (uitvoerbaar)
-    home.file.".config/hypr/scripts/waybar-hypridle.sh" = {
+    home.file.".local/bin/waybar-hypridle" = {
       source = waybarDir + "/scripts/waybar-hypridle.sh";
       executable = true;
     };
@@ -108,7 +111,7 @@ in {
         chmod 0644 "$cfg_dir/waybar-quicklinks.json"
       fi
 
-      # Compat symlink zodat -c ${cfgPath}/config het JSONC-bestand gebruikt
+      # Compat-symlink zodat -c ${cfgPath}/config het JSONC-bestand gebruikt
       ln -sfn "$cfg_dir/config.jsonc" "$cfg_dir/config"
     '';
 
@@ -219,7 +222,7 @@ in {
         "custom/hypridle": {
           "return-type": "json",
           "interval": 5,
-          "exec": "~/.config/hypr/scripts/waybar-hypridle.sh",
+          "exec": "~/.local/bin/waybar-hypridle",
           "on-click": "hyprctl dispatch dpms off",
           "tooltip": true
         },
@@ -291,7 +294,7 @@ in {
           "format-charging": "  {capacity}%",
           "format-plugged": "  {capacity}%",
           "format-alt": "{icon}  {time}",
-          "format-icons": [" ", " ", " ", " ", " "]
+          "format-icons": [ " ", " ", " ", " ", " " ]
         },
 
         "power-profiles-daemon": {
@@ -315,7 +318,7 @@ in {
             "phone": " ",
             "portable": " ",
             "car": " ",
-            "default": ["", "", ""]
+            "default": [ "", "", "" ]
           },
           "on-click": "pavucontrol"
         },
@@ -352,7 +355,9 @@ in {
       }
     '';
 
-    # Kleine helper die we via modules klikken
+    # ---------------------------
+    # Kleine helper via modules
+    # ---------------------------
     home.file.".local/bin/system-monitor" = {
       text = ''
         #!/usr/bin/env bash
