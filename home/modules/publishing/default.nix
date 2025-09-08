@@ -36,18 +36,18 @@ in {
 
       # Optional: set TEXFORMATS to the store directory of xelatex.fmt if available
       if fmt="$(kpsewhich -engine=xetex -progname=xelatex -format=fmt xelatex.fmt 2>/dev/null || true)"; then
-        if [ -n "${fmt:-}" ]; then
-          export TEXFORMATS="$(dirname "$fmt")"
+        if [ -n "''${fmt:-}" ]; then
+          export TEXFORMATS="$(dirname "''${fmt}")"
         fi
       fi
 
       # Ensure kpathsea searches default trees in addition to any l3build-local tree.
       # The '::' token inserts the engine's default search path.
-      if [ -n "${TEXINPUTS:-}" ]; then
-        case "$TEXINPUTS" in
-          *::* ) : ;;                          # defaults already included
-          *:   ) export TEXINPUTS="${TEXINPUTS}:" ;;  # ensure trailing separator
-          *    ) export TEXINPUTS="${TEXINPUTS}::" ;;
+      if [ -n "''${TEXINPUTS:-}" ]; then
+        case "''${TEXINPUTS}" in
+          *::* ) : ;;                                 # defaults already included
+          *:   ) export TEXINPUTS="''${TEXINPUTS}:" ;; # ensure trailing separator
+          *    ) export TEXINPUTS="''${TEXINPUTS}::" ;;
         esac
       else
         export TEXINPUTS="::"

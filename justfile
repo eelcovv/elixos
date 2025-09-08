@@ -552,6 +552,28 @@ switch-theme theme:
     pkill waybar && waybar &
 
 
+waybar-hard-reset:
+    set -eu -o pipefail
+    echo "🛑 Stopping Waybar units (ignore failures)..."
+    systemctl --user stop waybar-managed.service 2>/dev/null || true
+    systemctl --user stop waybar.service         2>/dev/null || true
+    echo "🔪 Killing leftover waybar processes..."
+    pkill -9 -x waybar 2>/dev/null || true
+    echo "🧹 Removing stale Waybar socket (if any)..."
+    RUNDIR="${XDG_RUNTIME_DIR:-/run/user/$$(id -u)}"
+    rm -f "$${RUNDIR}/waybar.sock" 2>/dev/null || true
+    echo "♻️  Resetting failed state and reloading systemd --user..."
+    systemctl --user reset-failed waybar-managed.service waybar.service 2>/dev/null || true
+    systemctl --user daemon-reload
+    echo "🚀 Starting Waybar (prefer managed, fallback to plain)..."
+    if systemctl --user start waybar-managed.service 2>/dev/null; then
+      echo "✅ waybar-managed.service started"
+    else
+      systemctl --user start waybar.service
+      echo "✅ waybar.service started"
+    fi
+
+
 # Herlaad HM, reload systemd --user en start Waybar netjes opnieuw
 hm := "home-manager switch -b hm-backup"
 
