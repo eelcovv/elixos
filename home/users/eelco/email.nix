@@ -37,9 +37,9 @@
 
       smtp = {
         host = "mail.davelab.nl";
-        port = 587;
-        tls.enable = true; # TLS gebruiken
-        tls.useStartTls = true; # STARTTLS is vereist op 587
+        port = 465;
+        tls.enable = true;
+        tls.useStartTls = false;
       };
 
       thunderbird.enable = true;
@@ -59,9 +59,9 @@
       };
       smtp = {
         host = "mail.davelab.nl";
-        port = 587;
+        port = 465;
         tls.enable = true;
-        tls.useStartTls = true;
+        tls.useStartTls = false;
       };
       thunderbird.enable = true;
       thunderbird.profiles = ["default"];
@@ -80,9 +80,9 @@
       };
       smtp = {
         host = "mail.davelab.nl";
-        port = 587;
+        port = 465;
         tls.enable = true;
-        tls.useStartTls = true;
+        tls.useStartTls = false;
       };
       thunderbird.enable = true;
       thunderbird.profiles = ["default"];
