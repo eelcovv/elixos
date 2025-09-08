@@ -23,6 +23,7 @@ in {
   config = {
     programs.waybar.enable = true;
     programs.waybar.package = pkgs.waybar;
+    # We beheren Waybar via onze eigen user service hieronder:
     programs.waybar.systemd.enable = false;
 
     home.packages = with pkgs; [
@@ -41,9 +42,12 @@ in {
       htop
     ];
 
+    # ---------------------------
+    # Waybar (managed) user service
+    # ---------------------------
     systemd.user.services."waybar-managed" = {
       Unit = {
-        Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config.jsonc,style.css})";
+        Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
         After = ["graphical-session.target" "hyprland-session.target" "hyprland-env.service"];
         PartOf = ["hyprland-session.target"];
         Conflicts = ["waybar.service"];
@@ -54,33 +58,37 @@ in {
           "${waitForHypr}"
           "${pkgs.coreutils}/bin/sleep 0.25"
         ];
-        Environment = [
-          "XDG_RUNTIME_DIR=%t"
-          "WAYBAR_CONFIG=%h/.config/waybar/config.jsonc"
-          "WAYBAR_STYLE=%h/.config/waybar/style.css"
-        ];
-        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/style.css";
-        ExecReload = "${pkgs.coreutils}/bin/kill -USR2 $MAINPID";
+        # Geen verwarrende WAYBAR_CONFIG/STYLE env vars; gebruik dezelfde paden als de werkende CLI:
+        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config -s ${cfgPath}/style.css";
         Restart = "on-failure";
         RestartSec = "1s";
       };
       Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # Themapack (read-only uit de store)
+    # ---------------------------
+    # Scripts / helpers
+    # ---------------------------
+    # Installeer jouw waybar-hypridle.sh naar ~/.config/hypr/scripts/ (uitvoerbaar)
+    home.file.".config/hypr/scripts/waybar-hypridle.sh" = {
+      source = waybarDir + "/scripts/waybar-hypridle.sh";
+      executable = true;
+    };
+
+    # ---------------------------
+    # Thema’s (read-only uit de store)
+    # ---------------------------
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
-    # -------------------------------------------------------
-    # SEED: schrijfbare user-files (éénmalig aanmaken)
-    # → laat theme-switchers deze bestanden overschrijven
-    # -------------------------------------------------------
+    # ---------------------------
+    # Seed: schrijfbare user-files (eenmalig)
+    # ---------------------------
     home.activation.ensureWaybarSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
       mkdir -p "$cfg_dir"
 
-      # Seed alleen als ze ontbreken (scripts mogen later overschrijven)
       if [ ! -f "$cfg_dir/config.jsonc" ]; then
         install -Dm0644 "${themesDir}/default/config.jsonc" "$cfg_dir/config.jsonc"
       fi
@@ -92,9 +100,6 @@ in {
         chmod 0644 "$cfg_dir/colors.css"
       fi
       if [ ! -f "$cfg_dir/modules.jsonc" ]; then
-        # We willen onze declaratieve modules.jsonc hieronder plaatsen,
-        # maar seed een lege als fallback; de xdg.configFile (hieronder)
-        # zal 'm daarna overschrijven (symlink naar store).
         printf '{}\n' >"$cfg_dir/modules.jsonc"
         chmod 0644 "$cfg_dir/modules.jsonc"
       fi
@@ -103,14 +108,13 @@ in {
         chmod 0644 "$cfg_dir/waybar-quicklinks.json"
       fi
 
+      # Compat symlink zodat -c ${cfgPath}/config het JSONC-bestand gebruikt
       ln -sfn "$cfg_dir/config.jsonc" "$cfg_dir/config"
     '';
 
-    # -------------------------------------------------------
-    # Declaratieve *inhoud* voor modules + quicklinks
-    # (mag readonly, want hier hoeft de theme-switcher niets te wijzigen)
-    # -------------------------------------------------------
-
+    # ---------------------------
+    # Declaratieve inhoud: modules & quicklinks
+    # ---------------------------
     xdg.configFile."waybar/modules.jsonc".text = ''
       {
         "hyprland/workspaces": {
@@ -148,7 +152,6 @@ in {
         },
 
         "custom/empty": { "format": "" },
-
         "custom/tools": { "format": "", "tooltip-format": "Tools" },
 
         "custom/cliphist": {
@@ -214,13 +217,11 @@ in {
         },
 
         "custom/hypridle": {
-          "format": "",
           "return-type": "json",
-          "escape": true,
-          "exec-on-event": true,
-          "interval": 60,
-          "exec": "~/.config/hypr/scripts/hypridle.sh status",
-          "on-click": "~/.config/hypr/scripts/hypridle.sh toggle"
+          "interval": 5,
+          "exec": "~/.config/hypr/scripts/waybar-hypridle.sh",
+          "on-click": "hyprctl dispatch dpms off",
+          "tooltip": true
         },
 
         "keyboard-state": {
@@ -340,37 +341,16 @@ in {
 
     xdg.configFile."waybar/waybar-quicklinks.json".text = ''
       {
-        "custom/quicklink_browser": {
-          "format": "",
-          "on-click": "google-chrome-stable",
-          "tooltip-format": "Open Browser"
-        },
-        "custom/quicklink_filemanager": {
-          "format": "",
-          "on-click": "nautilus",
-          "tooltip-format": "Open Filemanager"
-        },
-        "custom/quicklink_email": {
-          "format": "",
-          "on-click": "thunderbird",
-          "tooltip-format": "Open Email Client"
-        },
+        "custom/quicklink_browser": { "format": "", "on-click": "google-chrome-stable", "tooltip-format": "Open Browser" },
+        "custom/quicklink_filemanager": { "format": "", "on-click": "nautilus", "tooltip-format": "Open Filemanager" },
+        "custom/quicklink_email": { "format": "", "on-click": "thunderbird", "tooltip-format": "Open Email Client" },
         "custom/quicklinkempty": {},
         "group/quicklinks": {
           "orientation": "horizontal",
-          "modules": [
-            "custom/quicklink_browser",
-            "custom/quicklink_email",
-            "custom/quicklink_filemanager",
-            "custom/quicklinkempty"
-          ]
+          "modules": [ "custom/quicklink_browser", "custom/quicklink_email", "custom/quicklink_filemanager", "custom/quicklinkempty" ]
         }
       }
     '';
-
-    # Style: laat de theme-switcher dit bestand later overschrijven; we seeden alleen default
-    # (NIET declaratief vastzetten!)
-    # --> GEEN xdg.configFile."waybar/style.css" hier.
 
     # Kleine helper die we via modules klikken
     home.file.".local/bin/system-monitor" = {
@@ -391,7 +371,6 @@ in {
       executable = true;
     };
 
-    # Theme pick/switch helpers (als je die scripts hebt)
     home.file.".local/bin/waybar-pick-theme" = {
       source = waybarDir + "/scripts/waybar-pick-theme.sh";
       executable = true;

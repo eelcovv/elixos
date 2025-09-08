@@ -263,7 +263,7 @@ disko-wipe HOST:
 	sudo bash -eu -o pipefail -c '\
 	  swapoff -a || true; \
 	  umount -Rl /mnt || true; \
-	  for m in cryptroot cryptswap crypthome; do cryptsetup close $$m 2>/dev/null || true; done'
+	  for m in cryptroot cryptswap crypthome; do cryptsetup close $m 2>/dev/null || true; done'
 	sudo -i nix --extra-experimental-features 'nix-command flakes' \
 	  run github:nix-community/disko -- --flake ~/elixos#{{HOST}} --mode zap_create_mount
 	@echo "✅ Disk wiped & mounted for {{HOST}} (per disko config)"
@@ -542,80 +542,126 @@ load-env HOST:
 	@echo "🔄 Loading environment for {{HOST}}..." && \
 	test -f .env.{{HOST}} && export $(cat .env.{{HOST}} | grep '^export ' | cut -d' ' -f2- | xargs) || echo "⚠️ .env.{{HOST}} not found."
 
-# -- hyperland
-
-reload-waybar:
-	systemctl --user reload-or-restart waybar-managed.service
+# -- hyperland ---------------------------------------------------------------
+# -- hyperland ---------------------------------------------------------------
 
 switch-theme theme:
-    HOME_THEME={{theme}} home-manager switch --flake ".#eelco@$(hostname)"
-    pkill waybar && waybar &
+	HOME_THEME={{theme}} home-manager switch --flake ".#eelco@$(hostname)"
+	pkill waybar || true
+	waybar &
 
+# --- Snelle restart (ipv reload-or-restart) ---
+reload-waybar:
+	systemctl --user restart waybar-managed.service || systemctl --user restart waybar.service
 
+# --- Keiharde reset als het blijft hangen (no-block start + 5s watchdog) ---
 waybar-hard-reset:
-    set -eu -o pipefail
-    echo "🛑 Stopping Waybar units (ignore failures)..."
-    systemctl --user stop waybar-managed.service 2>/dev/null || true
-    systemctl --user stop waybar.service         2>/dev/null || true
-    echo "🔪 Killing leftover waybar processes..."
-    pkill -9 -x waybar 2>/dev/null || true
-    echo "🧹 Removing stale Waybar socket (if any)..."
-    RUNDIR="${XDG_RUNTIME_DIR:-/run/user/$$(id -u)}"
-    rm -f "$${RUNDIR}/waybar.sock" 2>/dev/null || true
-    echo "♻️  Resetting failed state and reloading systemd --user..."
-    systemctl --user reset-failed waybar-managed.service waybar.service 2>/dev/null || true
-    systemctl --user daemon-reload
-    echo "🚀 Starting Waybar (prefer managed, fallback to plain)..."
-    if systemctl --user start waybar-managed.service 2>/dev/null; then
-      echo "✅ waybar-managed.service started"
-    else
-      systemctl --user start waybar.service
-      echo "✅ waybar.service started"
-    fi
+	#!/usr/bin/env bash
+	set -Eeuo pipefail
+
+	echo "🛑 Stopping Waybar units (ignore failures)..."
+	systemctl --user stop waybar-managed.service 2>/dev/null || true
+	systemctl --user stop waybar.service         2>/dev/null || true
+
+	echo "🔪 Killing leftover waybar processes..."
+	pkill -9 -x waybar 2>/dev/null || true
+
+	echo "🧹 Removing stale Waybar socket (if any)..."
+	RUNDIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+	rm -f "$RUNDIR/waybar.sock" 2>/dev/null || true
+
+	echo "♻️  Resetting failed state and reloading systemd --user..."
+	systemctl --user reset-failed waybar-managed.service waybar.service 2>/dev/null || true
+	systemctl --user daemon-reload
+
+	echo "🚀 Starting Waybar (prefer managed, fallback to plain, no-block)..."
+	if systemctl --user start --no-block waybar-managed.service 2>/dev/null; then
+		target="waybar-managed.service"
+	else
+		systemctl --user start --no-block waybar.service
+		target="waybar.service"
+	fi
+
+	# Watchdog: max 5s
+	for _ in $(seq 1 50); do
+		if pgrep -x waybar >/dev/null; then
+			echo "✅ $target started"
+			exit 0
+		fi
+		sleep 0.1
+	done
+
+	echo "❌ $target did not come up in time, showing recent logs:"
+	journalctl --user -n 120 -u waybar-managed.service -u waybar.service --no-pager -xe || true
+	exit 1
 
 
-# Herlaad HM, reload systemd --user en start Waybar netjes opnieuw
-hm := "home-manager switch -b hm-backup"
+waybar-foreground:
+	#!/usr/bin/env bash
+	set -Eeuo pipefail
+	exec waybar -l trace -c "$HOME/.config/waybar/config" -s "$HOME/.config/waybar/style.css"
+
+waybar-diagnose:
+	#!/usr/bin/env bash
+	set -Eeuo pipefail
+	echo "🔎 Files:"
+	ls -l "$HOME/.config/waybar"/{config,style.css} || true
+	echo
+	echo "🔎 Unit:"
+	systemctl --user cat waybar-managed.service || true
+	echo
+	echo "🔎 Status:"
+	systemctl --user status waybar-managed.service --no-pager || true
+	echo
+	echo "🔎 Recent logs:"
+	journalctl --user -u waybar-managed.service -n 200 --no-pager -xe || true
+	echo
+	echo "🔎 Hypr env:"
+	systemctl --user show-environment | sed -n 's/^\(WAYLAND_DISPLAY\|XDG_RUNTIME_DIR\|HYPRLAND_INSTANCE_SIGNATURE\)=.*/\0/p'
+
+
+# --- Handige hulpjes ---
+waybar-logs:
+	journalctl --user -n 200 -u waybar-managed.service -u waybar.service --no-pager || true
+
+waybar-trace:
+	echo "🐛 Running 'waybar -l trace' (Ctrl+C om te stoppen)…"
+	waybar -l trace
 
 # Volledige hypr-session herstart (zonder Hyprland zelf te killen)
 hypr-session-restart:
-    systemctl --user reset-failed || true
-    systemctl --user stop waybar.service waybar-managed.service || true
-    pkill -x waybar || true
-    systemctl --user stop hyprpaper.service swaync.service || true
-    systemctl --user stop hyprland-session.target || true
-    sleep 0.5
-    systemctl --user start hyprland-session.target
-    just waybar-logs
+	systemctl --user reset-failed || true
+	systemctl --user stop waybar.service waybar-managed.service || true
+	pkill -x waybar || true
+	systemctl --user stop hyprpaper.service swaync.service || true
+	systemctl --user stop hyprland-session.target || true
+	sleep 0.5
+	systemctl --user start hyprland-session.target
+	just waybar-logs
 
 # Alleen Waybar hard herstarten
 waybar-restart:
-    systemctl --user reset-failed waybar-managed.service || true
-    systemctl --user stop waybar.service waybar-managed.service || true
-    pkill -x waybar || true
-    sleep 0.3
-    systemctl --user start waybar-managed.service
-    just waybar-logs
-
-
-# Laatste 200 regels Waybar-logs (user journal)
-waybar-logs:
-    journalctl --user -u waybar-managed.service -n 200 --no-pager -xe
+	systemctl --user reset-failed waybar-managed.service || true
+	systemctl --user stop waybar.service waybar-managed.service || true
+	pkill -x waybar || true
+	sleep 0.3
+	systemctl --user start waybar-managed.service
+	just waybar-logs
 
 # HM switch + daemon-reload + Waybar restart
+hm := "home-manager switch -b hm-backup"
+
 hm-reload-waybar:
-    {{hm}}
-    systemctl --user daemon-reload
-    just waybar-restart
+	{{hm}}
+	systemctl --user daemon-reload
+	just waybar-restart
 
+# ---- Wallpapers ------------------------------------------------------------
 
-# Set a specific wallpaper by path (must be in ~/.config/wallpapers or pass full path)
-# - Works with filename (e.g. "default.png") or path ("/path/to/img.png", "~/img.png", "./img.png")
 # Set wallpaper by name or path (extensie optioneel: probeert .png, dan .jpg)
 wp-set FILE="default":
 	~/.local/bin/wallpaper-set.sh {{FILE}}
 
-# List available wallpapers (multi-column)
 wp-list:
 	~/.local/bin/wallpaper-list.sh
 
@@ -625,23 +671,21 @@ wp-pick:
 wp-effect:
 	~/.local/bin/wallpaper-effects.sh
 
-
 wp-effect-none:
 	~/.local/bin/wallpaper-effects.sh none
 
 wp-random:
 	~/.local/bin/wallpaper-random.sh
 
-# Clear generated cache
 wp-cache-clear:
 	~/.local/bin/wallpaper-cache.sh
 
 wp-fetch:
 	~/.local/bin/fetch-wallpapers.sh
 
-wp-fetch-now:   # start de systemd service handmatig
+# start de systemd service handmatig
+wp-fetch-now:
 	systemctl --user start waypaper-fetch.service
 
 wp-fetch-logs:
 	journalctl --user -u waypaper-fetch -e --no-pager
-
