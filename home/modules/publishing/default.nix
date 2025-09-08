@@ -7,20 +7,21 @@ in {
     pkgs.perl
   ];
 
-  # 2) XDG-vriendelijke persoonlijke trees
+  # 2) Use a classic user tree under ~/texmf
   home.sessionVariables = {
-    TEXMFHOME = "$HOME/.local/share/texmf";
+    TEXMFHOME = "$HOME/texmf";
     TEXMFCACHE = "$HOME/.cache/texmf-var";
   };
 
-  # 3) Zorg dat directories bestaan
-  home.file.".local/share/texmf/.keep".text = "";
+  # 3) Ensure the trees exist
+  home.file."texmf/.keep".text = "";
   home.file.".cache/texmf-var/.keep".text = "";
 
-  # 4) ~/.local/bin vooraan in PATH (zodat onze wrappers winnen)
+  # 4) Put ~/.local/bin first so our wrappers are picked up
   home.sessionPath = ["$HOME/.local/bin" "$HOME/.nix-profile/bin"];
 
-  # 5) l3build wrapper
+  # 5) l3build wrapper: call the TeX Live l3build from the Nix store,
+  #    keep default kpathsea search (via '::'), and avoid per-user formats.
   home.file.".local/bin/l3build" = {
     executable = true;
     text = ''
@@ -33,14 +34,14 @@ in {
         exit 127
       fi
 
-      # (optioneel) hint naar xelatex.fmt locatie als die vindbaar is
+      # Hint TEXFORMATS to the prebuilt xelatex.fmt if available (optional)
       if fmt="$(kpsewhich -engine=xetex -progname=xelatex -format=fmt xelatex.fmt 2>/dev/null || true)"; then
         if [ -n "''${fmt:-}" ]; then
           export TEXFORMATS="$(dirname "''${fmt}")"
         fi
       fi
 
-      # Zorg dat standaard kpathsea trees altijd meezoeken ( '::' voegt defaults toe )
+      # Ensure default kpathsea trees are included ('::' appends engine defaults)
       if [ -n "''${TEXINPUTS:-}" ]; then
         case "''${TEXINPUTS}" in
           *::* ) : ;;
@@ -51,38 +52,37 @@ in {
         export TEXINPUTS="::"
       fi
 
-      # Gebruik geen per-user formats/caches
+      # Avoid per-user formats/config so mktexfmt doesn't write under $HOME
       exec env -u TEXMFVAR -u TEXMFCONFIG "$REAL_L3BUILD" "$@"
     '';
   };
 
-  # 6) l3typeset wrapper (zet TEXINPUTS.xelatex via `env`, geen bash var met punt)
+  # 6) (Optional) l3typeset wrapper for future doc builds with xelatex.
+  #    Not needed for `l3build install`, but handy if you later run `l3build doc`.
   home.file.".local/bin/l3typeset" = {
     executable = true;
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
 
-      # Vind de TeX Live .../tex tree in de Nix store
+      # Detect the TeX Live ".../tex" tree from the Nix store
       dist_tex="$(kpsewhich article.cls 2>/dev/null || true)"
       if [ -n "''${dist_tex}" ]; then
         dist_tex="$(echo "''${dist_tex}" | sed -E 's#/tex/latex/.*#/tex#')"
       fi
 
-      # l3build runt vanuit build/doc; neem ook build/local mee
+      # l3build runs typeset from build/doc; include build/local too
       build_doc="$(pwd)"
       build_local="''${build_doc}/../local"
 
-      # Stel TEXINPUTS samen: build/doc : build/local : Nix tex tree : defaults
+      # Compose TEXINPUTS: build/doc : build/local : Nix tex tree : defaults
       TEXINPUTS_COMPOSED="''${build_doc}:''${build_local}"
       if [ -n "''${dist_tex}" ]; then
         TEXINPUTS_COMPOSED="''${TEXINPUTS_COMPOSED}:''${dist_tex}//"
       fi
       TEXINPUTS_COMPOSED="''${TEXINPUTS_COMPOSED}::"
 
-      # Belangrijk:
-      #  - unset engine-specifieke TEXINPUTS die l3build kan zetten
-      #  - zet KPSE_DOT=., zodat relatieve paden goed werken
+      # Unset engine-specific overrides that might mask generic TEXINPUTS
       exec env \
         -u TEXMFVAR -u TEXMFCONFIG \
         -u TEXINPUTS.xelatex -u TEXINPUTS.lualatex -u TEXINPUTS.pdflatex \
