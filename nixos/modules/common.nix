@@ -104,6 +104,7 @@ This NixOS configuration module defines common system settings:
       rage
       ripgrep
       sops
+      trash-cli
       util-linux
       vim
       yq # needed for extracting your sops key
