@@ -1,70 +1,50 @@
+# nixos/modules/lib/python-runtimes.nix
 {
   pkgs,
   lib,
   ...
 }: {
-  programs.nix-ld = {
-    enable = true;
+  programs.nix-ld.enable = true;
 
-    libraries = with pkgs; [
-      # C/C++ runtime
-      gcc.cc.lib
-      stdenv.cc.cc.lib
-      glibc
+  programs.nix-ld.libraries = with pkgs; [
+    # C/C++
+    stdenv.cc.cc.lib
+    glibc
 
-      # Core
-      zlib
-      glib
-      openssl
-      dbus
+    # GL/GLVND (belangrijk voor libGL.so.1)
+    libglvnd # <-- voegt libGL.so.1 en libEGL.so.1 toe
+    libGL
+    libGLU
+    mesa
+    libdrm
 
-      # Fonts & shaping
-      fontconfig
-      freetype
-      harfbuzz
-      expat
-      icu
+    # Wayland/X11
+    wayland
+    libxkbcommon
+    xorg.libX11
+    xorg.libXcursor
+    xorg.libXrandr
+    xorg.libXi
+    xorg.libXrender
+    xorg.libXtst
+    xorg.libXfixes
+    xorg.libXcomposite
+    xorg.libXext
+    xorg.libXdamage
+    xorg.libxcb
 
-      # Codecs / beeld
-      libpng
-      libjpeg
-      libtiff
-
-      # OpenGL / GPU
-      libGL
-      libGLU
-      mesa
-      libdrm
-
-      # Wayland
-      wayland
-      libxkbcommon
-
-      # X11/XCB
-      xorg.libX11
-      xorg.libXcursor
-      xorg.libXrandr
-      xorg.libXi
-      xorg.libXrender
-      xorg.libXtst
-      xorg.libXfixes
-      xorg.libXcomposite
-      xorg.libXext
-      xorg.libXdamage
-      xorg.libxcb
-      xorg.xcbutil
-      xorg.xcbutilimage
-      xorg.xcbutilkeysyms
-      xorg.xcbutilwm
-      xorg.xcbutilrenderutil
-
-      # Veel wheels verwachten libuuid.so.1
-      (lib.getOutput "lib" util-linux)
-
-      # Voeg alleen toe als je ze écht nodig hebt (meestal niet voor wheels):
-      # gfortran.cc.lib
-      # openblas
-      # vulkan-loader
-    ];
-  };
+    # Core + fonts + codecs
+    zlib
+    glib
+    openssl
+    dbus
+    expat
+    icu
+    fontconfig
+    freetype
+    harfbuzz
+    libpng
+    libjpeg
+    libtiff
+  ];
 }
