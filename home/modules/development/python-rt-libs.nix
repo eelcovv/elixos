@@ -97,10 +97,10 @@ in {
         pkgs.xorg.libXext
         pkgs.xorg.libXdamage
         pkgs.libxcb
-        pkgs.xcbutil
-        pkgs.xcbutilimage
-        pkgs.xcbutilkeysyms
-        pkgs.xcbutilwm
+        pkgs.xorg.xcbutil
+        pkgs.xorg.xcbutilimage
+        pkgs.xorg.xcbutilkeysyms
+        pkgs.xorg.xcbutilwm
       ];
 
       waylandPkgs = lib.optionals cfg.withWayland [
@@ -180,10 +180,10 @@ in {
             pkgs.xorg.libXext
             pkgs.xorg.libXdamage
             pkgs.libxcb
-            pkgs.xcbutil
-            pkgs.xcbutilimage
-            pkgs.xcbutilkeysyms
-            pkgs.xcbutilwm
+            pkgs.xorg.xcbutil
+            pkgs.xorg.xcbutilimage
+            pkgs.xorg.xcbutilkeysyms
+            pkgs.xorg.xcbutilwm
           ]
           ++ lib.optionals cfg.withWayland [
             pkgs.wayland
