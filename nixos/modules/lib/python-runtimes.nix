@@ -46,5 +46,23 @@
     libpng
     libjpeg
     libtiff
+    e2fsprogs
+
+    libkrb5
+
+    libxshmfence
+
+    vulkan-loader
+
+    zstd
+    bzip2
+    xz
+    curl
+    nghttp2
+    libpsl
+    c-ares
+    libuuid
+    libcap
+    libselinux
   ];
 }
