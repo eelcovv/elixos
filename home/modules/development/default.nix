@@ -19,7 +19,10 @@
   ];
 
   pythonRtLibs.enable = true;
-
+  pythonRtLibs.withQtDev = false;
+  pythonRtLibs.withWayland = true;
+  pythonRtLibs.withX11 = true;
+  pythonRtLibs.useLdLibraryPath = true; #  Put on False if you use Nix-LD
   # enable PyPI integration (writes ~/.pypirc from /run/secrets/*)
   pypi = {
     enable = true;
