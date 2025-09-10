@@ -3,13 +3,17 @@
   pkgs,
   lib,
   ...
-}: {
+}: let
+  libxshmfence_pkg = pkgs.xorg.libxshmfence or pkgs.libxshmfence;
+in {
   programs.nix-ld.enable = true;
 
   programs.nix-ld.libraries = with pkgs; [
     # C/C++
     stdenv.cc.cc.lib
     glibc
+    gmp # libgmp.so.10  (pymeshlab plugins)
+    p11-kit # libp11-kit.so.0 (e57 plugin chain)
 
     # GL/GLVND
     libglvnd
@@ -32,9 +36,9 @@
     xorg.libXext
     xorg.libXdamage
     xorg.libxcb
-    xorg.libXinerama # vaak nodig voor Qt/GL wheels
-    xorg.libXxf86vm # idem
-    xorg.libXshmfence # <-- correcte naam/namespace
+    xorg.libXinerama
+    xorg.libXxf86vm
+    libxshmfence_pkg
 
     # Core + fonts + codecs
     zlib
@@ -50,11 +54,7 @@
     libjpeg
     libtiff
 
-    # Voor libcom_err.so.3 (compat met manylinux wheels)
+    # manylinux compat
     e2fsprogs
-
-    # (optioneel, maar nuttig bij netwerk/wheels)
-    # curl nghttp2 libpsl c-ares zstd xz bzip2
-    # krb5
   ];
 }
