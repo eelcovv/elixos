@@ -1,16 +1,16 @@
+# nixos/modules/lib/python-runtimes.nix
 {
   pkgs,
   lib,
   ...
-}:
-# nixos/modules/lib/python-runtimes.nix
-{
+}: {
   programs.nix-ld = {
     enable = true;
 
+    # Tip: stdenv.cc.cc.lib levert libstdc++.so.6 en libgcc_s.so.1
+    # glibc levert libc.so.6
     libraries = with pkgs; [
       # C/C++ runtime
-      gcc.cc.lib
       stdenv.cc.cc.lib
       glibc
 
@@ -18,14 +18,14 @@
       zlib
       glib
       openssl
-      dbus # <- provides libdbus-1.so.3
+      dbus # libdbus-1.so.3
+      expat
+      icu
 
       # Fonts & text shaping
       fontconfig
       freetype
       harfbuzz
-      expat
-      icu
 
       # Image codecs
       libpng
@@ -36,7 +36,7 @@
       libGL
       libGLU
       mesa
-      libdrm # common GPU userspace (harmless to include)
+      libdrm
 
       # Wayland
       wayland
@@ -61,8 +61,15 @@
       xorg.xcbutilwm
       xorg.xcbutilrenderutil
 
-      # Optional if encountered:
+      # Wetenschappelijke stacks (NumPy/SciPy) hebben vaak dit nodig:
+      openblas # BLAS/LAPACK
+      (lib.getOutput "lib" util-linux) # libuuid.so.1 voor o.a. Matplotlib op sommige wheels
+
+      # Als je Fortran-runtime nodig hebt (SciPy e.d.):
+      # (laat gerust staan; ontbreekt het attribuut, dan kun je het weghalen)
       # gfortran.cc.lib
+
+      # Vulkan indien nodig:
       # vulkan-loader
     ];
   };
