@@ -18,6 +18,8 @@
     ./rootless-podman-storage.nix
   ];
 
+  pythonRtLibs.enable = true;
+
   # enable PyPI integration (writes ~/.pypirc from /run/secrets/*)
   pypi = {
     enable = true;
