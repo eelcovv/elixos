@@ -2,16 +2,17 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }: {
   programs.nix-ld = {
     enable = true;
 
-    # Runtimes that many Python (uv/pip) wheels need at runtime.
+    # De libraries die jouw wheels (matplotlib/numpy/scipy/qt/etc.) nodig hebben.
     libraries = with pkgs; [
-      # C/C++ runtime
-      stdenv.cc.cc.lib # libstdc++.so.6, libgcc_s.so.1
-      glibc # libc.so.6
+      # C/C++
+      stdenv.cc.cc.lib
+      glibc
 
       # Core + fonts + codecs
       zlib
@@ -57,7 +58,7 @@
 
       # SciPy / NumPy runtimes
       openblas
-      gfortran.cc.lib # libgfortran.so.*, libquadmath.so.0
+      gfortran.cc.lib
       (lib.getOutput "lib" util-linux) # libuuid.so.1
     ];
   };

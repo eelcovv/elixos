@@ -8,7 +8,6 @@
     ./docker.nix
     ./direnv.nix
     ./git-default.nix
-    ./nix-ld-session.nix
     ./pycharm.nix
     ./pypi.nix
     ./python.nix
