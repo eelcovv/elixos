@@ -122,7 +122,6 @@
         pkgs = import nixpkgs {system = sys;};
       in {
         default = pkgs.mkShell {
-          # Common dev tools
           packages = with pkgs; [
             pre-commit
             alejandra
@@ -140,6 +139,20 @@
           ];
           shellHook = ''
             echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
+          '';
+        };
+
+        python = pkgs.mkShell {
+          buildInputs = [
+            pkgs.gcc
+            pkgs.gfortran
+            pkgs.cmake
+            pkgs.pkg-config
+            pkgs.python312
+          ];
+          shellHook = ''
+            echo "🛠️  Python devShell (gcc, gfortran, cmake, pkg-config, python)"
+            echo "👉  Use UV in this shell so that Scipy/Numpy Wheels find the Toolchain."
           '';
         };
       }

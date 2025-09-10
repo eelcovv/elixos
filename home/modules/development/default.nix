@@ -18,11 +18,6 @@
     ./rootless-podman-storage.nix
   ];
 
-  pythonRtLibs.enable = true;
-  pythonRtLibs.withQtDev = false;
-  pythonRtLibs.withWayland = true;
-  pythonRtLibs.withX11 = true;
-  pythonRtLibs.useLdLibraryPath = true; #  Put on False if you use Nix-LD
   # enable PyPI integration (writes ~/.pypirc from /run/secrets/*)
   pypi = {
     enable = true;
@@ -33,14 +28,25 @@
     };
   };
 
+  # Alleen tools, geen compilers (gcc/gfortran horen in de devShell)
   home.packages = with pkgs; [
     alejandra
     direnv
-    gcc
     nodejs
     gnumake
     htop
     tree
     wget
   ];
+
+  # Python runtime libs: alleen runtimes, geen compilers
+  pythonRtLibs = {
+    enable = true;
+    withQtDev = false; # PySide6 via uv
+    withWayland = true;
+    withX11 = true;
+    withBLAS = true; # OpenBLAS runtime voor NumPy/SciPy
+    withFortranRuntime = false; # Fortran-runtime komt via nix-ld op systeemniveau
+    useLdLibraryPath = false; # nix-ld zorgt voor linker paths
+  };
 }
