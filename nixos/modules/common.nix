@@ -41,10 +41,10 @@ This NixOS configuration module defines common system settings:
   };
 
   config = {
-    # this is required to allow replacement of new scripts under /home/<user>/.config
+    # Allow HM to replace files under ~/.config
     home-manager.backupFileExtension = "hm-bak";
 
-    # create the group 'elixos' which we use to allow access to our repo for all users belonging to this group
+    # Group to grant repo access
     users.groups.elixos = {};
 
     # Flakes support
@@ -56,18 +56,13 @@ This NixOS configuration module defines common system settings:
       gc = {
         automatic = true;
         dates = "daily";
-        options = "--delete-older-than +3"; # remove old generations, keep last 3
+        options = "--delete-older-than +3";
       };
     };
 
-    # General system settings
-
-    nixpkgs = {
-      config.allowUnfree = true;
-    };
+    nixpkgs = {config.allowUnfree = true;};
 
     programs.zsh.enable = true;
-
     programs.dconf.enable = true;
 
     services.openssh.enable = true;
@@ -87,12 +82,9 @@ This NixOS configuration module defines common system settings:
       ];
     };
 
-    # add ~/.local/bin to the path
     environment.localBinInPath = true;
 
-    environment.systemPackages = with pkgs; let
-      inherit (config.system) build;
-    in [
+    environment.systemPackages = with pkgs; [
       bashInteractive
       coreutils
       curl
@@ -107,11 +99,9 @@ This NixOS configuration module defines common system settings:
       trash-cli
       util-linux
       vim
-      yq # needed for extracting your sops key
+      yq
       zsh
     ];
-
-    environment.sessionVariables.LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
 
     system.stateVersion = "24.11";
   };

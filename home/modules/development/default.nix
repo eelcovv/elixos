@@ -18,7 +18,7 @@
     ./rootless-podman-storage.nix
   ];
 
-  # enable PyPI integration (writes ~/.pypirc from /run/secrets/*)
+  # PyPI integratie (schrijft ~/.pypirc vanuit /run/secrets/*)
   pypi = {
     enable = true;
     davelab = {
@@ -28,7 +28,7 @@
     };
   };
 
-  # Alleen tools, geen compilers (gcc/gfortran horen in de devShell)
+  # Alleen tools, geen compilers (toolchains in devShell houden is schoner)
   home.packages = with pkgs; [
     alejandra
     direnv
@@ -39,14 +39,11 @@
     wget
   ];
 
-  # Python runtime libs: alleen runtimes, geen compilers
+  # Python runtime libs (zonder LD_LIBRARY_PATH in HM)
   pythonRtLibs = {
     enable = true;
     withQtDev = false; # PySide6 via uv
     withWayland = true;
     withX11 = true;
-    withBLAS = true; # OpenBLAS runtime voor NumPy/SciPy
-    withFortranRuntime = false; # Fortran-runtime komt via nix-ld op systeemniveau
-    useLdLibraryPath = false; # nix-ld zorgt voor linker paths
   };
 }
