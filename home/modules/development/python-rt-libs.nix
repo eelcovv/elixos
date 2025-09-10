@@ -145,8 +145,10 @@ in {
           then "wayland"
           else "xcb"
         );
-        QT_PLUGIN_PATH = lib.mkDefault "${pkgs.qt6.qtbase.bin}/lib/qt-6/plugins";
-        QML2_IMPORT_PATH = lib.mkDefault "${pkgs.qt6.qtdeclarative}/lib/qt-6/qml";
+
+        # Gebruik de lib-output voor een robuuste padresolutie
+        QT_PLUGIN_PATH = lib.mkDefault "${lib.getLib pkgs.qt6.qtbase}/lib/qt-6/plugins";
+        QML2_IMPORT_PATH = lib.mkDefault "${lib.getLib pkgs.qt6.qtdeclarative}/lib/qt-6/qml";
       }
       // lib.optionalAttrs cfg.useLdLibraryPath {
         # Gebruik nix-ld system-wide? Zet useLdLibraryPath = false.
