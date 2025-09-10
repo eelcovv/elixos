@@ -191,30 +191,6 @@ in {
     };
 
     # ---------------------------
-    # Hyprland env importer (dependency for Waybar, etc.)
-    # ---------------------------
-    systemd.user.services."hyprland-env" = {
-      Unit = {
-        Description = "Import Hyprland/Wayland environment into systemd --user";
-        PartOf = ["hyprland-session.target"];
-        After = ["hyprland-session.target"];
-      };
-      Service = {
-        Type = "oneshot";
-        TimeoutStartSec = "3s";
-        ExecStart = ''
-          ${pkgs.bash}/bin/bash -lc 'set -eu; \
-            ${pkgs.systemd}/bin/systemctl --user import-environment \
-              WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE; \
-            ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd \
-              WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE || true'
-        '';
-        RemainAfterExit = true;
-      };
-      Install = {WantedBy = ["hyprland-session.target"];};
-    };
-
-    # ---------------------------
     # Cleanup legacy wallpaper timers
     # ---------------------------
     home.activation.purgeLegacyWallpaperUnits = lib.hm.dag.entryAfter ["reloadSystemd"] ''
