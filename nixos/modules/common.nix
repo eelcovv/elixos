@@ -111,6 +111,8 @@ This NixOS configuration module defines common system settings:
       zsh
     ];
 
+    environment.sessionVariables.LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
+
     system.stateVersion = "24.11";
   };
 }
