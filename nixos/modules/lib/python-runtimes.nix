@@ -11,8 +11,8 @@
     stdenv.cc.cc.lib
     glibc
 
-    # GL/GLVND (belangrijk voor libGL.so.1)
-    libglvnd # <-- voegt libGL.so.1 en libEGL.so.1 toe
+    # GL/GLVND
+    libglvnd
     libGL
     libGLU
     mesa
@@ -32,6 +32,9 @@
     xorg.libXext
     xorg.libXdamage
     xorg.libxcb
+    xorg.libXinerama # vaak nodig voor Qt/GL wheels
+    xorg.libXxf86vm # idem
+    xorg.libXshmfence # <-- correcte naam/namespace
 
     # Core + fonts + codecs
     zlib
@@ -46,23 +49,12 @@
     libpng
     libjpeg
     libtiff
+
+    # Voor libcom_err.so.3 (compat met manylinux wheels)
     e2fsprogs
 
-    libkrb5
-
-    libxshmfence
-
-    vulkan-loader
-
-    zstd
-    bzip2
-    xz
-    curl
-    nghttp2
-    libpsl
-    c-ares
-    libuuid
-    libcap
-    libselinux
+    # (optioneel, maar nuttig bij netwerk/wheels)
+    # curl nghttp2 libpsl c-ares zstd xz bzip2
+    # krb5
   ];
 }
