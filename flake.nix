@@ -8,6 +8,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
+    nixgl.url = "github:guibou/nixGL";
+
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
