@@ -123,52 +123,65 @@
     ############################################################################
     # DevShells for all default systems
     ############################################################################
-    # flake.nix — export dev shells directly under your current system
-    devShells.${system} = let
-      # Import pkgs with allowUnfree enabled (useful for GPU stacks)
-      pkgs = import nixpkgs {
-        system = system;
-        config = {allowUnfree = true;};
-      };
+    # flake.nix — devShells exported in BOTH orientations: name-first AND system-first
+    devShells = let
+      # Limit to Linux systems (avoids Darwin breakages, e.g., OVMF on macOS)
+      systems = ["x86_64-linux" "aarch64-linux"];
 
-      # Import centralized devshells (plain attrset, not a NixOS module)
-      externalShells =
-        (import ./nixos/modules/profiles/devshells/default.nix {
-          inherit pkgs inputs;
-          system = system;
-        }).devShells;
+      # Build the shell set for one system
+      mkShellSet = sys: let
+        # Import pkgs for the target system
+        pkgs = import nixpkgs {
+          system = sys;
+          config = {allowUnfree = true;};
+        };
 
-      # Your existing general-purpose dev shell
-      general_default = pkgs.mkShell {
-        packages = with pkgs; [
-          pre-commit
-          alejandra
-          rage
-          sops
-          yq-go
-          OVMF
-          qemu
-          git
-          openssh
-          age
-          just
-          prettier
-          nodejs
-        ];
-        shellHook = ''
-          echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
-        '';
-      };
+        # Import your centralized shells (parameterized by 'system')
+        shells =
+          (import ./nixos/modules/profiles/devshells/default.nix {
+            inherit pkgs inputs;
+            system = sys;
+          }).devShells;
+
+        # General-purpose dev shell; guard Linux-only packages
+        general_default = pkgs.mkShell {
+          packages = with pkgs;
+            [
+              pre-commit
+              alejandra
+              rage
+              sops
+              yq-go
+              git
+              openssh
+              age
+              just
+              prettier
+              nodejs
+            ]
+            # Only on Linux (OVMF/qemu break on Darwin in your pin)
+            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [OVMF qemu];
+
+          shellHook = ''
+            echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
+          '';
+        };
+      in
+        # Return the per-system shell set, plus your general and default aliases
+        shells
+        // {
+          general = general_default;
+          default = shells.py_build; # convenience default
+        };
+
+      # System-first map: devShells.${system}.{py_build,py_light,py_vtk,default,general}
+      bySystem = nixpkgs.lib.genAttrs systems mkShellSet;
+
+      # Name-first map: devShells.{py_build,py_light,py_vtk,default,general}.${system}
+      byName = flake-utils.lib.eachSystem systems mkShellSet;
     in
-      # Expose all centralized shells plus your general default
-      externalShells
-      // {
-        # Keep your general-purpose default as 'general'
-        general = general_default;
-
-        # Make 'py_build' the default so `nix develop` (without #attr) drops you in the build toolchain
-        default = externalShells.py_build;
-      };
+      # Export both maps; keys don't collide (different top-level names)
+      byName // bySystem;
 
     ############################################################################
     # NixOS hosts
