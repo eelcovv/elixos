@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   programs.alacritty = {
     enable = true;
 
@@ -13,4 +18,3 @@
 
   xdg.configFile."alacritty/alacritty.toml".source = ./alacritty.toml;
 }
-

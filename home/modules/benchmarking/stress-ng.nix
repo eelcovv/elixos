@@ -1,7 +1,10 @@
-{ config, pkgs, lib, ... }:
-
 {
-  home.packages = [ pkgs.stress-ng ];
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
+  home.packages = [pkgs.stress-ng];
 
   home.file.".local/bin/run-stress-memory".text = ''
     #!/bin/sh

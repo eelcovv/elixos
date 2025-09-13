@@ -1,5 +1,8 @@
-{ lib, config, ... }:
-
+{
+  lib,
+  config,
+  ...
+}:
 lib.mkIf (config.hardware.nvidia.modesetting.enable && config.programs.hyprland.enable) {
   environment.sessionVariables = {
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";

@@ -1,7 +1,10 @@
-{ config, pkgs, lib, ... }:
-
 {
-  home.packages = [ pkgs.sysbench ];
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
+  home.packages = [pkgs.sysbench];
 
   home.file.".local/bin/run-sysbench-cpu".text = ''
     #!/bin/sh
@@ -9,4 +12,3 @@
   '';
   home.file.".local/bin/run-sysbench-cpu".executable = true;
 }
-
