@@ -122,20 +122,20 @@
     ############################################################################
     devShells = flake-utils.lib.eachDefaultSystem (
       sys: let
-        # Import pkgs with allowUnfree enabled (useful for some GPU stacks)
+        # Import pkgs with allowUnfree enabled (useful for GPU stacks)
         pkgs = import nixpkgs {
           system = sys;
           config = {allowUnfree = true;};
         };
 
-        # Import centralized devshells (no NixOS module; just a plain attrset)
+        # Import centralized devshells (plain attrset, not a NixOS module)
         externalShells =
           (import ./nixos/modules/profiles/devshells/default.nix {
             inherit pkgs inputs;
             system = sys;
           }).devShells;
       in {
-        # Keep your existing default dev shell
+        # Keep your existing default shell
         default = pkgs.mkShell {
           packages = with pkgs; [
             pre-commit
@@ -157,10 +157,10 @@
           '';
         };
 
-        # Centralized Python dev shells
-        py_light = externalShells.py-light; # python+uv, no compilers
-        py_build = externalShells.py-build; # toolchain for compiled deps
-        py_vtk = externalShells.py-vtk; # Qt/VTK/GL with nixGL wrappers
+        # Expose centralized Python dev shells (underscore names)
+        py_light = externalShells.py_light; # python+uv, no compilers
+        py_build = externalShells.py_build; # toolchain for compiled deps
+        py_vtk = externalShells.py_vtk; # Qt/VTK/GL with nixGL wrappers
       }
     );
 

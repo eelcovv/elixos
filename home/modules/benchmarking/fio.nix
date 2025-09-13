@@ -1,7 +1,10 @@
-{ config, pkgs, lib, ... }:
-
 {
-  home.packages = [ pkgs.fio ];
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
+  home.packages = [pkgs.fio];
 
   home.file.".local/bin/run-fio-disk".text = ''
     #!/bin/sh
