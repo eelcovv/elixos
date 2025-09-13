@@ -37,8 +37,7 @@ in {
       '';
     };
 
-    # Guarded VTK/Qt/GL shell
-    # py_vtk excerpt (English comments)
+    # VTK/Qt/GL shell tuned for wheels (PySide6 + VTK) on NixOS
     py_vtk = pkgs.mkShell {
       packages = with pkgs; [
         python312
@@ -52,7 +51,7 @@ in {
         wayland
         libxkbcommon
 
-        # X11 stack
+        # X11 stack (kept as fallback when Qt falls back to xcb)
         xorg.libX11
         xorg.libXcursor
         xorg.libXrandr
@@ -98,8 +97,10 @@ in {
       shellHook = ''
         echo "🖼️  py_vtk active (Qt/VTK/OpenGL on NixOS)"
 
-        # Prefer XCB while debugging plugin issues; switch back to 'wayland;xcb' later if you like
-        export QT_QPA_PLATFORM="''${QT_QPA_PLATFORM:-xcb}"
+        # Prefer XCB for stability with mixed Qt5/Qt6 and NVIDIA
+        export QT_QPA_PLATFORM="xcb"
+        export QT_XCB_GL_INTEGRATION="glx"   # optional, helps on NVIDIA
+        export MPLBACKEND="${MPLBACKEND:-Agg}"  # optional, tames Matplotlib noise
 
         # Helper to prepend to LD_LIBRARY_PATH
         prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
@@ -180,7 +181,7 @@ in {
             unset QML2_IMPORT_PATH
           fi
 
-          # 3) Optionally append system Qt as a fallback AFTER the wheel (safe)
+          # 3) Append system Qt as a fallback AFTER the wheel (safe)
           export QT_PLUGIN_PATH="$QT_PLUGIN_PATH:${lib.getLib pkgs.qt6.qtbase}/lib/qt-6/plugins"
           export QML2_IMPORT_PATH="$QML2_IMPORT_PATH:${lib.getLib pkgs.qt6.qtdeclarative}/lib/qt-6/qml"
         else
