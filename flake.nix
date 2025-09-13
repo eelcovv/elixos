@@ -74,6 +74,9 @@
 
         modules =
           [
+            # Ensure hostPlatform is set for all hosts (required by newer NixOS)
+            {nixpkgs.hostPlatform = nixpkgs.lib.mkDefault system;}
+
             # Host base module
             hostFiles.${hostName}
 
