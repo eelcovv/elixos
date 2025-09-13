@@ -43,13 +43,16 @@ in {
         [
           python312
           uv
+
           vtk
           qt6.qtbase
           qt6.qtwayland
+
           mesa
           libglvnd
           wayland
           libxkbcommon
+
           xorg.libX11
           xorg.libXcursor
           xorg.libXrandr
@@ -66,6 +69,7 @@ in {
           xorg.xcbutilkeysyms
           xorg.xcbutilrenderutil
           xorg.xcbutilwm
+
           fontconfig
           freetype
           harfbuzz
@@ -78,15 +82,22 @@ in {
           libjpeg
           libtiff
         ]
-        # Only add nixGL wrappers when safe to evaluate on this Nix
         ++ nixGLWrappers;
 
       shellHook = ''
         echo "🖼️  py_vtk active (Qt/VTK/OpenGL)"
-        echo "     Use nixGL wrappers for GUI/GL apps (NVIDIA/Intel)."
         export QT_QPA_PLATFORM="''${QT_QPA_PLATFORM:-wayland;xcb}"
 
-        # Fallback shims: if nixGL wrappers are not on PATH (e.g. older Nix), run via nix run.
+        # 1) Ensure wheels can dlopen libGL.so.1 (from libglvnd)
+        export LD_LIBRARY_PATH="${lib.getLib pkgs.libglvnd}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+        # 2) Provide a compat shim for libcom_err.so.2 → .3 expected by manylinux wheels
+        COMPAT_DIR="$PWD/.nix-ld-compat"
+        mkdir -p "$COMPAT_DIR"
+        ln -sf "${lib.getLib pkgs.e2fsprogs}/lib/libcom_err.so.3" "$COMPAT_DIR/libcom_err.so.2"
+        export LD_LIBRARY_PATH="$COMPAT_DIR''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+        # 3) Fallback shims for nixGL wrappers (if not on PATH)
         if ! command -v nixGLNvidia >/dev/null 2>&1; then
           nixGLNvidia() { nix run github:guibou/nixGL#nixGLNvidia -- "$@"; }
         fi
@@ -94,7 +105,9 @@ in {
           nixGLIntel() { nix run github:guibou/nixGL#nixGLIntel -- "$@"; }
         fi
 
-        echo "     Example: nixGLNvidia python -c 'import vtk; print(vtk.vtkVersion().GetVTKVersion())'"
+        echo "Examples:"
+        echo "  nixGLNvidia python -c 'import vtk; print(vtk.vtkVersion().GetVTKVersion())'"
+        echo "  nixGLNvidia pymeshup"
       '';
     };
   };

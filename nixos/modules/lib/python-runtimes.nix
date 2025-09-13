@@ -20,5 +20,8 @@
     libjpeg
     libtiff
     e2fsprogs
+
+    # ✅ Provide libGL.so.1 for manylinux wheels (pymeshlab/vtk)
+    libglvnd
   ];
 }
