@@ -8,14 +8,15 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
-    nixgl.url = "github:guibou/nixGL";
-
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     disko.url = "github:nix-community/disko";
     sops-nix.url = "github:Mic92/sops-nix";
     flake-utils.url = "github:numtide/flake-utils";
+
+    # OpenGL driver wrapper (NVIDIA/Intel/AMD) for GUI/VTK apps
+    nixgl.url = "github:guibou/nixGL";
   };
 
   ##############################################################################
@@ -65,7 +66,7 @@
       users = hostUsersMap.${hostName} or [];
     in
       nixpkgs.lib.nixosSystem {
-        # Make flake inputs available to NixOS modules
+        # Expose flake inputs to NixOS modules
         specialArgs = {
           inherit inputs self;
           userModulesPath = ./home/users;
@@ -106,7 +107,7 @@
                       };
                     }
 
-                    # Your actual HM user configuration
+                    # Actual HM user configuration
                     (./home/users + "/${u}")
                   ];
                 });
@@ -121,8 +122,20 @@
     ############################################################################
     devShells = flake-utils.lib.eachDefaultSystem (
       sys: let
-        pkgs = import nixpkgs {system = sys;};
+        # Import pkgs with allowUnfree enabled (useful for some GPU stacks)
+        pkgs = import nixpkgs {
+          system = sys;
+          config = {allowUnfree = true;};
+        };
+
+        # Import centralized devshells (no NixOS module; just a plain attrset)
+        externalShells =
+          (import ./nixos/modules/profiles/devshells/default.nix {
+            inherit pkgs inputs;
+            system = sys;
+          }).devShells;
       in {
+        # Keep your existing default dev shell
         default = pkgs.mkShell {
           packages = with pkgs; [
             pre-commit
@@ -144,19 +157,10 @@
           '';
         };
 
-        python = pkgs.mkShell {
-          buildInputs = [
-            pkgs.gcc
-            pkgs.gfortran
-            pkgs.cmake
-            pkgs.pkg-config
-            pkgs.python312
-          ];
-          shellHook = ''
-            echo "🛠️  Python devShell (gcc, gfortran, cmake, pkg-config, python)"
-            echo "👉  Use UV in this shell so that Scipy/Numpy Wheels find the Toolchain."
-          '';
-        };
+        # Centralized Python dev shells
+        py-light = externalShells.py-light; # python+uv, no compilers
+        py-build = externalShells.py-build; # toolchain for compiled deps
+        py-vtk = externalShells.py-vtk; # Qt/VTK/GL with nixGL wrappers
       }
     );
 
@@ -181,7 +185,7 @@
                 config = {allowUnfree = true;};
               };
               modules = [
-                # Make inputs available to HM modules
+                # Expose inputs to HM modules
                 {
                   _module.args = {
                     inherit inputs self;
@@ -189,7 +193,7 @@
                   };
                 }
 
-                # Your HM user configuration
+                # Actual HM user configuration
                 (./home/users + "/${user}")
               ];
             };
