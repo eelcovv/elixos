@@ -38,76 +38,121 @@ in {
     };
 
     # Guarded VTK/Qt/GL shell
+    # nixos/modules/profiles/devshells/default.nix (py_vtk excerpt)
     py_vtk = pkgs.mkShell {
-      packages = with pkgs;
-        [
-          python312
-          uv
+      packages = with pkgs; [
+        python312
+        uv
 
-          vtk
-          qt6.qtbase
-          qt6.qtwayland
+        vtk
+        # Keep Qt6 for your PySide6 app:
+        qt6.qtbase
+        qt6.qtwayland
 
-          mesa
-          libglvnd
-          wayland
-          libxkbcommon
+        mesa
+        libglvnd
+        wayland
+        libxkbcommon
 
-          xorg.libX11
-          xorg.libXcursor
-          xorg.libXrandr
-          xorg.libXi
-          xorg.libXrender
-          xorg.libXtst
-          xorg.libXfixes
-          xorg.libXcomposite
-          xorg.libXext
-          xorg.libXdamage
-          xorg.libxcb
-          xorg.xcbutil
-          xorg.xcbutilimage
-          xorg.xcbutilkeysyms
-          xorg.xcbutilrenderutil
-          xorg.xcbutilwm
+        # X11 stack (extended)
+        xorg.libX11
+        xorg.libXcursor
+        xorg.libXrandr
+        xorg.libXi
+        xorg.libXrender # <-- important for your current error
+        xorg.libXt # common VTK dep
+        xorg.libXmu # common VTK dep
+        xorg.libSM # session management
+        xorg.libICE # ICE library
+        xorg.libXtst
+        xorg.libXfixes
+        xorg.libXcomposite
+        xorg.libXext
+        xorg.libXdamage
+        xorg.libxcb
+        xorg.xcbutil
+        xorg.xcbutilimage
+        xorg.xcbutilkeysyms
+        xorg.xcbutilrenderutil
+        xorg.xcbutilwm
 
-          fontconfig
-          freetype
-          harfbuzz
-          zlib
-          glib
-          openssl
-          expat
-          icu
-          libpng
-          libjpeg
-          libtiff
-        ]
-        ++ nixGLWrappers;
+        # Runtime codecs/fonts/etc.
+        fontconfig
+        freetype
+        harfbuzz
+        zlib
+        glib
+        openssl
+        expat
+        icu
+        libpng
+        libjpeg
+        libtiff
+
+        # Diagnostics
+        mesa-demos
+        patchelf
+      ];
 
       shellHook = ''
-        echo "🖼️  py_vtk active (Qt/VTK/OpenGL)"
+        echo "🖼️  py_vtk active (Qt/VTK/OpenGL on NixOS)"
         export QT_QPA_PLATFORM="''${QT_QPA_PLATFORM:-wayland;xcb}"
 
-        # 1) Ensure wheels can dlopen libGL.so.1 (from libglvnd)
-        export LD_LIBRARY_PATH="${lib.getLib pkgs.libglvnd}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-
-        # 2) Provide a compat shim for libcom_err.so.2 → .3 expected by manylinux wheels
+        # Compat symlink for wheels expecting libcom_err.so.2
         COMPAT_DIR="$PWD/.nix-ld-compat"
         mkdir -p "$COMPAT_DIR"
         ln -sf "${lib.getLib pkgs.e2fsprogs}/lib/libcom_err.so.3" "$COMPAT_DIR/libcom_err.so.2"
-        export LD_LIBRARY_PATH="$COMPAT_DIR''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-        # 3) Fallback shims for nixGL wrappers (if not on PATH)
-        if ! command -v nixGLNvidia >/dev/null 2>&1; then
-          nixGLNvidia() { nix run github:guibou/nixGL#nixGLNvidia -- "$@"; }
-        fi
-        if ! command -v nixGLIntel >/dev/null 2>&1; then
-          nixGLIntel() { nix run github:guibou/nixGL#nixGLIntel -- "$@"; }
-        fi
+        # Loader search paths (most specific first)
+        prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
 
-        echo "Examples:"
-        echo "  nixGLNvidia python -c 'import vtk; print(vtk.vtkVersion().GetVTKVersion())'"
-        echo "  nixGLNvidia pymeshup"
+        prepend "$COMPAT_DIR"
+        prepend "${lib.getLib pkgs.libglvnd}/lib"   # libGL.so.1
+        prepend "${lib.getLib pkgs.zlib}/lib"       # libz.so.1
+        prepend "${lib.getLib pkgs.e2fsprogs}/lib"  # libcom_err.so.3
+        prepend "${lib.getLib pkgs.expat}/lib"      # libexpat.so.1
+        prepend "${lib.getLib pkgs.gmp}/lib"        # libgmp.so.10
+        prepend "${lib.getLib pkgs.p11-kit}/lib"    # libp11-kit.so.0
+
+        # X11 libs (cover libXrender + common VTK deps)
+        prepend "${lib.getLib pkgs.xorg.libXrender}/lib"
+        prepend "${lib.getLib pkgs.xorg.libX11}/lib"
+        prepend "${lib.getLib pkgs.xorg.libXext}/lib"
+        prepend "${lib.getLib pkgs.xorg.libXrandr}/lib"
+        prepend "${lib.getLib pkgs.xorg.libXi}/lib"
+        prepend "${lib.getLib pkgs.xorg.libXt}/lib"
+        prepend "${lib.getLib pkgs.xorg.libXmu}/lib"
+        prepend "${lib.getLib pkgs.xorg.libSM}/lib"
+        prepend "${lib.getLib pkgs.xorg.libICE}/lib"
+        prepend "${lib.getLib pkgs.xorg.libxcb}/lib"
+        prepend "${lib.getLib pkgs.xorg.xcbutil}/lib"
+        prepend "${lib.getLib pkgs.xorg.xcbutilimage}/lib"
+        prepend "${lib.getLib pkgs.xorg.xcbutilkeysyms}/lib"
+        prepend "${lib.getLib pkgs.xorg.xcbutilrenderutil}/lib"
+        prepend "${lib.getLib pkgs.xorg.xcbutilwm}/lib"
+
+        prepend "${lib.getLib pkgs.fontconfig}/lib"   # libfontconfig.so.1 (PySide6/Qt6 needs this)
+        prepend "${lib.getLib pkgs.freetype}/lib"     # libfreetype.so.6
+        prepend "${lib.getLib pkgs.harfbuzz}/lib"     # libharfbuzz.so.0
+        prepend "${lib.getLib pkgs.libpng}/lib"       # libpng16.so.16 (often pulled via Qt)
+        prepend "${lib.getLib pkgs.libjpeg}/lib"      # libjpeg.so.8
+        prepend "${lib.getLib pkgs.libtiff}/lib"      # libtiff.so.6
+        prepend "${lib.getLib pkgs.glib}/lib"          # libglib-2.0.so.0, libgobject-2.0.so.0, etc.
+        prepend "${lib.getLib pkgs.pcre2}/lib"         # libpcre2-8.so.0 (glib dependency)
+        prepend "${lib.getLib pkgs.libxkbcommon}/lib"  # libxkbcommon.so.0 (Qt input stack)
+        prepend "${lib.getLib pkgs.wayland}/lib"       # libwayland-client.so.0, etc.
+        prepend "${lib.getLib pkgs.openssl}/lib"       # libssl.so.3, libcrypto.so.3 (QtNetwork often needs)
+        prepend "${lib.getLib pkgs.icu}/lib"           # ICU (Qt text shaping / locales if needed)
+
+        prepend "${lib.getLib pkgs.zstd}/lib"   # provides libzstd.so.1
+        prepend "${lib.getLib pkgs.dbus}/lib"   # provides libdbus-1.so.3
+
+
+        # Vendor OpenGL driver paths (NixOS provides these)
+        [ -d /run/opengl-driver/lib ]     && prepend "/run/opengl-driver/lib"
+        [ -d /run/opengl-driver-32/lib ]  && prepend "/run/opengl-driver-32/lib"
+
+        echo "Try: glxinfo -B"
       '';
     };
   };
