@@ -123,49 +123,52 @@
     ############################################################################
     # DevShells for all default systems
     ############################################################################
-    devShells = flake-utils.lib.eachDefaultSystem (
-      sys: let
-        # Import pkgs with allowUnfree enabled (useful for GPU stacks)
-        pkgs = import nixpkgs {
-          system = sys;
-          config = {allowUnfree = true;};
-        };
+    # flake.nix — export dev shells directly under your current system
+    devShells.${system} = let
+      # Import pkgs with allowUnfree enabled (useful for GPU stacks)
+      pkgs = import nixpkgs {
+        system = system;
+        config = {allowUnfree = true;};
+      };
 
-        # Import centralized devshells (plain attrset, not a NixOS module)
-        externalShells =
-          (import ./nixos/modules/profiles/devshells/default.nix {
-            inherit pkgs inputs;
-            system = sys;
-          }).devShells;
-      in {
-        # Keep your existing default shell
-        default = pkgs.mkShell {
-          packages = with pkgs; [
-            pre-commit
-            alejandra
-            rage
-            sops
-            yq-go
-            OVMF
-            qemu
-            git
-            openssh
-            age
-            just
-            prettier
-            nodejs
-          ];
-          shellHook = ''
-            echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
-          '';
-        };
+      # Import centralized devshells (plain attrset, not a NixOS module)
+      externalShells =
+        (import ./nixos/modules/profiles/devshells/default.nix {
+          inherit pkgs inputs;
+          system = system;
+        }).devShells;
 
-        # Expose centralized Python dev shells (underscore names)
-        py_light = externalShells.py_light; # python+uv, no compilers
-        py_build = externalShells.py_build; # toolchain for compiled deps
-        py_vtk = externalShells.py_vtk; # Qt/VTK/GL with nixGL wrappers
-      }
-    );
+      # Your existing general-purpose dev shell
+      general_default = pkgs.mkShell {
+        packages = with pkgs; [
+          pre-commit
+          alejandra
+          rage
+          sops
+          yq-go
+          OVMF
+          qemu
+          git
+          openssh
+          age
+          just
+          prettier
+          nodejs
+        ];
+        shellHook = ''
+          echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
+        '';
+      };
+    in
+      # Expose all centralized shells plus your general default
+      externalShells
+      // {
+        # Keep your general-purpose default as 'general'
+        general = general_default;
+
+        # Make 'py_build' the default so `nix develop` (without #attr) drops you in the build toolchain
+        default = externalShells.py_build;
+      };
 
     ############################################################################
     # NixOS hosts
