@@ -520,6 +520,19 @@ vpn-status:
 vpn-location:
 	@curl https://ipinfo.io
 
+# ========== DEVELOPMENT ==========
+# Justfile — quick entrypoints
+py-build:
+	nix develop .#py_build
+
+py-vtk:
+	nix develop .#py_vtk
+
+general:
+	nix develop .#general
+
+sync:
+	uv sync
 
 # ========== VALIDATION ==========
 check-install HOST USER:
