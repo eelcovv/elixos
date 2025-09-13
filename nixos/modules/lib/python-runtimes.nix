@@ -4,6 +4,9 @@
   lib,
   ...
 }: let
+  # Werkt op beide nixpkgs-varianten:
+  # - pkgs.xorg.libxshmfence (meest voorkomend)
+  # - pkgs.libxshmfence (sommige channels)
   libxshmfence_pkg = pkgs.xorg.libxshmfence or pkgs.libxshmfence;
 in {
   programs.nix-ld.enable = true;
@@ -12,7 +15,7 @@ in {
     # C/C++
     stdenv.cc.cc.lib
     glibc
-    gmp # libgmp.so.10  (pymeshlab plugins)
+    gmp # libgmp.so.10 (pymeshlab plugins)
     p11-kit # libp11-kit.so.0 (e57 plugin chain)
 
     # GL/GLVND
@@ -22,7 +25,7 @@ in {
     mesa
     libdrm
 
-    # Wayland/X11
+    # Wayland/X11 (uitgebreid voor Qt xcb plugin)
     wayland
     libxkbcommon
     xorg.libX11
@@ -40,6 +43,13 @@ in {
     xorg.libXxf86vm
     libxshmfence_pkg
 
+    # xcb-util stack die Qt’s xcb-platform plugin vaak nodig heeft
+    xorg.xcbutil
+    xorg.xcbutilimage
+    xorg.xcbutilkeysyms
+    xorg.xcbutilrenderutil
+    xorg.xcbutilwm
+
     # Core + fonts + codecs
     zlib
     glib
@@ -54,7 +64,7 @@ in {
     libjpeg
     libtiff
 
-    # manylinux compat
+    # manylinux compat (libcom_err.so.3 → lokale alias naar .2 in je project)
     e2fsprogs
   ];
 }
