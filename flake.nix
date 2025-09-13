@@ -158,9 +158,9 @@
         };
 
         # Centralized Python dev shells
-        py-light = externalShells.py-light; # python+uv, no compilers
-        py-build = externalShells.py-build; # toolchain for compiled deps
-        py-vtk = externalShells.py-vtk; # Qt/VTK/GL with nixGL wrappers
+        py_light = externalShells.py-light; # python+uv, no compilers
+        py_build = externalShells.py-build; # toolchain for compiled deps
+        py_vtk = externalShells.py-vtk; # Qt/VTK/GL with nixGL wrappers
       }
     );
 

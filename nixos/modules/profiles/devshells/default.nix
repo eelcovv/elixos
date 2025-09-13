@@ -1,34 +1,33 @@
 # nixos/modules/profiles/devshells/default.nix
-{ pkgs
-, inputs
-, system ? builtins.currentSystem
-, lib ? pkgs.lib
-, ...
-}:
-let
+{
+  pkgs,
+  inputs,
+  system ? builtins.currentSystem,
+  lib ? pkgs.lib,
+  ...
+}: let
   # Resolve nixGL packages for the current system
   nixGL =
     if builtins.hasAttr system inputs.nixgl.packages
     then inputs.nixgl.packages.${system}
     else inputs.nixgl.packages.${pkgs.system};
-in
-{
+in {
   # Expose an attribute set with multiple developer shells
   devShells = {
     # Lightweight Python shell: interpreter + uv + basic tools
-    py-light = pkgs.mkShell {
+    py_light = pkgs.mkShell {
       packages = with pkgs; [
         python312
         uv
         pre-commit
       ];
       shellHook = ''
-        echo "🐍 py-light active (python + uv, no compilers)"
+        echo "🐍 py_light active (python + uv, no compilers)"
       '';
     };
 
     # Build-capable Python shell: add toolchain for packages needing local compilation
-    py-build = pkgs.mkShell {
+    py_build = pkgs.mkShell {
       packages = with pkgs; [
         python312
         uv
@@ -39,13 +38,13 @@ in
         openblas
       ];
       shellHook = ''
-        echo "🛠️  py-build active (gcc/gfortran/cmake/pkg-config/openblas)"
+        echo "🛠️  py_build active (gcc/gfortran/cmake/pkg-config/openblas)"
         echo "Use this shell for 'uv sync' when C/Fortran extensions are built."
       '';
     };
 
     # VTK/Qt/OpenGL GUI shell with nixGL wrappers for proper GPU driver binding
-    py-vtk = pkgs.mkShell {
+    py_vtk = pkgs.mkShell {
       packages = with pkgs; [
         python312
         uv
@@ -96,14 +95,13 @@ in
 
       # Important: do NOT set LD_LIBRARY_PATH here; rely on nixGL wrappers instead.
       shellHook = ''
-        echo "🖼️  py-vtk active (Qt/VTK/OpenGL + nixGL wrappers)"
+        echo "🖼️  py_vtk active (Qt/VTK/OpenGL + nixGL wrappers)"
         echo "     Run GUI/GL apps via: nixGLNvidia pymeshup"
         echo "     or:                  nixGLNvidia python -c 'import vtk; print(vtk.vtkVersion().GetVTKVersion())'"
 
         # Allow Qt to try Wayland first and fall back to XCB when needed
-        export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
+        export QT_QPA_PLATFORM="''${QT_QPA_PLATFORM:-wayland;xcb}"
       '';
     };
   };
 }
-
