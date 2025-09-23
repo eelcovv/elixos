@@ -42,16 +42,22 @@ in {
       packages = with pkgs; [
         python312
         uv
+
+        # VTK & Qt6 runtime
         vtk
         qt6.qtbase
         qt6.qtwayland
+        qt6.qtdeclarative # QML + plugins used by many PySide6 wheels
+        qt6.qtimageformats # common image plugins (png/jpg/webp/…)
+        qt6.qtsvg # svg plugin used by many UIs
 
+        # GL / windowing stacks
         mesa
         libglvnd
         wayland
         libxkbcommon
 
-        # X11 stack (kept as fallback when Qt falls back to xcb)
+        # X11 stack (Qt may fall back to xcb even if Wayland is present)
         xorg.libX11
         xorg.libXcursor
         xorg.libXrandr
@@ -88,6 +94,7 @@ in {
         libtiff
         zstd
         dbus
+        pcre2
 
         # Diagnostics
         mesa-demos
@@ -97,31 +104,35 @@ in {
       shellHook = ''
         echo "🖼️  py_vtk active (Qt/VTK/OpenGL on NixOS)"
 
-        # Prefer XCB for stability with mixed Qt5/Qt6 and NVIDIA
+        # ---- Backend selection -------------------------------------------------
+        # Force X11/xcb for stability (mixed Qt5/Qt6 stacks and NVIDIA often prefer xcb).
         export QT_QPA_PLATFORM="xcb"
-        export QT_XCB_GL_INTEGRATION="glx"   # optional, helps on NVIDIA
+        export QT_XCB_GL_INTEGRATION="glx"      # optional, helps on NVIDIA
         export MPLBACKEND="${MPLBACKEND:-Agg}"  # optional, tames Matplotlib noise
+        # You may temporarily enable deeper Qt plugin diagnostics:
+        # export QT_DEBUG_PLUGINS=1
 
-        # Helper to prepend to LD_LIBRARY_PATH
+        # ---- Helper: prepend to LD_LIBRARY_PATH -------------------------------
         prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
 
-        # Compat for manylinux wheels expecting libcom_err.so.2
+        # ---- Compat shims manylinux wheels expect -----------------------------
         COMPAT_DIR="$PWD/.nix-ld-compat"
         mkdir -p "$COMPAT_DIR"
+        # libcom_err.so.2 is frequently expected by foreign wheels; symlink to .3
         ln -sf "${lib.getLib pkgs.e2fsprogs}/lib/libcom_err.so.3" "$COMPAT_DIR/libcom_err.so.2"
         prepend "$COMPAT_DIR"
 
-        # GL + core libs
+        # ---- Core GL + base libs ----------------------------------------------
         prepend "${lib.getLib pkgs.libglvnd}/lib"      # libGL.so.1
-        prepend "${lib.getLib pkgs.zlib}/lib"          # libz.so.1
-        prepend "${lib.getLib pkgs.e2fsprogs}/lib"     # libcom_err.so.3
-        prepend "${lib.getLib pkgs.expat}/lib"         # libexpat.so.1
-        prepend "${lib.getLib pkgs.gmp}/lib"           # libgmp.so.10
-        prepend "${lib.getLib pkgs.p11-kit}/lib"       # libp11-kit.so.0
-        prepend "${lib.getLib pkgs.zstd}/lib"          # libzstd.so.1
-        prepend "${lib.getLib pkgs.dbus}/lib"          # libdbus-1.so.3
+        prepend "${lib.getLib pkgs.zlib}/lib"
+        prepend "${lib.getLib pkgs.e2fsprogs}/lib"
+        prepend "${lib.getLib pkgs.expat}/lib"
+        prepend "${lib.getLib pkgs.gmp}/lib"
+        prepend "${lib.getLib pkgs.p11-kit}/lib"
+        prepend "${lib.getLib pkgs.zstd}/lib"
+        prepend "${lib.getLib pkgs.dbus}/lib"
 
-        # X11 libs (incl. xcb-cursor)
+        # ---- X11 / xcb libs (incl. xcb-cursor) --------------------------------
         prepend "${lib.getLib pkgs.xorg.libX11}/lib"
         prepend "${lib.getLib pkgs.xorg.libXext}/lib"
         prepend "${lib.getLib pkgs.xorg.libXrender}/lib"
@@ -139,7 +150,7 @@ in {
         prepend "${lib.getLib pkgs.xorg.xcbutilwm}/lib"
         prepend "${lib.getLib pkgs.xorg.xcbutilcursor}/lib"
 
-        # Font/text stack for Qt
+        # ---- Text / fonts / wayland / crypto / ICU ----------------------------
         prepend "${lib.getLib pkgs.fontconfig}/lib"
         prepend "${lib.getLib pkgs.freetype}/lib"
         prepend "${lib.getLib pkgs.harfbuzz}/lib"
@@ -153,23 +164,24 @@ in {
         prepend "${lib.getLib pkgs.openssl}/lib"
         prepend "${lib.getLib pkgs.icu}/lib"
 
-        # Vendor GL driver paths on NixOS
+        # ---- Vendor GL driver paths on NixOS ----------------------------------
         [ -d /run/opengl-driver/lib ]     && prepend "/run/opengl-driver/lib"
         [ -d /run/opengl-driver-32/lib ]  && prepend "/run/opengl-driver-32/lib"
 
-        # ── Critical: prefer wheel Qt (PySide6) over system Qt ───────────────────
+        # ---- Prefer wheel (PySide6) Qt over system Qt -------------------------
+        # Many PySide6 wheels bundle their own Qt (Qt libs, plugins, qml).
+        # We put wheel's Qt *first*, and only then fall back to system Qt.
         if [ -n "$VIRTUAL_ENV" ]; then
-          wheel_root="$VIRTUAL_ENV/lib/python3.12/site-packages/PySide6/Qt"
+          pyver="$(python -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+          wheel_root="$VIRTUAL_ENV/lib/python$pyver/site-packages/PySide6/Qt"
           wheel_lib="$wheel_root/lib"
           wheel_plugins="$wheel_root/plugins"
           wheel_qml="$wheel_root/qml"
 
           # 1) Wheel Qt shared libs FIRST on LD_LIBRARY_PATH
-          if [ -d "$wheel_lib" ]; then
-            prepend "$wheel_lib"
-          fi
+          [ -d "$wheel_lib" ] && prepend "$wheel_lib"
 
-          # 2) Reset plugin/qml paths to wheel FIRST (do not prepend system before wheel)
+          # 2) Reset plugin/qml paths to wheel FIRST (overwrite instead of prepend)
           if [ -d "$wheel_plugins" ]; then
             export QT_PLUGIN_PATH="$wheel_plugins"
           else
@@ -182,14 +194,13 @@ in {
           fi
 
           # 3) Append system Qt as a fallback AFTER the wheel (safe)
-          export QT_PLUGIN_PATH="$QT_PLUGIN_PATH:${lib.getLib pkgs.qt6.qtbase}/lib/qt-6/plugins"
-          export QML2_IMPORT_PATH="$QML2_IMPORT_PATH:${lib.getLib pkgs.qt6.qtdeclarative}/lib/qt-6/qml"
+          export QT_PLUGIN_PATH="''${QT_PLUGIN_PATH:+$QT_PLUGIN_PATH:}${lib.getLib pkgs.qt6.qtbase}/lib/qt-6/plugins"
+          export QML2_IMPORT_PATH="''${QML2_IMPORT_PATH:+$QML2_IMPORT_PATH:}${lib.getLib pkgs.qt6.qtdeclarative}/lib/qt-6/qml"
         else
-          # No venv: use system Qt plugin/qml paths
+          # No venv: use system Qt plugin/qml paths only
           export QT_PLUGIN_PATH="${lib.getLib pkgs.qt6.qtbase}/lib/qt-6/plugins"
           export QML2_IMPORT_PATH="${lib.getLib pkgs.qt6.qtdeclarative}/lib/qt-6/qml"
         fi
-        # ─────────────────────────────────────────────────────────────────────────
 
         echo "Try: glxinfo -B"
       '';
