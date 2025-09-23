@@ -1,4 +1,3 @@
-# nixos/modules/profiles/devshells/default.nix
 {
   pkgs,
   inputs,
@@ -20,6 +19,122 @@
     if hasCurrentTime
     then [nixGL.nixGLNvidia nixGL.nixGLIntel nixGL.nixVulkanNvidia]
     else [];
+
+  # Shared shellHook for Qt/VTK wheels; receives pkgs/lib via Nix string interpolation.
+  qt_wheel_shell_hook = lib: pkgs: ''
+    echo "🖼️  Qt/VTK wheel env active"
+
+    # ---- Backend selection -------------------------------------------------
+    # Default to XCB for interactive runs; fall back to offscreen when under pytest.
+    if [ -n "$PYTEST_CURRENT_TEST" ]; then
+      export QT_QPA_PLATFORM="offscreen"
+      unset QT_XCB_GL_INTEGRATION
+    else
+      export QT_QPA_PLATFORM="xcb"
+      export QT_XCB_GL_INTEGRATION="glx"
+    fi
+
+    # Matplotlib: use a non-GUI backend by default.
+    # IMPORTANT: Escape the '$' so Bash expands it at runtime, not Nix at eval time.
+    export MPLBACKEND="''${MPLBACKEND:-agg}"
+
+    # Optional for debugging Qt plugin loading:
+    # export QT_DEBUG_PLUGINS=1
+
+    # ---- Helper: prepend to LD_LIBRARY_PATH --------------------------------
+    prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
+
+    # ---- Compat shims manylinux wheels expect -------------------------------
+    COMPAT_DIR="$PWD/.nix-ld-compat"
+    mkdir -p "$COMPAT_DIR"
+    ln -sf "${lib.getLib pkgs.e2fsprogs}/lib/libcom_err.so.3" "$COMPAT_DIR/libcom_err.so.2"
+    prepend "$COMPAT_DIR"
+
+    # ---- Core GL + base libs (keep generic system libs; avoid system Qt) ----
+    prepend "${lib.getLib pkgs.libglvnd}/lib"
+    prepend "${lib.getLib pkgs.zlib}/lib"
+    prepend "${lib.getLib pkgs.e2fsprogs}/lib"
+    prepend "${lib.getLib pkgs.expat}/lib"
+    prepend "${lib.getLib pkgs.gmp}/lib"
+    prepend "${lib.getLib pkgs.p11-kit}/lib"
+    prepend "${lib.getLib pkgs.zstd}/lib"
+    prepend "${lib.getLib pkgs.dbus}/lib"
+
+    # ---- X11 / xcb libs (incl. xcb-cursor) ----------------------------------
+    prepend "${lib.getLib pkgs.xorg.libX11}/lib"
+    prepend "${lib.getLib pkgs.xorg.libXext}/lib"
+    prepend "${lib.getLib pkgs.xorg.libXrender}/lib"
+    prepend "${lib.getLib pkgs.xorg.libXrandr}/lib"
+    prepend "${lib.getLib pkgs.xorg.libXi}/lib"
+    prepend "${lib.getLib pkgs.xorg.libXt}/lib"
+    prepend "${lib.getLib pkgs.xorg.libXmu}/lib"
+    prepend "${lib.getLib pkgs.xorg.libSM}/lib"
+    prepend "${lib.getLib pkgs.xorg.libICE}/lib"
+    prepend "${lib.getLib pkgs.xorg.libxcb}/lib"
+    prepend "${lib.getLib pkgs.xorg.xcbutil}/lib"
+    prepend "${lib.getLib pkgs.xorg.xcbutilimage}/lib"
+    prepend "${lib.getLib pkgs.xorg.xcbutilkeysyms}/lib"
+    prepend "${lib.getLib pkgs.xorg.xcbutilrenderutil}/lib"
+    prepend "${lib.getLib pkgs.xorg.xcbutilwm}/lib"
+    prepend "${lib.getLib pkgs.xorg.xcbutilcursor}/lib"
+
+    # ---- Text / fonts / wayland / crypto / ICU ------------------------------
+    prepend "${lib.getLib pkgs.fontconfig}/lib"
+    prepend "${lib.getLib pkgs.freetype}/lib"
+    prepend "${lib.getLib pkgs.harfbuzz}/lib"
+    prepend "${lib.getLib pkgs.libpng}/lib"
+    prepend "${lib.getLib pkgs.libjpeg}/lib"
+    prepend "${lib.getLib pkgs.libtiff}/lib"
+    prepend "${lib.getLib pkgs.glib}/lib"
+    prepend "${lib.getLib pkgs.pcre2}/lib"
+    prepend "${lib.getLib pkgs.libxkbcommon}/lib"
+    prepend "${lib.getLib pkgs.wayland}/lib"
+    prepend "${lib.getLib pkgs.openssl}/lib"
+    prepend "${lib.getLib pkgs.icu}/lib"
+
+    # ---- Vendor GL driver paths on NixOS ------------------------------------
+    [ -d /run/opengl-driver/lib ]     && prepend "/run/opengl-driver/lib"
+    [ -d /run/opengl-driver-32/lib ]  && prepend "/run/opengl-driver-32/lib"
+
+    # ---- HARD RULE: use only the wheel's Qt (PySide6) -----------------------
+    export QT_NO_PLUGIN_LOOKUP=1   # do not scan system plugin dirs
+
+    if [ -n "$VIRTUAL_ENV" ]; then
+      pyver="$(python -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+      wheel_root="$VIRTUAL_ENV/lib/python''${pyver:-3.12}/site-packages/PySide6/Qt"
+      wheel_lib="$wheel_root/lib"
+      wheel_plugins="$wheel_root/plugins"
+      wheel_qml="$wheel_root/qml"
+
+      # 1) Wheel Qt libraries FIRST on LD_LIBRARY_PATH
+      if [ -d "$wheel_lib" ]; then
+        export LD_LIBRARY_PATH="$wheel_lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      fi
+
+      # 2) Force plugin path strictly to the wheel
+      if [ -d "$wheel_plugins" ]; then
+        export QT_PLUGIN_PATH="$wheel_plugins"
+        if [ -d "$wheel_plugins/platforms" ]; then
+          export QT_QPA_PLATFORM_PLUGIN_PATH="$wheel_plugins/platforms"
+        fi
+      else
+        unset QT_PLUGIN_PATH
+        unset QT_QPA_PLATFORM_PLUGIN_PATH
+      fi
+
+      # 3) QML from wheel only
+      if [ -d "$wheel_qml" ]; then
+        export QML2_IMPORT_PATH="$wheel_qml"
+      else
+        unset QML2_IMPORT_PATH
+      fi
+    else
+      # No venv: never point to system Qt plugin dirs to avoid version skew
+      unset QT_PLUGIN_PATH
+      unset QT_QPA_PLATFORM_PLUGIN_PATH
+      unset QML2_IMPORT_PATH
+    fi
+  '';
 in {
   devShells = {
     py_light = pkgs.mkShell {
@@ -42,22 +157,16 @@ in {
       packages = with pkgs; [
         python312
         uv
-
-        # VTK & Qt6 runtime
         vtk
         qt6.qtbase
         qt6.qtwayland
-        qt6.qtdeclarative # QML + plugins used by many PySide6 wheels
-        qt6.qtimageformats # common image plugins (png/jpg/webp/…)
-        qt6.qtsvg # svg plugin used by many UIs
-
-        # GL / windowing stacks
+        qt6.qtdeclarative
+        qt6.qtimageformats
+        qt6.qtsvg
         mesa
         libglvnd
         wayland
         libxkbcommon
-
-        # X11 stack (Qt may fall back to xcb even if Wayland is present)
         xorg.libX11
         xorg.libXcursor
         xorg.libXrandr
@@ -78,9 +187,7 @@ in {
         xorg.xcbutilkeysyms
         xorg.xcbutilrenderutil
         xorg.xcbutilwm
-        xorg.xcbutilcursor # Qt 6.5+ xcb plugin requires this
-
-        # Common runtime libs manylinux wheels expect
+        xorg.xcbutilcursor
         fontconfig
         freetype
         harfbuzz
@@ -95,119 +202,75 @@ in {
         zstd
         dbus
         pcre2
-
-        # Diagnostics
         mesa-demos
         patchelf
       ];
-      shellHook = ''
-        echo "🖼️  py_vtk active (Qt/VTK/OpenGL on NixOS)"
+      shellHook = qt_wheel_shell_hook lib pkgs;
+    };
 
-        # ---- Backend selection -------------------------------------------------
-        export QT_QPA_PLATFORM="xcb"
-        export QT_XCB_GL_INTEGRATION="glx"
-        export MPLBACKEND="${MPLBACKEND:-Agg}"
-        # Optional for debugging:
-        # export QT_DEBUG_PLUGINS=1
-
-        # ---- Helper: prepend to LD_LIBRARY_PATH --------------------------------
-        prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
-
-        # ---- Compat shims manylinux wheels expect -------------------------------
-        COMPAT_DIR="$PWD/.nix-ld-compat"
-        mkdir -p "$COMPAT_DIR"
-        ln -sf "${lib.getLib pkgs.e2fsprogs}/lib/libcom_err.so.3" "$COMPAT_DIR/libcom_err.so.2"
-        prepend "$COMPAT_DIR"
-
-        # ---- Core GL + base libs (keep generic system libs; avoid system Qt) ----
-        prepend "${lib.getLib pkgs.libglvnd}/lib"
-        prepend "${lib.getLib pkgs.zlib}/lib"
-        prepend "${lib.getLib pkgs.e2fsprogs}/lib"
-        prepend "${lib.getLib pkgs.expat}/lib"
-        prepend "${lib.getLib pkgs.gmp}/lib"
-        prepend "${lib.getLib pkgs.p11-kit}/lib"
-        prepend "${lib.getLib pkgs.zstd}/lib"
-        prepend "${lib.getLib pkgs.dbus}/lib"
-
-        # ---- X11 / xcb libs (incl. xcb-cursor) ----------------------------------
-        prepend "${lib.getLib pkgs.xorg.libX11}/lib"
-        prepend "${lib.getLib pkgs.xorg.libXext}/lib"
-        prepend "${lib.getLib pkgs.xorg.libXrender}/lib"
-        prepend "${lib.getLib pkgs.xorg.libXrandr}/lib"
-        prepend "${lib.getLib pkgs.xorg.libXi}/lib"
-        prepend "${lib.getLib pkgs.xorg.libXt}/lib"
-        prepend "${lib.getLib pkgs.xorg.libXmu}/lib"
-        prepend "${lib.getLib pkgs.xorg.libSM}/lib"
-        prepend "${lib.getLib pkgs.xorg.libICE}/lib"
-        prepend "${lib.getLib pkgs.xorg.libxcb}/lib"
-        prepend "${lib.getLib pkgs.xorg.xcbutil}/lib"
-        prepend "${lib.getLib pkgs.xorg.xcbutilimage}/lib"
-        prepend "${lib.getLib pkgs.xorg.xcbutilkeysyms}/lib"
-        prepend "${lib.getLib pkgs.xorg.xcbutilrenderutil}/lib"
-        prepend "${lib.getLib pkgs.xorg.xcbutilwm}/lib"
-        prepend "${lib.getLib pkgs.xorg.xcbutilcursor}/lib"
-
-        # ---- Text / fonts / wayland / crypto / ICU ------------------------------
-        prepend "${lib.getLib pkgs.fontconfig}/lib"
-        prepend "${lib.getLib pkgs.freetype}/lib"
-        prepend "${lib.getLib pkgs.harfbuzz}/lib"
-        prepend "${lib.getLib pkgs.libpng}/lib"
-        prepend "${lib.getLib pkgs.libjpeg}/lib"
-        prepend "${lib.getLib pkgs.libtiff}/lib"
-        prepend "${lib.getLib pkgs.glib}/lib"
-        prepend "${lib.getLib pkgs.pcre2}/lib"
-        prepend "${lib.getLib pkgs.libxkbcommon}/lib"
-        prepend "${lib.getLib pkgs.wayland}/lib"
-        prepend "${lib.getLib pkgs.openssl}/lib"
-        prepend "${lib.getLib pkgs.icu}/lib"
-
-        # ---- Vendor GL driver paths on NixOS ------------------------------------
-        [ -d /run/opengl-driver/lib ]     && prepend "/run/opengl-driver/lib"
-        [ -d /run/opengl-driver-32/lib ]  && prepend "/run/opengl-driver-32/lib"
-
-        # ---- HARD RULE: use only the wheel's Qt (PySide6) -----------------------
-        # Stop Qt from scanning default plugin locations (prevents system Qt mixing)
-        export QT_NO_PLUGIN_LOOKUP=1
-
-        if [ -n "$VIRTUAL_ENV" ]; then
-          pyver="$(python -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
-          wheel_root="$VIRTUAL_ENV/lib/python${pyver:-3.12}/site-packages/PySide6/Qt"
-          wheel_lib="$wheel_root/lib"
-          wheel_plugins="$wheel_root/plugins"
-          wheel_qml="$wheel_root/qml"
-
-          # 1) Wheel Qt libraries FIRST on LD_LIBRARY_PATH (before any system Qt)
-          if [ -d "$wheel_lib" ]; then
-            # Put wheel lib at absolute front by rebuilding LD_LIBRARY_PATH
-            export LD_LIBRARY_PATH="$wheel_lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-          fi
-
-          # 2) Force platform plugin path to the wheel only (no system fallback)
-          if [ -d "$wheel_plugins" ]; then
-            export QT_PLUGIN_PATH="$wheel_plugins"
-            if [ -d "$wheel_plugins/platforms" ]; then
-              export QT_QPA_PLATFORM_PLUGIN_PATH="$wheel_plugins/platforms"
-            fi
-          else
-            unset QT_PLUGIN_PATH
-            unset QT_QPA_PLATFORM_PLUGIN_PATH
-          fi
-
-          # 3) QML from wheel only
-          if [ -d "$wheel_qml" ]; then
-            export QML2_IMPORT_PATH="$wheel_qml"
-          else
-            unset QML2_IMPORT_PATH
-          fi
-        else
-          # No venv: DO NOT point to system Qt plugins to avoid version skew
-          unset QT_PLUGIN_PATH
-          unset QT_QPA_PLATFORM_PLUGIN_PATH
-          unset QML2_IMPORT_PATH
-        fi
-
-        echo "Try: glxinfo -B"
-      '';
+    # Combined: build toolchain + VTK/Qt wheel runtime (for projects like wave-dave)
+    py_build_vtk = pkgs.mkShell {
+      packages = with pkgs; [
+        python312
+        uv
+        gcc
+        gfortran
+        cmake
+        pkg-config
+        openblas
+        vtk
+        qt6.qtbase
+        qt6.qtwayland
+        qt6.qtdeclarative
+        qt6.qtimageformats
+        qt6.qtsvg
+        mesa
+        libglvnd
+        wayland
+        libxkbcommon
+        xorg.libX11
+        xorg.libXcursor
+        xorg.libXrandr
+        xorg.libXi
+        xorg.libXrender
+        xorg.libXt
+        xorg.libXmu
+        xorg.libSM
+        xorg.libICE
+        xorg.libXtst
+        xorg.libXfixes
+        xorg.libXcomposite
+        xorg.libXext
+        xorg.libXdamage
+        xorg.libxcb
+        xorg.xcbutil
+        xorg.xcbutilimage
+        xorg.xcbutilkeysyms
+        xorg.xcbutilrenderutil
+        xorg.xcbutilwm
+        xorg.xcbutilcursor
+        fontconfig
+        freetype
+        harfbuzz
+        zlib
+        glib
+        openssl
+        expat
+        icu
+        libpng
+        libjpeg
+        libtiff
+        zstd
+        dbus
+        pcre2
+        mesa-demos
+        patchelf
+      ];
+      shellHook =
+        ''
+          echo "🛠️🖼️  py_build_vtk active (build toolchain + Qt/VTK wheels)"
+        ''
+        + qt_wheel_shell_hook lib pkgs;
     };
   };
 }
