@@ -5,7 +5,6 @@
   lib,
   ...
 }: {
-  # Keep dev tooling modules; remove only heavy runtime stacks from HM
   imports = [
     ./docker.nix
     ./direnv.nix
@@ -19,7 +18,6 @@
     ./rootless-podman-storage.nix
   ];
 
-  # PyPI integration (writes ~/.pypirc from /run/secrets/*)
   pypi = {
     enable = true;
     davelab = {
@@ -38,5 +36,8 @@
     htop
     tree
     wget
+
+    # Ensure 'systemctl' is available for HM activation scripts
+    systemd
   ];
 }
