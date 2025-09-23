@@ -1,4 +1,3 @@
-# nixos/modules/profiles/devshells/default.nix
 {
   pkgs,
   inputs,
@@ -21,36 +20,34 @@
     then [nixGL.nixGLNvidia nixGL.nixGLIntel nixGL.nixVulkanNvidia]
     else [];
 
-  # Shared: keep Python build environment consistent with the *active* interpreter
-  # - avoids ABI tag mix like ('cp311','cp312',...)
-  # - exposes matching pythonX.Y-config as python3-config in venv, or adds it to PATH when no venv
+  # Keep Python build environment consistent with the *active* interpreter.
   python_consistency_hook = ''
     echo "🐍  Python consistency hook (config shim + clean env)"
 
-    # Clean variables that could leak stdlib/site from host into builds
+    # Avoid leaking stdlib/site from host
     unset PYTHONHOME
     unset PYTHONPATH
     export PYTHONNOUSERSITE=1
 
-    # uv should never download on NixOS; force system interpreters
-    export UV_PYTHON_DOWNLOADS="${UV_PYTHON_DOWNLOADS: -never}"
+    # On NixOS: never let uv download interpreters; use system only.
+    export UV_PYTHON_DOWNLOADS="''${UV_PYTHON_DOWNLOADS:-never}"
     export UV_PYTHON_PREFER_SYSTEM=1
 
     # If a venv is active (e.g., created by uv), install a shim for python3-config
     if [ -n "$VIRTUAL_ENV" ]; then
       _pyver="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
-      if [ -n "$_pyver" ] && command -v "python${_pyver}-config" >/dev/null 2>&1; then
+      if [ -n "$_pyver" ] && command -v "python''${_pyver}-config" >/dev/null 2>&1; then
         mkdir -p "$VIRTUAL_ENV/bin"
-        ln -sf "$(command -v python${_pyver}-config)" "$VIRTUAL_ENV/bin/python3-config"
+        ln -sf "$(command -v python''${_pyver}-config)" "$VIRTUAL_ENV/bin/python3-config"
         export PATH="$VIRTUAL_ENV/bin:$PATH"
       fi
     else
-      # No venv: still prefer the matching pythonX.Y-config on PATH if we are running that X.Y
+      # No venv: prefer matching pythonX.Y-config if current python is X.Y
       _ver="$(python -V 2>/dev/null | awk '{print $2}' | cut -d. -f1,2)"
       case "$_ver" in
         3.11|3.12|3.13|3.14)
-          if command -v "python${_ver}-config" >/dev/null 2>&1; then
-            _cfgdir="$(dirname "$(command -v python${_ver}-config)")"
+          if command -v "python''${_ver}-config" >/dev/null 2>&1; then
+            _cfgdir="$(dirname "$(command -v python''${_ver}-config)")"
             export PATH="$_cfgdir:$PATH"
           fi
           ;;
@@ -58,12 +55,11 @@
     fi
   '';
 
-  # Shared shellHook for Qt/VTK wheels; receives pkgs/lib via Nix string interpolation.
+  # Shared shellHook for Qt/VTK wheel-first setup.
   qt_wheel_shell_hook = lib: pkgs: ''
     echo "🖼️  Qt/VTK wheel env active"
 
-    # ---- Backend selection -------------------------------------------------
-    # Default to XCB for interactive runs; fall back to offscreen when under pytest.
+    # Backend selection
     if [ -n "$PYTEST_CURRENT_TEST" ]; then
       export QT_QPA_PLATFORM="offscreen"
       unset QT_XCB_GL_INTEGRATION
@@ -72,23 +68,20 @@
       export QT_XCB_GL_INTEGRATION="glx"
     fi
 
-    # Matplotlib: use a non-GUI backend by default.
-    # IMPORTANT: Escape the '$' so Bash expands it at runtime, not Nix at eval time.
+    # Matplotlib: headless by default (escape $ for Nix)
     export MPLBACKEND="''${MPLBACKEND:-agg}"
+    # export QT_DEBUG_PLUGINS=1  # optional
 
-    # Optional for debugging Qt plugin loading:
-    # export QT_DEBUG_PLUGINS=1
-
-    # ---- Helper: prepend to LD_LIBRARY_PATH --------------------------------
+    # Helper
     prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
 
-    # ---- Compat shims manylinux wheels expect -------------------------------
+    # manylinux compat
     COMPAT_DIR="$PWD/.nix-ld-compat"
     mkdir -p "$COMPAT_DIR"
     ln -sf "${lib.getLib pkgs.e2fsprogs}/lib/libcom_err.so.3" "$COMPAT_DIR/libcom_err.so.2"
     prepend "$COMPAT_DIR"
 
-    # ---- Core GL + base libs (keep generic system libs; avoid system Qt) ----
+    # Core GL + base libs
     prepend "${lib.getLib pkgs.libglvnd}/lib"
     prepend "${lib.getLib pkgs.zlib}/lib"
     prepend "${lib.getLib pkgs.e2fsprogs}/lib"
@@ -98,7 +91,7 @@
     prepend "${lib.getLib pkgs.zstd}/lib"
     prepend "${lib.getLib pkgs.dbus}/lib"
 
-    # ---- X11 / xcb libs (incl. xcb-cursor) ----------------------------------
+    # X11 / xcb
     prepend "${lib.getLib pkgs.xorg.libX11}/lib"
     prepend "${lib.getLib pkgs.xorg.libXext}/lib"
     prepend "${lib.getLib pkgs.xorg.libXrender}/lib"
@@ -116,7 +109,7 @@
     prepend "${lib.getLib pkgs.xorg.xcbutilwm}/lib"
     prepend "${lib.getLib pkgs.xorg.xcbutilcursor}/lib"
 
-    # ---- Text / fonts / wayland / crypto / ICU ------------------------------
+    # Fonts / text / wayland / crypto / ICU
     prepend "${lib.getLib pkgs.fontconfig}/lib"
     prepend "${lib.getLib pkgs.freetype}/lib"
     prepend "${lib.getLib pkgs.harfbuzz}/lib"
@@ -130,12 +123,12 @@
     prepend "${lib.getLib pkgs.openssl}/lib"
     prepend "${lib.getLib pkgs.icu}/lib"
 
-    # ---- Vendor GL driver paths on NixOS ------------------------------------
+    # Vendor GL drivers
     [ -d /run/opengl-driver/lib ]     && prepend "/run/opengl-driver/lib"
     [ -d /run/opengl-driver-32/lib ]  && prepend "/run/opengl-driver-32/lib"
 
-    # ---- HARD RULE: use only the wheel's Qt (PySide6) -----------------------
-    export QT_NO_PLUGIN_LOOKUP=1   # do not scan system plugin dirs
+    # Wheel-only Qt plugins
+    export QT_NO_PLUGIN_LOOKUP=1
 
     if [ -n "$VIRTUAL_ENV" ]; then
       pyver="$(python -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
@@ -144,30 +137,22 @@
       wheel_plugins="$wheel_root/plugins"
       wheel_qml="$wheel_root/qml"
 
-      # 1) Wheel Qt libraries FIRST on LD_LIBRARY_PATH
-      if [ -d "$wheel_lib" ]; then
-        export LD_LIBRARY_PATH="$wheel_lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-      fi
+      [ -d "$wheel_lib" ] && export LD_LIBRARY_PATH="$wheel_lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-      # 2) Force plugin path strictly to the wheel
       if [ -d "$wheel_plugins" ]; then
         export QT_PLUGIN_PATH="$wheel_plugins"
-        if [ -d "$wheel_plugins/platforms" ]; then
-          export QT_QPA_PLATFORM_PLUGIN_PATH="$wheel_plugins/platforms"
-        fi
+        [ -d "$wheel_plugins/platforms" ] && export QT_QPA_PLATFORM_PLUGIN_PATH="$wheel_plugins/platforms"
       else
         unset QT_PLUGIN_PATH
         unset QT_QPA_PLATFORM_PLUGIN_PATH
       fi
 
-      # 3) QML from wheel only
       if [ -d "$wheel_qml" ]; then
         export QML2_IMPORT_PATH="$wheel_qml"
       else
         unset QML2_IMPORT_PATH
       fi
     else
-      # No venv: never point to system Qt plugin dirs to avoid version skew
       unset QT_PLUGIN_PATH
       unset QT_QPA_PLATFORM_PLUGIN_PATH
       unset QML2_IMPORT_PATH
@@ -251,7 +236,7 @@ in {
       '';
     };
 
-    # Combined: build toolchain + VTK/Qt wheel runtime (for projects like wave-dave)
+    # Combined: build toolchain + VTK/Qt wheel runtime
     py_build_vtk = pkgs.mkShell {
       packages = with pkgs; [
         python312
