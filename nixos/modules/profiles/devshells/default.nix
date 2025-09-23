@@ -1,3 +1,4 @@
+# nixos/modules/profiles/devshells/default.nix
 {
   pkgs,
   inputs,
@@ -19,6 +20,43 @@
     if hasCurrentTime
     then [nixGL.nixGLNvidia nixGL.nixGLIntel nixGL.nixVulkanNvidia]
     else [];
+
+  # Shared: keep Python build environment consistent with the *active* interpreter
+  # - avoids ABI tag mix like ('cp311','cp312',...)
+  # - exposes matching pythonX.Y-config as python3-config in venv, or adds it to PATH when no venv
+  python_consistency_hook = ''
+    echo "🐍  Python consistency hook (config shim + clean env)"
+
+    # Clean variables that could leak stdlib/site from host into builds
+    unset PYTHONHOME
+    unset PYTHONPATH
+    export PYTHONNOUSERSITE=1
+
+    # uv should never download on NixOS; force system interpreters
+    export UV_PYTHON_DOWNLOADS="${UV_PYTHON_DOWNLOADS: -never}"
+    export UV_PYTHON_PREFER_SYSTEM=1
+
+    # If a venv is active (e.g., created by uv), install a shim for python3-config
+    if [ -n "$VIRTUAL_ENV" ]; then
+      _pyver="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+      if [ -n "$_pyver" ] && command -v "python${_pyver}-config" >/dev/null 2>&1; then
+        mkdir -p "$VIRTUAL_ENV/bin"
+        ln -sf "$(command -v python${_pyver}-config)" "$VIRTUAL_ENV/bin/python3-config"
+        export PATH="$VIRTUAL_ENV/bin:$PATH"
+      fi
+    else
+      # No venv: still prefer the matching pythonX.Y-config on PATH if we are running that X.Y
+      _ver="$(python -V 2>/dev/null | awk '{print $2}' | cut -d. -f1,2)"
+      case "$_ver" in
+        3.11|3.12|3.13|3.14)
+          if command -v "python${_ver}-config" >/dev/null 2>&1; then
+            _cfgdir="$(dirname "$(command -v python${_ver}-config)")"
+            export PATH="$_cfgdir:$PATH"
+          fi
+          ;;
+      esac
+    fi
+  '';
 
   # Shared shellHook for Qt/VTK wheels; receives pkgs/lib via Nix string interpolation.
   qt_wheel_shell_hook = lib: pkgs: ''
@@ -141,6 +179,7 @@ in {
       packages = with pkgs; [python312 uv pre-commit];
       shellHook = ''
         echo "🐍 py_light active (python + uv, no compilers)"
+        ${python_consistency_hook}
       '';
     };
 
@@ -149,6 +188,7 @@ in {
       shellHook = ''
         echo "🛠️  py_build active (gcc/gfortran/cmake/pkg-config/openblas)"
         echo "Use this shell for 'uv sync' when C/Fortran extensions are built."
+        ${python_consistency_hook}
       '';
     };
 
@@ -205,7 +245,10 @@ in {
         mesa-demos
         patchelf
       ];
-      shellHook = qt_wheel_shell_hook lib pkgs;
+      shellHook = ''
+        ${python_consistency_hook}
+        ${qt_wheel_shell_hook lib pkgs}
+      '';
     };
 
     # Combined: build toolchain + VTK/Qt wheel runtime (for projects like wave-dave)
@@ -266,11 +309,11 @@ in {
         mesa-demos
         patchelf
       ];
-      shellHook =
-        ''
-          echo "🛠️🖼️  py_build_vtk active (build toolchain + Qt/VTK wheels)"
-        ''
-        + qt_wheel_shell_hook lib pkgs;
+      shellHook = ''
+        echo "🛠️🖼️  py_build_vtk active (build toolchain + Qt/VTK wheels)"
+        ${python_consistency_hook}
+        ${qt_wheel_shell_hook lib pkgs}
+      '';
     };
   };
 }
