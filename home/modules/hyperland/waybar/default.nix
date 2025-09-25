@@ -6,18 +6,16 @@
 }: let
   waybarDir = ./.;
   themesDir = ./themes;
-  defaultTheme = "ml4w-blur"; # set your default theme family
+  defaultTheme = "ml4w-blur"; # choose your default theme family
   cfgPath = "${config.xdg.configHome}/waybar";
 
-  # Wait for a Wayland session (Hyprland/Sway/etc.) to be up
+  # Wait for Wayland session (Hyprland/Sway/etc.)
   waitForWL = pkgs.writeShellScript "wait-for-wayland" ''
     set -eu
-    # Wait up to ~5s for a Wayland compositor to expose env or socket
     for i in $(seq 1 50); do
       if [ -n "''${WAYLAND_DISPLAY-}" ] || [ -n "''${HYPERLAND_INSTANCE_SIGNATURE-}" ]; then
         exit 0
       fi
-      # Also check if a hyprland instance is around (best-effort)
       if command -v pgrep >/dev/null 2>&1 && pgrep -x hyprland >/dev/null 2>&1; then
         exit 0
       fi
@@ -47,7 +45,7 @@ in {
       htop
     ];
 
-    # Read-only themes from repo (→ Nix store)
+    # Read-only themes from repo → Nix store
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
@@ -55,30 +53,46 @@ in {
     xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
 
-    # Seed: ensure stable symlinks exist on first activation (idempotent)
+    # Stable wrapper config that includes the active theme config
+    xdg.configFile."waybar/config.jsonc".text = ''
+      {
+        // ===== Safe defaults to keep bar visible =====
+        "layer": "top",
+        "position": "top",
+        "height": 43,
+        "exclusive-zone": true,
+        "output": [ "*" ],
+        // Load the active theme config from the moving 'current' symlink
+        "include": [ "${cfgPath}/current/config.jsonc", "${cfgPath}/current/config" ]
+      }
+    '';
+
+    # Fallback colors.css used when a theme lacks its own colors.css
+    xdg.configFile."waybar/colors.css".text = ''
+      /* Fallback colors so themes that @import "colors.css" never crash */
+      :root {
+        --bar-bg: rgba(0,0,0,0.55);
+        --bar-fg: #eaeaea;
+        --accent: #5e81ac;
+        --ok: #a3be8c;
+        --warn: #ebcb8b;
+        --err: #bf616a;
+      }
+    '';
+
+    # Seed: ensure 'current' points to default theme directory (idempotent)
     home.activation.waybarInitialSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
       mkdir -p "''${cfg_dir}"
 
       current_link="''${cfg_dir}/current"
-      config_link="''${cfg_dir}/config"
       default_dir="''${cfg_dir}/themes/${defaultTheme}"
 
-      # Ensure 'current' points to default theme directory
       if [ -e "''${current_link}" ] && [ ! -L "''${current_link}" ]; then
         rm -rf "''${current_link}"
       fi
       ln -sfnT "''${default_dir}" "''${current_link}"
-
-      # Point 'config' to theme's config.jsonc (preferred) or config
-      if [ -f "''${default_dir}/config.jsonc" ]; then
-        ln -sfnT "''${default_dir}/config.jsonc" "''${config_link}"
-      elif [ -f "''${default_dir}/config" ]; then
-        ln -sfnT "''${default_dir}/config" "''${config_link}"
-      else
-        echo "WARNING: No config(.jsonc) in ''${default_dir}; Waybar may fail to start" >&2
-      fi
     '';
 
     # Helper scripts
@@ -99,26 +113,19 @@ in {
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed)";
-        # Use graphical-session.target which Home Manager provides reliably
         After = ["graphical-session.target"];
         PartOf = ["graphical-session.target"];
       };
       Service = {
         Type = "simple";
-        # Make sure Wayland env is available to the service
-        Environment = [
-          "XDG_RUNTIME_DIR=%t"
-          # Hyprland typically exports these for user services, but we don't hard-require them
-        ];
+        Environment = ["XDG_RUNTIME_DIR=%t"];
         ExecStartPre = ["${waitForWL}" "${pkgs.coreutils}/bin/sleep 0.25"];
 
-        # CSS is read from the active theme via 'current'
-        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config -s ${cfgPath}/current/style.css";
+        # Use fixed wrapper config; CSS from 'current'
+        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/current/style.css";
 
-        # Gentle stop; avoid broad pkill which could race with restarts
         TimeoutStopSec = "2s";
         KillMode = "mixed";
-
         Restart = "on-failure";
         RestartSec = "1s";
         StandardOutput = "journal";
@@ -127,7 +134,7 @@ in {
       Install.WantedBy = ["graphical-session.target"];
     };
 
-    # NetworkManager applet (unchanged)
+    # nm-applet (unchanged)
     systemd.user.services."nm-applet" = {
       Unit = {
         Description = "NetworkManager Applet";
@@ -145,7 +152,6 @@ in {
       Install.WantedBy = ["graphical-session.target"];
     };
 
-    # GTK icon theme
     gtk = {
       enable = true;
       iconTheme = {
