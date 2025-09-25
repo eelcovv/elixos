@@ -12,14 +12,32 @@ set -euo pipefail
 
 MODE="${1:-auto}"
 
-# Fetch monitor info once (JSON)
-MON_JSON="$(hyprctl -j monitors)"
+# Query monitors; prefer "all" (includes disabled) if supported
+MON_JSON_ALL="$(hyprctl -j monitors all 2>/dev/null || true)"
+if [[ -z "$MON_JSON_ALL" || "$MON_JSON_ALL" == "null" ]]; then
+  MON_JSON_ALL="[]"
+fi
+MON_JSON_ENABLED="$(hyprctl -j monitors)"
 
-# Detect the internal panel by name pattern (eDP/LVDS)
-INTERNAL="$(printf '%s\n' "$MON_JSON" | jq -r '.[] | select(.name|test("(^|-)eDP|LVDS|edp|Edp")) | .name' | head -n1 || true)"
+# Helper to pick internal (eDP/LVDS) from a JSON array of monitors
+pick_internal() {
+  local json="$1"
+  printf '%s\n' "$json" \
+    | jq -r '.[] | select(.name|test("(^|-)eDP|LVDS|edp|Edp")) | .name' \
+    | head -n1
+}
 
-# Collect all monitor names
-readarray -t ALL_MONITORS < <(printf '%s\n' "$MON_JSON" | jq -r '.[].name')
+# Detect internal from ALL first (so we find it even when disabled), else from enabled list
+INTERNAL="$(pick_internal "$MON_JSON_ALL")"
+if [[ -z "${INTERNAL:-}" ]]; then
+  INTERNAL="$(pick_internal "$MON_JSON_ENABLED" || true)"
+fi
+
+# Collect all names (prefer ALL so disabled externals are known)
+readarray -t ALL_MONITORS < <(printf '%s\n' "$MON_JSON_ALL" | jq -r '.[].name')
+if [[ "${#ALL_MONITORS[@]}" -eq 0 ]]; then
+  readarray -t ALL_MONITORS < <(printf '%s\n' "$MON_JSON_ENABLED" | jq -r '.[].name')
+fi
 
 # Externals = all minus INTERNAL
 EXTERNALS=()
@@ -27,11 +45,9 @@ for m in "${ALL_MONITORS[@]}"; do
   [[ -n "${INTERNAL:-}" && "$m" == "$INTERNAL" ]] && continue
   EXTERNALS+=("$m")
 done
-
-# Choose the first external as primary; adjust logic if you prefer a specific port
 PRIMARY_EXT="${EXTERNALS[0]:-}"
 
-# Tunables: set preferred modes/scales here if you want fixed values
+# Tunables (adjust as needed)
 EXT_MODE="preferred"   # e.g. "3440x1440@120.00"
 EXT_SCALE="1"
 LAP_MODE="preferred"
@@ -39,10 +55,8 @@ LAP_SCALE="1"
 
 enable_only_external() {
   [[ -z "${PRIMARY_EXT:-}" ]] && { echo "No external monitor found"; exit 1; }
-  # Enable primary external, disable internal
   hyprctl keyword monitor "${PRIMARY_EXT},${EXT_MODE},auto,${EXT_SCALE}"
   [[ -n "${INTERNAL:-}" ]] && hyprctl keyword monitor "${INTERNAL},disable"
-  # Move all workspaces to external
   for i in $(seq 1 10); do
     hyprctl dispatch moveworkspacetomonitor "$i" "$PRIMARY_EXT" >/dev/null 2>&1 || true
   done
@@ -50,7 +64,6 @@ enable_only_external() {
 }
 
 enable_only_laptop() {
-  # Disable all externals, enable internal
   for m in "${EXTERNALS[@]}"; do
     hyprctl keyword monitor "${m},disable"
   done
@@ -63,8 +76,10 @@ enable_only_laptop() {
 
 enable_dual() {
   [[ -z "${INTERNAL:-}" || -z "${PRIMARY_EXT:-}" ]] && { echo "Need internal + external"; exit 1; }
-  # Place laptop at 0x0; let external auto-place (usually right)
+  # Make sure internal is (re)enabled even if currently disabled
   hyprctl keyword monitor "${INTERNAL},${LAP_MODE},0x0,${LAP_SCALE}"
+  # Small settle to avoid races on some setups
+  sleep 0.15
   hyprctl keyword monitor "${PRIMARY_EXT},${EXT_MODE},auto,${EXT_SCALE}"
   # Route workspaces: 1 on laptop; 2..10 on external
   hyprctl dispatch moveworkspacetomonitor 1 "$INTERNAL" >/dev/null 2>&1 || true
