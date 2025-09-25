@@ -122,12 +122,12 @@ in {
         PartOf = ["hyprland-session.target"];
         Requires = ["hyprpaper.service"];
 
-        # Only run if the runner script is executable and at least one wallpaper exists
+        # One executable check, multiple path-exists globs
         ConditionPathIsExecutable = "%h/.local/bin/wallpaper-random.sh";
-        ConditionPathExistsGlob = wallpaperGlob;
-
-        # Also make sure Hyprland IPC is around; ConditionPathExistsGlob on runtime dir is cheap
-        ConditionPathExistsGlob = "%t/hypr/*";
+        ConditionPathExistsGlob = [
+          wallpaperGlob # %h/.config/wallpapers/*.{png,jpg,jpeg,webp,...}
+          "%t/hypr/*" # Hyprland runtime socket present
+        ];
       };
       Service = {
         Type = "oneshot";
@@ -135,7 +135,6 @@ in {
           "WALLPAPER_DIR=%h/.config/wallpapers"
           "QUIET=1"
         ];
-        # Never fail the unit if the script returns non-zero (avoid degraded user session)
         ExecStart = "/bin/sh -lc '%h/.local/bin/wallpaper-random.sh || true'";
       };
       Install.WantedBy = ["hyprland-session.target"];
@@ -149,7 +148,10 @@ in {
         After = ["hyprpaper.service"];
 
         ConditionPathIsExecutable = "%h/.local/bin/wallpaper-random.sh";
-        ConditionPathExistsGlob = wallpaperGlob;
+        ConditionPathExistsGlob = [
+          wallpaperGlob
+          "%t/hypr/*"
+        ];
       };
       Service = {
         Type = "oneshot";
