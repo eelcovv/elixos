@@ -9,10 +9,16 @@
   defaultTheme = "ml4w-blur"; # set your default theme family
   cfgPath = "${config.xdg.configHome}/waybar";
 
-  # Wait until Hyprland responds; avoids races when user services start
-  waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
+  # Wait for a Wayland session (Hyprland/Sway/etc.) to be up
+  waitForWL = pkgs.writeShellScript "wait-for-wayland" ''
+    set -eu
+    # Wait up to ~5s for a Wayland compositor to expose env or socket
     for i in $(seq 1 50); do
-      if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then
+      if [ -n "''${WAYLAND_DISPLAY-}" ] || [ -n "''${HYPERLAND_INSTANCE_SIGNATURE-}" ]; then
+        exit 0
+      fi
+      # Also check if a hyprland instance is around (best-effort)
+      if command -v pgrep >/dev/null 2>&1 && pgrep -x hyprland >/dev/null 2>&1; then
         exit 0
       fi
       sleep 0.1
@@ -41,7 +47,7 @@ in {
       htop
     ];
 
-    # Read-only themes from repo
+    # Read-only themes from repo (→ Nix store)
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
@@ -49,7 +55,7 @@ in {
     xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
 
-    # Seed: create stable symlinks
+    # Seed: ensure stable symlinks exist on first activation (idempotent)
     home.activation.waybarInitialSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
@@ -59,7 +65,7 @@ in {
       config_link="''${cfg_dir}/config"
       default_dir="''${cfg_dir}/themes/${defaultTheme}"
 
-      # Ensure 'current' points to the default theme directory
+      # Ensure 'current' points to default theme directory
       if [ -e "''${current_link}" ] && [ ! -L "''${current_link}" ]; then
         rm -rf "''${current_link}"
       fi
@@ -93,18 +99,23 @@ in {
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed)";
-        After = ["graphical-session.target" "hyprland-session.target"];
-        PartOf = ["hyprland-session.target"];
+        # Use graphical-session.target which Home Manager provides reliably
+        After = ["graphical-session.target"];
+        PartOf = ["graphical-session.target"];
       };
       Service = {
         Type = "simple";
-        Environment = ["XDG_RUNTIME_DIR=%t"];
-        ExecStartPre = ["${waitForHypr}" "${pkgs.coreutils}/bin/sleep 0.25"];
+        # Make sure Wayland env is available to the service
+        Environment = [
+          "XDG_RUNTIME_DIR=%t"
+          # Hyprland typically exports these for user services, but we don't hard-require them
+        ];
+        ExecStartPre = ["${waitForWL}" "${pkgs.coreutils}/bin/sleep 0.25"];
 
-        # IMPORTANT: CSS from the active theme via 'current'
+        # CSS is read from the active theme via 'current'
         ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config -s ${cfgPath}/current/style.css";
 
-        # Be gentle on stop; no wide pkill to avoid killing the new instance
+        # Gentle stop; avoid broad pkill which could race with restarts
         TimeoutStopSec = "2s";
         KillMode = "mixed";
 
@@ -113,15 +124,15 @@ in {
         StandardOutput = "journal";
         StandardError = "journal";
       };
-      Install.WantedBy = ["hyprland-session.target"];
+      Install.WantedBy = ["graphical-session.target"];
     };
 
-    # nm-applet service (unchanged)
+    # NetworkManager applet (unchanged)
     systemd.user.services."nm-applet" = {
       Unit = {
         Description = "NetworkManager Applet";
-        After = ["graphical-session.target" "hyprland-session.target"];
-        PartOf = ["hyprland-session.target"];
+        After = ["graphical-session.target"];
+        PartOf = ["graphical-session.target"];
       };
       Service = {
         ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
@@ -131,7 +142,7 @@ in {
         RestartSec = 1;
         Environment = ["XDG_RUNTIME_DIR=%t"];
       };
-      Install.WantedBy = ["hyprland-session.target"];
+      Install.WantedBy = ["graphical-session.target"];
     };
 
     # GTK icon theme
