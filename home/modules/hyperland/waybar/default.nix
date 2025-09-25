@@ -6,12 +6,10 @@
 }: let
   waybarDir = ./.;
   themesDir = ./themes;
-
-  # Set your preferred initial theme here (only used on first seed)
-  defaultTheme = "default";
-
+  defaultTheme = "default"; # initial one-time seed
   cfgPath = "${config.xdg.configHome}/waybar";
 
+  # Wait until Hyprland responds; avoids races when user services start
   waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
     for i in $(seq 1 50); do
       if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then
@@ -25,8 +23,7 @@ in {
   config = {
     programs.waybar.enable = true;
     programs.waybar.package = pkgs.waybar;
-    # We draaien onze eigen user service i.p.v. de standaard HM-unit
-    programs.waybar.systemd.enable = false;
+    programs.waybar.systemd.enable = false; # we manage our own unit
 
     home.packages = with pkgs; [
       pavucontrol
@@ -71,7 +68,7 @@ in {
     };
 
     # ---------------------------
-    # nm-applet als SNI tray (voor klein wifi-icoon in de tray)
+    # nm-applet as SNI tray (Wi-Fi icon)
     # ---------------------------
     systemd.user.services."nm-applet" = {
       Unit = {
@@ -89,52 +86,57 @@ in {
     };
 
     # ---------------------------
-    # Read-only themes uit de store
+    # Read-only themes (from repo → Nix store)
     # ---------------------------
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
-    # ---------------------------
-    # Eén bron voor modules & quicklinks vanuit je repo
-    # ---------------------------
+    # Static JSON from repo (ok to symlink)
     xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
 
     # ---------------------------
-    # Init seed (idempotent): maak symlinks naar gekozen theme
-    # (Alleen als er nog NIETS is; laat user daarna vrij om via waybar-pick-theme te wisselen)
+    # Writable seed for user-mutable files
+    # - If absent or a symlink: replace with a real file (copy) so scripts can write
     # ---------------------------
     home.activation.waybarInitialSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
-      mkdir -p "$cfg_dir"
+      mkdir -p "''${cfg_dir}"
 
-      # Als config.jsonc ontbreekt: symlink naar gekozen theme
-      if [ ! -e "$cfg_dir/config.jsonc" ]; then
-        ln -sfn "$cfg_dir/themes/${defaultTheme}/config.jsonc" "$cfg_dir/config.jsonc"
+      seed_conf="''${cfg_dir}/config.jsonc"
+      seed_style="''${cfg_dir}/style.css"
+      seed_colors="''${cfg_dir}/colors.css"
+
+      # Replace symlink or missing config.jsonc with a real file
+      if [ -L "''${seed_conf}" ] || [ ! -f "''${seed_conf}" ]; then
+        rm -f "''${seed_conf}"
+        install -Dm0644 "${themesDir}/${defaultTheme}/config.jsonc" "''${seed_conf}"
       fi
 
-      # Als style.css ontbreekt: symlink naar gekozen theme
-      if [ ! -e "$cfg_dir/style.css" ]; then
-        ln -sfn "$cfg_dir/themes/${defaultTheme}/style.css" "$cfg_dir/style.css"
+      # Replace symlink or missing style.css with a real file
+      if [ -L "''${seed_style}" ] || [ ! -f "''${seed_style}" ]; then
+        rm -f "''${seed_style}"
+        install -Dm0644 "${themesDir}/${defaultTheme}/style.css" "''${seed_style}"
       fi
 
-      # Colors is user-mutabel; alleen aanmaken als het ontbreekt
-      if [ ! -e "$cfg_dir/colors.css" ]; then
-        printf '/* user colors (optional) */\n' >"$cfg_dir/colors.css"
-        chmod 0644 "$cfg_dir/colors.css"
+      # Create colors.css if missing; keep it user-owned and writable
+      if [ ! -f "''${seed_colors}" ]; then
+        printf '/* user colors (optional) */\n' >"''${seed_colors}"
+        chmod 0644 "''${seed_colors}"
       fi
 
-      # Compat-symlink zodat -c ${cfgPath}/config het JSONC-bestand gebruikt
-      ln -sfn "$cfg_dir/config.jsonc" "$cfg_dir/config"
+      # Compat symlink so -c ${cfgPath}/config points at the JSONC
+      ln -sfn "''${seed_conf}" "''${cfg_dir}/config"
     '';
 
     # ---------------------------
-    # Kleine helper via modules
+    # Helper scripts
     # ---------------------------
     home.file.".local/bin/system-monitor" = {
       text = ''
         #!/usr/bin/env bash
+        # Try a GUI monitor; fallback to terminal htop
         if command -v gnome-system-monitor >/dev/null 2>&1; then
           exec gnome-system-monitor
         elif command -v mate-system-monitor >/dev/null 2>&1; then
