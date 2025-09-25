@@ -126,20 +126,6 @@
     "escape": true
   },
 
-  // Hypridle inhibitor
-  "custom/hypridle": {
-    "return-type": "json",
-    "interval": 5,
-    "exec": "~/.local/bin/waybar-hypridle",
-    "on-click": "~/.config/hypr/scripts/hypridle.sh toggle",
-    "tooltip": true
-  },
-  "custom/lock": {
-    "format": "",
-    "on-click": "~/.config/hypr/scripts/hypridle.sh lock",
-    "tooltip-format": "Vergrendel scherm"
-  },
-
   // Keyboard State
   "keyboard-state": {
     "numlock": true,
@@ -204,12 +190,7 @@
       "children-class": "not-memory",
       "transition-left-to-right": false
     },
-    "modules": [
-      "custom/tools",
-      "custom/cliphist",
-      "custom/hypridle",
-      "custom/hyprshade"
-    ]
+    "modules": ["custom/tools", "custom/cliphist", "custom/hyprshade"]
   },
 
   // Group Links (kept)
@@ -277,25 +258,6 @@
     "on-click": "blueman-manager",
     "interval": 30
   },
-
-  "custom/exit": {
-    "format": "",
-    "on-click": "~/.config/hypr/scripts/wlogout.sh",
-    "on-click-right": "hyprlock",
-    "tooltip-format": "Left: Power menu\nRight: Lock screen"
-  },
-
-  "custom/hypridle": {
-    "format": "",
-    "return-type": "json",
-    "escape": true,
-    "exec-on-event": true,
-    "interval": 60,
-    "exec": "~/.config/hypr/scripts/hypridle.sh status",
-    "on-click": "~/.config/hypr/scripts/hypridle.sh toggle"
-  },
-
-  "tray": { "icon-size": 21, "spacing": 10 },
 
   // Pulseaudio (CLICKABLE → pavucontrol)
 
