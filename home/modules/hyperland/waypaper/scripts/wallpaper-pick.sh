@@ -39,7 +39,7 @@ for f in "$DIR"/*.jpg; do base="$(basename "${f%.*}")"; have_jpg["$base"]=1; don
 for f in "$DIR"/*.webp; do base="$(basename "${f%.*}")"; have_webp["$base"]=1; done
 
 # Nothing to show?
-if [[ ${#have_png[@]} -eq 0 && ${#have_jpg[@]} -eq 0 && ${#have_webp[@]} -eq 0]]; then
+if [[ ${#have_png[@]} -eq 0 && ${#have_jpg[@]} -eq 0 && ${#have_webp[@]} -eq 0 ]]; then
   notify "No wallpapers found in $DIR (png/jpg)"
   exit 0
 fi
