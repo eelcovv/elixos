@@ -7,6 +7,9 @@
   waybarDir = ./.;
   themesDir = ./themes;
 
+  # Set your preferred initial theme here (only used on first seed)
+  defaultTheme = "default";
+
   cfgPath = "${config.xdg.configHome}/waybar";
 
   waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
@@ -22,7 +25,7 @@ in {
   config = {
     programs.waybar.enable = true;
     programs.waybar.package = pkgs.waybar;
-    # We beheren Waybar via onze eigen user service hieronder:
+    # We draaien onze eigen user service i.p.v. de standaard HM-unit
     programs.waybar.systemd.enable = false;
 
     home.packages = with pkgs; [
@@ -53,17 +56,14 @@ in {
       };
       Service = {
         Type = "simple";
-        # belangrijk: runtime dir voor user services
         Environment = ["XDG_RUNTIME_DIR=%t"];
         ExecStartPre = [
           "${waitForHypr}"
           "${pkgs.coreutils}/bin/sleep 0.25"
         ];
-        # zelfde paden als je cli die werkt
         ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config -s ${cfgPath}/style.css";
         Restart = "on-failure";
         RestartSec = "1s";
-        # optioneel: forceer logging naar journal (meestal default, kan helpen)
         StandardOutput = "journal";
         StandardError = "journal";
       };
@@ -71,13 +71,8 @@ in {
     };
 
     # ---------------------------
-    # Script: waybar-hypridle (naar ~/.local/bin)
+    # nm-applet als SNI tray (voor klein wifi-icoon in de tray)
     # ---------------------------
-    home.file.".local/bin/waybar-hypridle" = {
-      source = waybarDir + "/scripts/waybar-hypridle.sh";
-      executable = true;
-    };
-
     systemd.user.services."nm-applet" = {
       Unit = {
         Description = "NetworkManager tray applet (StatusNotifier)";
@@ -85,44 +80,52 @@ in {
         After = ["hyprland-session.target"];
       };
       Service = {
-        # --indicator requests SNI/AppIndicator mode suitable for Wayland
         ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
         Restart = "on-failure";
         RestartSec = 1;
         Environment = ["XDG_RUNTIME_DIR=%t"];
       };
-      Install = {
-        WantedBy = ["hyprland-session.target"];
-      };
+      Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # Read-only themes from the store
+    # ---------------------------
+    # Read-only themes uit de store
+    # ---------------------------
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
-    # Link your repo's modules.jsonc and quicklinks into ~/.config/waybar/
+    # ---------------------------
+    # Eén bron voor modules & quicklinks vanuit je repo
+    # ---------------------------
     xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
 
-    # Seed only the truly user-mutable files (config.jsonc, style.css, colors.css)
-    home.activation.ensureWaybarSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    # ---------------------------
+    # Init seed (idempotent): maak symlinks naar gekozen theme
+    # (Alleen als er nog NIETS is; laat user daarna vrij om via waybar-pick-theme te wisselen)
+    # ---------------------------
+    home.activation.waybarInitialSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
       mkdir -p "$cfg_dir"
 
-      # Only create these if absent; don't create modules/quicklinks here anymore
-      if [ ! -f "$cfg_dir/config.jsonc" ]; then
-        install -Dm0644 "${themesDir}/default/config.jsonc" "$cfg_dir/config.jsonc"
+      # Als config.jsonc ontbreekt: symlink naar gekozen theme
+      if [ ! -e "$cfg_dir/config.jsonc" ]; then
+        ln -sfn "$cfg_dir/themes/${defaultTheme}/config.jsonc" "$cfg_dir/config.jsonc"
       fi
-      if [ ! -f "$cfg_dir/style.css" ]; then
-        install -Dm0644 "${themesDir}/default/style.css" "$cfg_dir/style.css"
+
+      # Als style.css ontbreekt: symlink naar gekozen theme
+      if [ ! -e "$cfg_dir/style.css" ]; then
+        ln -sfn "$cfg_dir/themes/${defaultTheme}/style.css" "$cfg_dir/style.css"
       fi
-      if [ ! -f "$cfg_dir/colors.css" ]; then
-        printf '/* default colors */\n' >"$cfg_dir/colors.css"
+
+      # Colors is user-mutabel; alleen aanmaken als het ontbreekt
+      if [ ! -e "$cfg_dir/colors.css" ]; then
+        printf '/* user colors (optional) */\n' >"$cfg_dir/colors.css"
         chmod 0644 "$cfg_dir/colors.css"
       fi
 
-      # Compat symlink so waybar -c ${cfgPath}/config uses the JSONC
+      # Compat-symlink zodat -c ${cfgPath}/config het JSONC-bestand gebruikt
       ln -sfn "$cfg_dir/config.jsonc" "$cfg_dir/config"
     '';
 
@@ -147,10 +150,16 @@ in {
       executable = true;
     };
 
+    home.file.".local/bin/waybar-hypridle" = {
+      source = waybarDir + "/scripts/waybar-hypridle.sh";
+      executable = true;
+    };
+
     home.file.".local/bin/waybar-pick-theme" = {
       source = waybarDir + "/scripts/waybar-pick-theme.sh";
       executable = true;
     };
+
     home.file.".local/bin/waybar-switch-theme" = {
       source = waybarDir + "/scripts/waybar-switch-theme.sh";
       executable = true;
