@@ -63,31 +63,14 @@ in {
       compat_config_link="''${cfg_dir}/config"
       compat_current_link="''${cfg_dir}/current"
 
-      # (1) Kopieer config.jsonc als echte file (indien symlink of ontbreekt)
-      if [ -L "''${seed_conf}" ] || [ ! -f "''${seed_conf}" ]; then
-        rm -f "''${seed_conf}"
-        install -Dm0644 "${themesDir}/${defaultTheme}/config.jsonc" "''${seed_conf}"
+      # Compat: config → config.jsonc  (forceer symlink op bestemming)
+      ln -sfnT "''${seed_conf}" "''${compat_config_link}"
+
+      # Compat: current → themes  (eerst echte directory opruimen, dan -T gebruiken)
+      if [ -e "''${compat_current_link}" ] && [ ! -L "''${compat_current_link}" ]; then
+        rm -rf "''${compat_current_link}"
       fi
-
-      # (2) Kopieer style.css als echte file (indien symlink of ontbreekt)
-      #     - Laat je scripts hier gewoon in schrijven (loaderregel, etc.)
-      if [ -L "''${seed_style}" ] || [ ! -f "''${seed_style}" ]; then
-        rm -f "''${seed_style}"
-        install -Dm0644 "${themesDir}/${defaultTheme}/style.css" "''${seed_style}"
-      fi
-
-      # (3) User-kleurenfile (optioneel, writable)
-      if [ ! -f "''${seed_colors}" ]; then
-        printf '/* user colors (optional) */\n' >"''${seed_colors}"
-        chmod 0644 "''${seed_colors}"
-      fi
-
-      # (4) Compat: config → config.jsonc (Waybar start met -c ~/.config/waybar/config)
-      ln -sfn "''${seed_conf}" "''${compat_config_link}"
-
-      # (5) Compat: current → themes (jouw loader @import "current/…/style.css" blijft werken)
-      #     Voorbeeld: @import "current/ml4w-blur/light/style.css";
-      ln -sfn "''${cfg_dir}/themes" "''${compat_current_link}"
+      ln -sfnT "''${cfg_dir}/themes" "''${compat_current_link}"
     '';
 
     # ---------------------------

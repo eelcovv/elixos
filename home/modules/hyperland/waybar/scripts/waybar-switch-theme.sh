@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# waybar-switch-theme (link-tree v4.2: loader gebruikt @import "...")
+# waybar-switch-theme (symlink-only, no file writes)
 set -euo pipefail
 
 : "${WAYBAR_DIR:=$HOME/.config/waybar}"
@@ -11,81 +11,81 @@ set -euo pipefail
 log(){ [ "$DEBUG" = "1" ] && printf 'DEBUG: %s\n' "$*" >&2 || true; }
 die(){ printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
-if [ $# -eq 0 ]; then die "Usage: $(basename "$0") <family>[/<variant>] or <family> <variant>"; fi
+usage() {
+  echo "Usage: $(basename "$0") <family>[/<variant>]  or  <family> <variant>"
+  echo "Examples:"
+  echo "  $(basename "$0") ml4w-blur"
+  echo "  $(basename "$0") ml4w-blur light"
+}
+
+# --- args parsing ---
+if [ $# -eq 0 ]; then usage; exit 1; fi
 if [ $# -ge 2 ]; then SEL="$1/$2"; else SEL="$1"; fi
 
 family="${SEL%%/*}"
 variant=""; [ "$SEL" != "$family" ] && variant="${SEL#*/}"
 
-family_dir="$THEMES_DIR/$family"
-[ -d "$family_dir" ] || die "Theme not found: $family ($family_dir)"
-base_css="$family_dir/style.css"
-[ -f "$base_css" ] || die "Missing base css: $base_css"
+# --- sanity checks ---
+[ -d "$WAYBAR_DIR" ]   || die "Waybar dir not found: $WAYBAR_DIR"
+[ -d "$THEMES_DIR" ]   || die "Themes dir not found: $THEMES_DIR"
 
+family_dir="$THEMES_DIR/$family"
+[ -d "$family_dir" ]   || die "Theme family not found: $family ($family_dir)"
+
+# Prefer variant style if requested, else family root style.css must exist
+base_css="$family_dir/style.css"
 var_css=""
 if [ -n "$variant" ]; then
   [ -d "$family_dir/$variant" ] || die "Variant not found: $family/$variant"
-  [ -f "$family_dir/$variant/style.css" ] || die "Variant css missing: $family/$variant/style.css"
+  [ -f "$family_dir/$variant/style.css" ] || die "Variant CSS missing: $family/$variant/style.css"
   var_css="$family_dir/$variant/style.css"
+else
+  [ -f "$base_css" ] || die "Base CSS missing: $base_css"
 fi
 
-mkdir -p "$WAYBAR_DIR"
-[ -f "$WAYBAR_DIR/colors.css" ] || printf '/* colors */\n' >"$WAYBAR_DIR/colors.css"
-[ -f "$WAYBAR_DIR/modules.jsonc" ] || printf '{}\n' >"$WAYBAR_DIR/modules.jsonc"
-[ -f "$WAYBAR_DIR/waybar-quicklinks.json" ] || printf '[]\n' >"$WAYBAR_DIR/waybar-quicklinks.json"
+# --- switch 'current' symlink to selected target ---
+# We make 'current' point directly to the chosen directory:
+# - with variant:  ~/.config/waybar/themes/<family>/<variant>
+# - without:       ~/.config/waybar/themes/<family>
+target="$family_dir"
+[ -n "$variant" ] && target="$family_dir/$variant"
 
+# Replace any existing file/dir/symlink at current
 current="$WAYBAR_DIR/current"
-current_tmp="$WAYBAR_DIR/current.tmp"
-rm -rf "$current_tmp" 2>/dev/null || true
-
-install -d "$current_tmp"
-if [ -d "$THEMES_DIR/assets" ]; then
-  install -d "$current_tmp/themes"
-  ln -sfn "$THEMES_DIR/assets" "$current_tmp/themes/assets"
+if [ -e "$current" ] && [ ! -L "$current" ]; then
+  # existing directory or file → remove it first
+  rm -rf "$current"
 fi
+ln -sfn "$target" "$current"
+log "current -> $target"
 
-install -d "$current_tmp/$family"
-ln -sfn "$THEMES_DIR"               "$current_tmp/$family/themes"
-ln -sfn "$base_css"                  "$current_tmp/$family/style.css"
-ln -sfn "$WAYBAR_DIR/colors.css"     "$current_tmp/$family/colors.css"
-
-if [ -n "$variant" ]; then
-  install -d "$current_tmp/$family/$variant"
-  ln -sfn "$THEMES_DIR"               "$current_tmp/$family/$variant/themes"
-  ln -sfn "$var_css"                  "$current_tmp/$family/$variant/style.css"
-  ln -sfn "$WAYBAR_DIR/colors.css"    "$current_tmp/$family/$variant/colors.css"
-fi
-
-sel_cfg=""
-if [ -n "$variant" ] && [ -f "$family_dir/$variant/config.jsonc" ]; then
-  sel_cfg="$family_dir/$variant/config.jsonc"
-elif [ -f "$family_dir/config.jsonc" ]; then
-  sel_cfg="$family_dir/config.jsonc"
-fi
-
-rm -rf "$current"
-mv -T "$current_tmp" "$current"
-
-# Loader: gebruik @import "..." (zonder url())
-if [ -n "$variant" ]; then
-  printf '/* loader */\n@import "current/%s/%s/style.css";\n' "$family" "$variant" > "$WAYBAR_DIR/style.css"
+# --- make 'config' symlink follow the selected target (config.jsonc or config) ---
+cfg_link="$WAYBAR_DIR/config"
+cfg_jsonc="$target/config.jsonc"
+cfg_plain="$target/config"
+if [ -f "$cfg_jsonc" ]; then
+  ln -sfn "$cfg_jsonc" "$cfg_link"
+  log "config -> $cfg_jsonc"
+elif [ -f "$cfg_plain" ]; then
+  ln -sfn "$cfg_plain" "$cfg_link"
+  log "config -> $cfg_plain"
 else
-  printf '/* loader */\n@import "current/%s/style.css";\n' "$family" > "$WAYBAR_DIR/style.css"
+  # if neither exists, keep current config link if present; otherwise error (Waybar needs a config)
+  if [ ! -L "$cfg_link" ]; then
+    die "No config(.jsonc) in $target and no existing $cfg_link link to keep."
+  else
+    log "No config in $target; keeping existing $(readlink -f "$cfg_link")"
+  fi
 fi
 
-if [ -n "$sel_cfg" ]; then
-  ln -sfn "$sel_cfg" "$WAYBAR_DIR/config.jsonc"
-else
-  [ -f "$WAYBAR_DIR/config.jsonc" ] || printf '{}\n' >"$WAYBAR_DIR/config.jsonc"
-fi
-ln -sfn "$WAYBAR_DIR/config.jsonc" "$WAYBAR_DIR/config"
-
-# Reload/start Waybar
+# --- reload / restart Waybar cleanly ---
 if systemctl --user is-active --quiet "$SERVICE"; then
   systemctl --user reload-or-restart "$SERVICE" >/dev/null 2>&1 || true
 else
-  systemctl --user start "$SERVICE" >/dev/null 2>&1 || pkill -USR2 -x waybar >/dev/null 2>&1 || true
+  # fallback: try to start service, otherwise signal a running waybar
+  systemctl --user start "$SERVICE" >/dev/null 2>&1 || \
+    pkill -USR2 -x waybar >/dev/null 2>&1 || true
 fi
 
-printf 'Waybar theme: Applied: %s\n' "$SEL"
+printf 'Waybar theme switched to: %s\n' "$SEL"
 
