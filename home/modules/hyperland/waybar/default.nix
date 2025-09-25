@@ -6,7 +6,7 @@
 }: let
   waybarDir = ./.;
   themesDir = ./themes;
-  defaultTheme = "ml4w-blur"; # <- kies je basis theme-map
+  defaultTheme = "ml4w-blur"; # set your default theme family
   cfgPath = "${config.xdg.configHome}/waybar";
 
   # Wait until Hyprland responds; avoids races when user services start
@@ -41,7 +41,7 @@ in {
       htop
     ];
 
-    # --- Read-only themes (from repo → Nix store) --m
+    # Read-only themes from repo
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
@@ -49,33 +49,33 @@ in {
     xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
 
-    # ---------------------------
-    # Writable seed for user-mutable files (OLD, WERKEND MODEL)
-    # ---------------------------
+    # Seed: create stable symlinks
     home.activation.waybarInitialSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
       mkdir -p "''${cfg_dir}"
 
-      seed_conf="''${cfg_dir}/config.jsonc"
-      seed_style="''${cfg_dir}/style.css"
-      seed_colors="''${cfg_dir}/colors.css"
-      compat_config_link="''${cfg_dir}/config"
-      compat_current_link="''${cfg_dir}/current"
+      current_link="''${cfg_dir}/current"
+      config_link="''${cfg_dir}/config"
+      default_dir="''${cfg_dir}/themes/${defaultTheme}"
 
-      # Compat: config → config.jsonc  (forceer symlink op bestemming)
-      ln -sfnT "''${seed_conf}" "''${compat_config_link}"
-
-      # Compat: current → themes  (eerst echte directory opruimen, dan -T gebruiken)
-      if [ -e "''${compat_current_link}" ] && [ ! -L "''${compat_current_link}" ]; then
-        rm -rf "''${compat_current_link}"
+      # Ensure 'current' points to the default theme directory
+      if [ -e "''${current_link}" ] && [ ! -L "''${current_link}" ]; then
+        rm -rf "''${current_link}"
       fi
-      ln -sfnT "''${cfg_dir}/themes" "''${compat_current_link}"
+      ln -sfnT "''${default_dir}" "''${current_link}"
+
+      # Point 'config' to theme's config.jsonc (preferred) or config
+      if [ -f "''${default_dir}/config.jsonc" ]; then
+        ln -sfnT "''${default_dir}/config.jsonc" "''${config_link}"
+      elif [ -f "''${default_dir}/config" ]; then
+        ln -sfnT "''${default_dir}/config" "''${config_link}"
+      else
+        echo "WARNING: No config(.jsonc) in ''${default_dir}; Waybar may fail to start" >&2
+      fi
     '';
 
-    # ---------------------------
-    # Helper scripts (blijven zoals je had)
-    # ---------------------------
+    # Helper scripts
     home.file.".local/bin/waybar-hypridle" = {
       source = waybarDir + "/scripts/waybar-hypridle.sh";
       executable = true;
@@ -89,25 +89,24 @@ in {
       executable = true;
     };
 
-    # ---------------------------
     # Waybar (managed) user service
-    # ---------------------------
     systemd.user.services."waybar-managed" = {
       Unit = {
-        /*
-        …zoals je had…
-        */
+        Description = "Waybar (managed)";
+        After = ["graphical-session.target" "hyprland-session.target"];
+        PartOf = ["hyprland-session.target"];
       };
       Service = {
         Type = "simple";
         Environment = ["XDG_RUNTIME_DIR=%t"];
         ExecStartPre = ["${waitForHypr}" "${pkgs.coreutils}/bin/sleep 0.25"];
-        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config -s ${cfgPath}/style.css";
 
-        # ↓ deze drie regels helpen tegen vastlopers bij stop/restart
+        # IMPORTANT: CSS from the active theme via 'current'
+        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config -s ${cfgPath}/current/style.css";
+
+        # Be gentle on stop; no wide pkill to avoid killing the new instance
         TimeoutStopSec = "2s";
         KillMode = "mixed";
-        ExecStopPost = "${pkgs.procps}/bin/pkill -9 -f '(^|/)waybar($| )' || true";
 
         Restart = "on-failure";
         RestartSec = "1s";
@@ -117,20 +116,17 @@ in {
       Install.WantedBy = ["hyprland-session.target"];
     };
 
+    # nm-applet service (unchanged)
     systemd.user.services."nm-applet" = {
       Unit = {
-        /*
-        …zoals je had…
-        */
+        Description = "NetworkManager Applet";
+        After = ["graphical-session.target" "hyprland-session.target"];
+        PartOf = ["hyprland-session.target"];
       };
       Service = {
         ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
-
-        # idem dito, kort stoppen en daarna hard killen indien nodig
         TimeoutStopSec = "2s";
         KillMode = "mixed";
-        ExecStopPost = "${pkgs.procps}/bin/pkill -9 -f '(^|/)nm-applet($| )' || true";
-
         Restart = "on-failure";
         RestartSec = 1;
         Environment = ["XDG_RUNTIME_DIR=%t"];
@@ -138,13 +134,11 @@ in {
       Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # ---------------------------
-    # GTK icon theme + nm-applet (symbolic icons → recolorbaar)
-    # ---------------------------
+    # GTK icon theme
     gtk = {
       enable = true;
       iconTheme = {
-        name = "Adwaita"; # of "Papirus-Dark"/"Papirus-Light"
+        name = "Adwaita";
         package = pkgs.adwaita-icon-theme;
       };
       gtk3.extraConfig."gtk-application-prefer-dark-theme" = 1;
