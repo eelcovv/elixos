@@ -56,6 +56,21 @@ in {
       force = false;
     };
 
+    home.file.".local/bin/waybar-hypridle" = {
+      source = waybarDir + "/scripts/waybar-hypridle.sh";
+      executable = true;
+    };
+
+    home.file.".local/bin/waybar-pick-theme" = {
+      source = waybarDir + "/scripts/waybar-pick-theme.sh";
+      executable = true;
+    };
+
+    home.file.".local/bin/waybar-switch-theme" = {
+      source = waybarDir + "/scripts/waybar-switch-theme.sh";
+      executable = true;
+    };
+
     # --- Waybar managed service ---
     systemd.user.services."waybar-managed" = {
       Unit = {
