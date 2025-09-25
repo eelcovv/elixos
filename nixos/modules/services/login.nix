@@ -4,16 +4,14 @@
   pkgs,
   ...
 }: {
-  services.logind = {
-    # Behavior without dock (free to choose)
-    lidSwitch = "suspend";
+  # Configure systemd-logind [Login] section
+  services.logind.settings.Login = {
+    # Always ignore lid switch (for debugging)
+    HandleLidSwitch = "ignore";
+    HandleLidSwitchDocked = "ignore";
+    HandleLidSwitchExternalPower = "ignore";
 
-    # Important: if there is an external monitor → don't sleep when clapping
-    lidSwitchDocked = "ignore";
-
-    # Optional: Don't sleep even with mains power / external power
-    extraConfig = ''
-      HandleLidSwitchExternalPower=ignore
-    '';
+    # Optional: ensure no idle-triggered suspend interferes
+    IdleAction = "ignore";
   };
 }
