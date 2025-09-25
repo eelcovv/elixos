@@ -78,6 +78,24 @@ in {
       executable = true;
     };
 
+    systemd.user.services."nm-applet" = {
+      Unit = {
+        Description = "NetworkManager tray applet (StatusNotifier)";
+        PartOf = ["hyprland-session.target"];
+        After = ["hyprland-session.target"];
+      };
+      Service = {
+        # --indicator requests SNI/AppIndicator mode suitable for Wayland
+        ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
+        Restart = "on-failure";
+        RestartSec = 1;
+        Environment = ["XDG_RUNTIME_DIR=%t"];
+      };
+      Install = {
+        WantedBy = ["hyprland-session.target"];
+      };
+    };
+
     # Read-only themes from the store
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
