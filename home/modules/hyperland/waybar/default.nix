@@ -49,6 +49,7 @@ in {
     xdg.configFile."waybar/config".source = "${themesDir}/${selectedTheme}/config.jsonc";
 
     # --- Writable CSS files via activation (no symlinks) -----------------------
+    # Writable CSS wrapper + user overrides (no symlinks, no sed)
     home.activation.waybarWritableCss = lib.hm.dag.entryAfter ["writeBoundary"] ''
         set -eu
 
@@ -61,16 +62,13 @@ in {
         # Ensure style.css is a REAL file (wrapper) instead of a symlink
         if [ -L "''${style_path}" ] || [ ! -f "''${style_path}" ]; then
           rm -f "''${style_path}"
-          # Use single-quoted heredoc to avoid shell var expansion; we inject Nix vars now.
-          cat > "''${style_path}" <<'EOF'
+          cat > "''${style_path}" <<EOF
       /* Base theme (read-only in Nix store) */
-      @import url("''${XDG_CONFIG_HOME:-$HOME/.config}/waybar/themes/REPLACE_SELECTED_THEME/style.css");
+      @import url("${config.xdg.configHome}/waybar/themes/${selectedTheme}/style.css");
 
       /* Full user overrides (writable) */
       @import url("custom.css");
       EOF
-          # Inject the selected theme name into the file (safe in POSIX sh)
-          ${pkgs.coreutils}/bin/sed -i "s|REPLACE_SELECTED_THEME|${selectedTheme}|g" "''${style_path}"
           chmod 0644 "''${style_path}"
         fi
 

@@ -516,10 +516,3 @@ window#waybar.empty #window {
 #tray > .needs-attention {
     -gtk-icon-effect: highlight;
 }
-
-/* Optioneel: pill-achtergrond voor alle tray-items (ipv .wifi) */
-#tray > * {
-    background-color: @backgroundlight;  /* switcht mee met light/dark */
-    border-radius: 6px;
-    padding: 2px 6px;
-}
