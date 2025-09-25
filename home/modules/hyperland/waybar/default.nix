@@ -48,39 +48,63 @@ in {
     # --- Config stays a read-only symlink to the selected theme (JSONC) ---
     xdg.configFile."waybar/config".source = "${themesDir}/${selectedTheme}/config.jsonc";
 
-    # --- Make style.css a writable wrapper that imports base theme + your overrides ---
-    home.file.".config/waybar/style.css" = {
-      text = ''
-        /* Base theme (read-only in Nix store) */
-        @import url("${config.xdg.configHome}/waybar/themes/${selectedTheme}/style.css");
+    # --- Writable CSS files via activation (no symlinks) -----------------------
+    home.activation.waybarWritableCss = lib.hm.dag.entryAfter ["writeBoundary"] ''
+        set -eu
 
-        /* Full user overrides (writable) */
-        @import url("custom.css");
-      '';
+        cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+        mkdir -p "''${cfg_dir}"
+
+        style_path="''${cfg_dir}/style.css"
+        custom_path="''${cfg_dir}/custom.css"
+
+        # Ensure style.css is a REAL file (wrapper) instead of a symlink
+        if [ -L "''${style_path}" ] || [ ! -f "''${style_path}" ]; then
+          rm -f "''${style_path}"
+          # Use single-quoted heredoc to avoid shell var expansion; we inject Nix vars now.
+          cat > "''${style_path}" <<'EOF'
+      /* Base theme (read-only in Nix store) */
+      @import url("''${XDG_CONFIG_HOME:-$HOME/.config}/waybar/themes/REPLACE_SELECTED_THEME/style.css");
+
+      /* Full user overrides (writable) */
+      @import url("custom.css");
+      EOF
+          # Inject the selected theme name into the file (safe in POSIX sh)
+          ${pkgs.coreutils}/bin/sed -i "s|REPLACE_SELECTED_THEME|${selectedTheme}|g" "''${style_path}"
+          chmod 0644 "''${style_path}"
+        fi
+
+        # Ensure custom.css exists as a REAL, writable file
+        if [ -L "''${custom_path}" ]; then
+          rm -f "''${custom_path}"
+        fi
+        if [ ! -f "''${custom_path}" ]; then
+          printf '/* your overrides here */\n' > "''${custom_path}"
+          chmod 0644 "''${custom_path}"
+        fi
+    '';
+
+    # --- Keep colors.css as optional writable (if you still use it) ------------
+    home.file.".config/waybar/colors.css" = {
+      text = "/* user colors (optional) */\n";
+      force = false;
     };
 
-    # --- Provide a writable custom.css where your script can write full CSS overrides ---
-    home.file.".config/waybar/custom.css" = {
-      text = "/* your overrides here */\n";
-      force = false; # keep existing file if already edited
-    };
-
+    # --- Helper scripts --------------------------------------------------------
     home.file.".local/bin/waybar-hypridle" = {
       source = waybarDir + "/scripts/waybar-hypridle.sh";
       executable = true;
     };
-
     home.file.".local/bin/waybar-pick-theme" = {
       source = waybarDir + "/scripts/waybar-pick-theme.sh";
       executable = true;
     };
-
     home.file.".local/bin/waybar-switch-theme" = {
       source = waybarDir + "/scripts/waybar-switch-theme.sh";
       executable = true;
     };
 
-    # --- Waybar managed service ---
+    # --- Waybar managed service -----------------------------------------------
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
@@ -104,18 +128,18 @@ in {
       Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # --- GTK icon theme so nm-applet can use symbolic icons (recolorable) ---
+    # --- GTK icon theme so nm-applet can use symbolic icons (recolorable) -----
     gtk = {
       enable = true;
       iconTheme = {
         name = "Adwaita"; # or "Papirus-Dark"/"Papirus-Light"
-        package = pkgs.adwaita-icon-theme; # top-level attr
+        package = pkgs.adwaita-icon-theme;
       };
       gtk3.extraConfig."gtk-application-prefer-dark-theme" = 1;
       gtk4.extraConfig."gtk-application-prefer-dark-theme" = 1;
     };
 
-    # --- nm-applet as StatusNotifier (symbolic when indicator is used) ---
+    # --- nm-applet as StatusNotifier (symbolic when indicator is used) --------
     systemd.user.services."nm-applet" = {
       Unit = {
         Description = "NetworkManager tray applet (StatusNotifier)";
@@ -131,7 +155,7 @@ in {
       Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # --- Other static waybar JSON files you already had ---
+    # --- Other static waybar JSON files you already had ------------------------
     xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
   };
