@@ -6,7 +6,7 @@
 }: let
   waybarDir = ./.;
   themesDir = ./themes;
-  defaultTheme = "default"; # initial one-time seed
+  selectedTheme = "ml4w-blur"; # <-- pick your ML4W theme
   cfgPath = "${config.xdg.configHome}/waybar";
 
   # Wait until Hyprland responds; avoids races when user services start
@@ -41,9 +41,22 @@ in {
       htop
     ];
 
-    # ---------------------------
-    # Waybar (managed) user service
-    # ---------------------------
+    # --- Read-only themes from repo (available under ~/.config/waybar/themes) ---
+    xdg.configFile."waybar/themes".source = themesDir;
+    xdg.configFile."waybar/themes".recursive = true;
+
+    # --- Point Waybar directly to the selected theme files (SYMLINKS) ---
+    # Waybar is started with: -c ${cfgPath}/config  -s ${cfgPath}/style.css
+    xdg.configFile."waybar/config".source = "${themesDir}/${selectedTheme}/config.jsonc";
+    xdg.configFile."waybar/style.css".source = "${themesDir}/${selectedTheme}/style.css";
+
+    # Optional user-writable colors overlay (do nothing if already exists)
+    home.file.".config/waybar/colors.css" = {
+      text = "/* user colors (optional) */\n";
+      force = false;
+    };
+
+    # --- Waybar managed service ---
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed by Home Manager; uses ~/.config/waybar/{config,style.css})";
@@ -67,9 +80,18 @@ in {
       Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # ---------------------------
-    # nm-applet as SNI tray (Wi-Fi icon)
-    # ---------------------------
+    # --- GTK icon theme so nm-applet can use symbolic icons (recolorable) ---
+    gtk = {
+      enable = true;
+      iconTheme = {
+        name = "Adwaita"; # or "Papirus-Dark"/"Papirus-Light"
+        package = pkgs.adwaita-icon-theme; # top-level attr
+      };
+      gtk3.extraConfig."gtk-application-prefer-dark-theme" = 1;
+      gtk4.extraConfig."gtk-application-prefer-dark-theme" = 1;
+    };
+
+    # --- nm-applet as StatusNotifier (symbolic when indicator is used) ---
     systemd.user.services."nm-applet" = {
       Unit = {
         Description = "NetworkManager tray applet (StatusNotifier)";
@@ -85,86 +107,8 @@ in {
       Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # ---------------------------
-    # Read-only themes (from repo → Nix store)
-    # ---------------------------
-    xdg.configFile."waybar/themes".source = themesDir;
-    xdg.configFile."waybar/themes".recursive = true;
-
-    # Static JSON from repo (ok to symlink)
+    # --- Other static waybar JSON files you already had ---
     xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
-
-    # ---------------------------
-    # Writable seed for user-mutable files
-    # - If absent or a symlink: replace with a real file (copy) so scripts can write
-    # ---------------------------
-    home.activation.waybarInitialSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
-      set -eu
-      cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
-      mkdir -p "''${cfg_dir}"
-
-      seed_conf="''${cfg_dir}/config.jsonc"
-      seed_style="''${cfg_dir}/style.css"
-      seed_colors="''${cfg_dir}/colors.css"
-
-      # Replace symlink or missing config.jsonc with a real file
-      if [ -L "''${seed_conf}" ] || [ ! -f "''${seed_conf}" ]; then
-        rm -f "''${seed_conf}"
-        install -Dm0644 "${themesDir}/${defaultTheme}/config.jsonc" "''${seed_conf}"
-      fi
-
-      # Replace symlink or missing style.css with a real file
-      if [ -L "''${seed_style}" ] || [ ! -f "''${seed_style}" ]; then
-        rm -f "''${seed_style}"
-        install -Dm0644 "${themesDir}/${defaultTheme}/style.css" "''${seed_style}"
-      fi
-
-      # Create colors.css if missing; keep it user-owned and writable
-      if [ ! -f "''${seed_colors}" ]; then
-        printf '/* user colors (optional) */\n' >"''${seed_colors}"
-        chmod 0644 "''${seed_colors}"
-      fi
-
-      # Compat symlink so -c ${cfgPath}/config points at the JSONC
-      ln -sfn "''${seed_conf}" "''${cfg_dir}/config"
-    '';
-
-    # ---------------------------
-    # Helper scripts
-    # ---------------------------
-    home.file.".local/bin/system-monitor" = {
-      text = ''
-        #!/usr/bin/env bash
-        # Try a GUI monitor; fallback to terminal htop
-        if command -v gnome-system-monitor >/dev/null 2>&1; then
-          exec gnome-system-monitor
-        elif command -v mate-system-monitor >/dev/null 2>&1; then
-          exec mate-system-monitor
-        elif command -v kitty >/dev/null 2>&1; then
-          exec kitty -e htop
-        elif command -v alacritty >/dev/null 2>&1; then
-          exec alacritty -e htop
-        else
-          exec ${pkgs.xterm}/bin/xterm -e htop
-        fi
-      '';
-      executable = true;
-    };
-
-    home.file.".local/bin/waybar-hypridle" = {
-      source = waybarDir + "/scripts/waybar-hypridle.sh";
-      executable = true;
-    };
-
-    home.file.".local/bin/waybar-pick-theme" = {
-      source = waybarDir + "/scripts/waybar-pick-theme.sh";
-      executable = true;
-    };
-
-    home.file.".local/bin/waybar-switch-theme" = {
-      source = waybarDir + "/scripts/waybar-switch-theme.sh";
-      executable = true;
-    };
   };
 }
