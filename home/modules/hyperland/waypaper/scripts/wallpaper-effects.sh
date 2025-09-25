@@ -20,7 +20,7 @@ apply_current() {
 
 if [[ $# -gt 0 ]]; then
   arg="$1"; [[ "$arg" == ~* ]] && arg="${arg/#\~/$HOME}"
-  if [[ -f "$arg" ]] && echo "$arg" | grep -Eiq '\.(png|jpg)$'; then
+  if [[ -f "$arg" ]] && echo "$arg" | grep -Eiq '\.(png|jpg|webp)$'; then
     printf '%s\n' "$arg" > "$cache_file"; exec "$HOME/.local/bin/wallpaper.sh" "$arg"
   fi
   case "$arg" in

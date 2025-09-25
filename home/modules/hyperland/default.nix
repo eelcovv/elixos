@@ -12,7 +12,7 @@
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
   defaultWallpaper = "${wallpaperTargetDir}/default.png";
 
-  # Wait until Hyprland answers to hyprctl (prevents early-start failures)
+  # Wait until Hyprland answers to hyprctl (revents early-start failures)
   waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
     for i in $(seq 1 60); do
       if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then

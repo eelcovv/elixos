@@ -33,12 +33,13 @@ done
 shopt -s nullglob
 
 # Collect bases & extensions
-declare -A have_png have_jpg
+declare -A have_png have_jpg have_webp
 for f in "$DIR"/*.png; do base="$(basename "${f%.*}")"; have_png["$base"]=1; done
 for f in "$DIR"/*.jpg; do base="$(basename "${f%.*}")"; have_jpg["$base"]=1; done
+for f in "$DIR"/*.webp; do base="$(basename "${f%.*}")"; have_webp["$base"]=1; done
 
 # Nothing to show?
-if [[ ${#have_png[@]} -eq 0 && ${#have_jpg[@]} -eq 0 ]]; then
+if [[ ${#have_png[@]} -eq 0 && ${#have_jpg[@]} -eq 0 && ${#have_webp[@]} -eq 0]]; then
   notify "No wallpapers found in $DIR (png/jpg)"
   exit 0
 fi
@@ -55,11 +56,12 @@ fi
 # Build label->base map
 labels=()
 bases=()
-mapfile -t all_bases < <(printf '%s\n' "${!have_png[@]}" "${!have_jpg[@]}" | sort -fu)
+mapfile -t all_bases < <(printf '%s\n' "${!have_png[@]}" "${!have_jpg[@]}" "${!have_webp[@]}"| sort -fu)
 for b in "${all_bases[@]}"; do
   exts=""
   [[ ${have_png[$b]+x} ]] && exts="png"
   [[ ${have_jpg[$b]+x} ]] && exts="${exts:+$exts,}jpg"
+  [[ ${have_webp[$b]+x} ]] && exts="${exts:+$exts,}webp"
   label="$b ($exts)"
   [[ "$b" == "$current_base" ]] && label="$label  [current]"
   labels+=("$label")
@@ -100,12 +102,14 @@ for i in "${!labels[@]}"; do
 done
 [[ -n "$sel_base" ]] || { notify "Selection not recognized"; exit 1; }
 
-# Prefer .png, then .jpg (for fallback path-mode)
+# Prefer .png, then .jpg, then webp (for fallback path-mode)
 resolved=""
 if [[ -f "$DIR/$sel_base.png" ]]; then
   resolved="$DIR/$sel_base.png"
 elif [[ -f "$DIR/$sel_base.jpg" ]]; then
   resolved="$DIR/$sel_base.jpg"
+elif [[ -f "$DIR/$sel_base.webp" ]]; then
+  resolved="$DIR/$sel_base.webp"
 fi
 
 # Primary: use wallpaper-set.sh with basename (lets it resolve png/jpg itself)
@@ -120,5 +124,5 @@ if [[ -n "$resolved" ]]; then
   exec "$HOME/.local/bin/wallpaper.sh" "$resolved"
 fi
 
-notify "Missing files for '$sel_base' in $DIR (.png/.jpg)"; exit 1
+notify "Missing files for '$sel_base' in $DIR (.png/.jpg/.webp)"; exit 1
 

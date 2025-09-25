@@ -45,7 +45,7 @@ fi
 
 # Pick a random image file
 shopt -s nullglob
-mapfile -t files < <(find "$DIR" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) -print)
+mapfile -t files < <(find "$DIR" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) -print)
 if [[ ${#files[@]} -eq 0 ]]; then
   log ":: No wallpapers found in $DIR"
   exit 0

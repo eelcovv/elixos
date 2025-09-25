@@ -42,8 +42,10 @@ if [[ "$INPUT" == /* || "$INPUT" == ./* || "$INPUT" == ../* ]]; then
       F="$INPUT.png"
     elif [[ -f "$INPUT.jpg" ]]; then
       F="$INPUT.jpg"
+    elif [[ -f "$INPUT.webp" ]]; then
+      F="$INPUT.webp"
     else
-      echo ":: Not found: $INPUT.(png|jpg)" >&2; exit 1
+      echo ":: Not found: $INPUT.(png|jpg|webp)" >&2; exit 1
     fi
   fi
 else
@@ -56,12 +58,13 @@ else
       F="$DIR/$INPUT.png"
     elif [[ -f "$DIR/$INPUT.jpg" ]]; then
       F="$DIR/$INPUT.jpg"
+    elif [[ -f "$DIR/$INPUT.webp" ]]; then
+      F="$DIR/$INPUT.webp"
     else
-      echo ":: Not found: $DIR/$INPUT.(png|jpg)" >&2; exit 1
+      echo ":: Not found: $DIR/$INPUT.(png|jpg|webp)" >&2; exit 1
     fi
   fi
 fi
 
 echo ":: Setting via pipeline: $F"
 exec "$HOME/.local/bin/wallpaper.sh" "$F"
-
