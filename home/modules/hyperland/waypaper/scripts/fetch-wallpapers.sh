@@ -2,7 +2,7 @@
 set -euo pipefail
 
 WALLPAPER_DIR="$HOME/.config/wallpapers"
-REPO_URL="https://github.com/mylinuxforwork/wallpaper"
+REPO_URL="https://github.com/eelcovv/wallpaper"
 TMP_DIR="$(mktemp -d)"
 
 echo "📥 Downloading wallpapers from $REPO_URL..."
