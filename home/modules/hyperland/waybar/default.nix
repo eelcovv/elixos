@@ -45,15 +45,24 @@ in {
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
-    # --- Point Waybar directly to the selected theme files (SYMLINKS) ---
-    # Waybar is started with: -c ${cfgPath}/config  -s ${cfgPath}/style.css
+    # --- Config stays a read-only symlink to the selected theme (JSONC) ---
     xdg.configFile."waybar/config".source = "${themesDir}/${selectedTheme}/config.jsonc";
-    xdg.configFile."waybar/style.css".source = "${themesDir}/${selectedTheme}/style.css";
 
-    # Optional user-writable colors overlay (do nothing if already exists)
-    home.file.".config/waybar/colors.css" = {
-      text = "/* user colors (optional) */\n";
-      force = false;
+    # --- Make style.css a writable wrapper that imports base theme + your overrides ---
+    home.file.".config/waybar/style.css" = {
+      text = ''
+        /* Base theme (read-only in Nix store) */
+        @import url("${config.xdg.configHome}/waybar/themes/${selectedTheme}/style.css");
+
+        /* Full user overrides (writable) */
+        @import url("custom.css");
+      '';
+    };
+
+    # --- Provide a writable custom.css where your script can write full CSS overrides ---
+    home.file.".config/waybar/custom.css" = {
+      text = "/* your overrides here */\n";
+      force = false; # keep existing file if already edited
     };
 
     home.file.".local/bin/waybar-hypridle" = {
