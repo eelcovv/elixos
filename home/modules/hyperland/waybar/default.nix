@@ -69,15 +69,26 @@ in {
 
     # Fallback colors.css used when a theme lacks its own colors.css
     xdg.configFile."waybar/colors.css".text = ''
-      /* Fallback colors so themes that @import "colors.css" never crash */
-      :root {
-        --bar-bg: rgba(0,0,0,0.55);
-        --bar-fg: #eaeaea;
-        --accent: #5e81ac;
-        --ok: #a3be8c;
-        --warn: #ebcb8b;
-        --err: #bf616a;
-      }
+      /* GTK CSS fallback for Waybar themes that @import "colors.css" */
+      @define-color bar-bg            rgba(0,0,0,0.55);
+      @define-color bar-fg            #eaeaea;
+      @define-color accent            #5e81ac;
+      @define-color ok                #a3be8c;
+      @define-color warn              #ebcb8b;
+      @define-color err               #bf616a;
+
+      /* Veelgebruikte namen die sommige themes gebruiken */
+      @define-color background        @bar-bg;
+      @define-color foreground        @bar-fg;
+      @define-color primary           @accent;
+      @define-color success           @ok;
+      @define-color warning           @warn;
+      @define-color error             @err;
+
+      /* ML4W-achtige naamgevingen (voor de zekerheid) */
+      @define-color wb-bg             @bar-bg;
+      @define-color wb-fg             @bar-fg;
+      @define-color wb-hl             @accent;
     '';
 
     # Seed: ensure 'current' points to default theme directory (idempotent)
