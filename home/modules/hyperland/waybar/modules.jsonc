@@ -38,6 +38,7 @@
   // Hyprland Window
   "hyprland/window": {
     "max-length": 60,
+    // replace regex patterns in window titles. The $1 refers to the first capture group.
     "rewrite": {
       "(.*) - Brave": "$1",
       "(.*) - Chromium": "$1",
@@ -46,6 +47,13 @@
       "(.*) Microsoft Teams": "$1"
     },
     "separate-outputs": true
+  },
+
+  // ChatGPT
+  "custom/chatgpt": {
+    "format": " ChatGPT",
+    "on-click": "xdg-open https://chat.openai.com",
+    "tooltip-format": "Open ChatGPT in je browser"
   },
 
   // Empty
