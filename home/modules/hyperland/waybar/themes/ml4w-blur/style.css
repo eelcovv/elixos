@@ -506,6 +506,15 @@ window#waybar.empty #window {
 #tray {
     padding: 0px 15px 0px 0px;
     color: @textcolor3;
+
+    /* Lighten the tray background a bit so black icons stay visible */
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* Force icons inside the tray to be inverted (black → white) */
+#tray > * {
+    -gtk-icon-filter: brightness(0) invert(1);
 }
 
 #tray > .passive {
@@ -515,3 +524,4 @@ window#waybar.empty #window {
 #tray > .needs-attention {
     -gtk-icon-effect: highlight;
 }
+
