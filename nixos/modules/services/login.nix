@@ -5,9 +5,6 @@
   ...
 }: {
   services.logind = {
-    # Usually already enabled, but explicitly won't hurt
-    enable = true;
-
     # Behavior without dock (free to choose)
     lidSwitch = "suspend";
 
