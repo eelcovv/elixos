@@ -77,7 +77,7 @@
   // Wallpaper
   "custom/wallpaper": {
     "format": "",
-    "on-click": "bash -c waypaper &",
+    "on-click": "~/.local/bin/wallpaper-pick.sh",
     "on-click-right": "~/.config/hypr/scripts/wallpaper-effects.sh",
     "tooltip-format": "Left: Select a wallpaper\nRight: Select wallpaper effect"
   },
@@ -204,7 +204,7 @@
   // Group Links (kept)
   "group/links": {
     "orientation": "horizontal",
-    "modules": ["custom/chatgpt", "custom/empty"]
+    "modules": ["custom/waybarthemes", "custom/wallpaper", "custom/empty"]
   },
 
   // Group Settings

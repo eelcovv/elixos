@@ -42,7 +42,7 @@
     "battery",
     "power-profiles-daemon",
     "group/hardware",
-    "group/tools",
+    "group/settings",
     "tray",
     "custom/notification",
     "custom/exit",
