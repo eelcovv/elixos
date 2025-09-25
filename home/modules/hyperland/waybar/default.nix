@@ -95,6 +95,17 @@ in {
       ln -sfnT "''${default_dir}" "''${current_link}"
     '';
 
+    # Ensure 'current/colors.css' always exists (fallback link)
+    home.activation.waybarColorsGuard = lib.hm.dag.entryAfter ["waybarInitialSeed"] ''
+      set -eu
+      cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+      cur_dir="''${cfg_dir}/current"
+      mkdir -p "''${cur_dir}"
+      if [ ! -e "''${cur_dir}/colors.css" ]; then
+        ln -sfn "''${cfg_dir}/colors.css" "''${cur_dir}/colors.css"
+      fi
+    '';
+
     # Helper scripts
     home.file.".local/bin/waybar-hypridle" = {
       source = waybarDir + "/scripts/waybar-hypridle.sh";
