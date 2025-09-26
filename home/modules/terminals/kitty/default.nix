@@ -17,7 +17,7 @@
     };
 
     # Optional: A safe fallback if Matuit fails
-    themeFile = "One Half Dark";
+    themeFile = "OneHalfDark";
   };
 
   # Config files that are managed declaratively.

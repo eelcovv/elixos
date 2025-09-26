@@ -54,18 +54,22 @@ in {
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
 
     # Stable wrapper config that includes the active theme config
-    xdg.configFile."waybar/config.jsonc".text = ''
-      {
-        // ===== Safe defaults to keep bar visible =====
-        "layer": "top",
-        "position": "top",
-        "height": 43,
-        "exclusive-zone": true,
-        "output": [ "*" ],
-        // Load the active theme config from the moving 'current' symlink
-        "include": [ "${cfgPath}/current/config.jsonc", "${cfgPath}/current/config" ]
-      }
-    '';
+    xdg.configFile."waybar/config.jsonc" = {
+      text = ''
+        {
+          "layer": "top",
+          "position": "top",
+          "height": 43,
+          "exclusive-zone": true,
+          "output": ["*"],
+          "include": [
+            "${cfgPath}/waybar-quicklinks.json",
+            "${cfgPath}/modules.jsonc"
+          ]
+        }
+      '';
+      force = true;
+    };
 
     # Fallback colors.css used when a theme lacks its own colors.css
     xdg.configFile."waybar/colors.css".text = ''
@@ -143,8 +147,8 @@ in {
         Environment = ["XDG_RUNTIME_DIR=%t"];
         ExecStartPre = ["${waitForWL}" "${pkgs.coreutils}/bin/sleep 0.25"];
 
-        # Use fixed wrapper config; CSS from 'current'
-        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/current/style.css";
+        # Use fixed wrapper config; CSS from 'active' Note that active points to the current theme or subtheme
+        ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/active/style.css";
 
         TimeoutStopSec = "2s";
         KillMode = "mixed";
