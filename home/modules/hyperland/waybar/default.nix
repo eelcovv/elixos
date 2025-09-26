@@ -6,7 +6,11 @@
 }: let
   waybarDir = ./.;
   themesDir = ./themes;
-  defaultTheme = "ml4w-blur"; # choose your default theme family
+
+  # --- Defaults you can tweak ---
+  defaultTheme = "ml4w-blur"; # theme family
+  defaultVariant = "light"; # subvariant: "light" | "dark"
+
   cfgPath = "${config.xdg.configHome}/waybar";
 
   # Wait for Wayland session (Hyprland/Sway/etc.)
@@ -49,54 +53,14 @@ in {
     xdg.configFile."waybar/themes".source = themesDir;
     xdg.configFile."waybar/themes".recursive = true;
 
-    # Static JSON from repo
+    # Static JSON from repo (these are included by the theme config)
     xdg.configFile."waybar/modules.jsonc".source = waybarDir + "/modules.jsonc";
     xdg.configFile."waybar/waybar-quicklinks.json".source = waybarDir + "/waybar-quicklinks.jsonc";
 
-    # Stable wrapper config that includes the active theme config
-    xdg.configFile."waybar/config.jsonc" = {
-      text = ''
-        {
-          "layer": "top",
-          "position": "top",
-          "height": 43,
-          "exclusive-zone": true,
-          "output": ["*"],
-          "include": [
-            "${cfgPath}/waybar-quicklinks.json",
-            "${cfgPath}/modules.jsonc"
-          ]
-        }
-      '';
-      force = true;
-    };
+    # --- Activation steps to wire the symlinks ---
 
-    # Fallback colors.css used when a theme lacks its own colors.css
-    xdg.configFile."waybar/colors.css".text = ''
-      /* GTK CSS fallback for Waybar themes that @import "colors.css" */
-      @define-color bar-bg            rgba(0,0,0,0.55);
-      @define-color bar-fg            #eaeaea;
-      @define-color accent            #5e81ac;
-      @define-color ok                #a3be8c;
-      @define-color warn              #ebcb8b;
-      @define-color err               #bf616a;
-
-      /* Veelgebruikte namen die sommige themes gebruiken */
-      @define-color background        @bar-bg;
-      @define-color foreground        @bar-fg;
-      @define-color primary           @accent;
-      @define-color success           @ok;
-      @define-color warning           @warn;
-      @define-color error             @err;
-
-      /* ML4W-achtige naamgevingen (voor de zekerheid) */
-      @define-color wb-bg             @bar-bg;
-      @define-color wb-fg             @bar-fg;
-      @define-color wb-hl             @accent;
-    '';
-
-    # Seed: ensure 'current' points to default theme directory (idempotent)
-    home.activation.waybarInitialSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    # Seed 'current' -> default theme family (idempotent)
+    home.activation.waybarCurrentSeed = lib.hm.dag.entryAfter ["writeBoundary"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
       mkdir -p "''${cfg_dir}"
@@ -110,18 +74,86 @@ in {
       ln -sfnT "''${default_dir}" "''${current_link}"
     '';
 
-    # Ensure 'current/colors.css' always exists (fallback link)
-    home.activation.waybarColorsGuard = lib.hm.dag.entryAfter ["waybarInitialSeed"] ''
+    # Ensure 'active' -> chosen variant under current (idempotent)
+    home.activation.waybarActiveVariant = lib.hm.dag.entryAfter ["waybarCurrentSeed"] ''
       set -eu
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
       cur_dir="''${cfg_dir}/current"
-      mkdir -p "''${cur_dir}"
-      if [ ! -e "''${cur_dir}/colors.css" ]; then
-        ln -sfn "''${cfg_dir}/colors.css" "''${cur_dir}/colors.css"
+      act_link="''${cfg_dir}/active"
+      var_dir="''${cur_dir}/${defaultVariant}"
+
+      # Fallback: if the preferred variant doesn't exist, pick the first subdir
+      if [ ! -d "''${var_dir}" ]; then
+        if first=$(find "''${cur_dir}" -mindepth 1 -maxdepth 1 -type d | head -n1); then
+          var_dir="''${first}"
+        fi
+      fi
+
+      ln -sfnT "''${var_dir}" "''${act_link}"
+    '';
+
+    # Link top-level files: config → family; style → family base style
+    home.activation.waybarTopLevelLinks = lib.hm.dag.entryAfter ["waybarActiveVariant"] ''
+      set -eu
+      cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+      cur_dir="''${cfg_dir}/current"
+
+      # config.jsonc -> current/config.jsonc (family config)
+      ln -sfn "''${cur_dir}/config.jsonc" "''${cfg_dir}/config.jsonc"
+
+      # style.css (top-level) -> current/style.css (family base style)
+      if [ -f "''${cur_dir}/style.css" ]; then
+        ln -sfn "''${cur_dir}/style.css" "''${cfg_dir}/style.css"
       fi
     '';
 
-    # Helper scripts
+    # Optional fallback colors.css in case a theme lacks one (kept)
+    xdg.configFile."waybar/colors.css".text = ''
+      /* GTK CSS fallback for Waybar themes that @import "colors.css" */
+      @define-color bar-bg            rgba(0,0,0,0.55);
+      @define-color bar-fg            #eaeaea;
+      @define-color accent            #5e81ac;
+      @define-color ok                #a3be8c;
+      @define-color warn              #ebcb8b;
+      @define-color err               #bf616a;
+
+      @define-color background        @bar-bg;
+      @define-color foreground        @bar-fg;
+      @define-color primary           @accent;
+      @define-color success           @ok;
+      @define-color warning           @warn;
+      @define-color error             @err;
+
+      @define-color wb-bg             @bar-bg;
+      @define-color wb-fg             @bar-fg;
+      @define-color wb-hl             @accent;
+    '';
+
+    # Ensure colors.css exists for both 'current' (family) and 'active' (variant)
+    home.activation.waybarColorsGuard = lib.hm.dag.entryAfter ["waybarTopLevelLinks"] ''
+      set -eu
+      cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+      cur_dir="''${cfg_dir}/current"
+      act_dir="''${cfg_dir}/active"
+
+      # If family doesn't ship a colors.css, link current/colors.css -> top-level fallback
+      if [ ! -e "''${cur_dir}/colors.css" ]; then
+        if [ -f "''${cfg_dir}/colors.css" ]; then
+          ln -sfn "''${cfg_dir}/colors.css" "''${cur_dir}/colors.css"
+        fi
+      fi
+
+      # If active variant doesn't ship colors.css, prefer family colors, else fallback
+      if [ ! -e "''${act_dir}/colors.css" ]; then
+        if [ -e "''${cur_dir}/colors.css" ]; then
+          ln -sfn "''${cur_dir}/colors.css" "''${act_dir}/colors.css"
+        elif [ -f "''${cfg_dir}/colors.css" ]; then
+          ln -sfn "''${cfg_dir}/colors.css" "''${act_dir}/colors.css"
+        fi
+      fi
+    '';
+
+    # Helper scripts (unchanged)
     home.file.".local/bin/waybar-hypridle" = {
       source = waybarDir + "/scripts/waybar-hypridle.sh";
       executable = true;
@@ -147,7 +179,7 @@ in {
         Environment = ["XDG_RUNTIME_DIR=%t"];
         ExecStartPre = ["${waitForWL}" "${pkgs.coreutils}/bin/sleep 0.25"];
 
-        # Use fixed wrapper config; CSS from 'active' Note that active points to the current theme or subtheme
+        # Use theme config via 'current' and CSS via 'active'
         ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/active/style.css";
 
         TimeoutStopSec = "2s";
