@@ -57,16 +57,24 @@ in {
         source <(fzf --zsh)
         HISTFILE=~/.zsh_history; HISTSIZE=10000; SAVEHIST=10000; setopt appendhistory
 
+        # Panic theme: Kitty + OhMyPosh
         panic-theme() {
-          # theme to apply when your fonts are not readable in your current color palatte
-          kitty +kitten themes --reload-in=all "One Half Dark" >/dev/null 2>&1 || true
+          # 1) Kitty: If Kitty_Listen_on exists (New Kitty), use RC:
+          if [ -n "$KITTY_LISTEN_ON" ]; then
+            kitty @ load-config-file "$HOME/.config/kitty/panic.conf" >/dev/null 2>&1 || true
+          else
+            # 2) Fallback zonder RC: start de theme-kitten (apply by name)
+            kitty +kitten themes --reload-in=all "One Half Dark" >/dev/null 2>&1 || true
+          fi
 
+          # 3) Prompt temporarily contrast -rich (only this shell)
           if command -v oh-my-posh >/dev/null 2>&1; then
             eval "$(oh-my-posh init zsh --config 'paradox')"
           fi
 
-          print "✅ Panic theme applied: Kitty=One Half Dark, OMP=paradox"
+          print "✅ Panic theme applied (Kitty palette + OMP prompt)."
         }
+
       '';
     };
 
