@@ -1,7 +1,7 @@
 # Waybar Configuration Guide
 
-This document explains the layout of the Waybar configuration in this repo, how the **switching mechanism** works 
-(for themes/variants), and how to run/debug it. 
+This document explains the layout of the Waybar configuration in this repo, how the **switching mechanism** works
+(for themes/variants), and how to run/debug it.
 Examples use Linux paths and a Home‑Manager/NixOS style setup, but the structure also works standalone.
 
 ---
