@@ -1,18 +1,5 @@
 #!/usr/bin/env bash
-# of-run: Run an OpenFOAM command inside a container (non-interactively).
-#
-# Key points:
-# - Starts interactive bash (-i) so shell functions (foamVersion, etc.) are loaded.
-# - Allocates TTY (-t) to avoid job-control warnings.
-# - Mounts current working directory and sets it as workdir.
-# - Runs with mapped host UID/GID.
-#
-# Usage:
-#   of-run <command> [args...]
-# Example:
-#   of-run foamVersion
-#   of-run simpleFoam -help
-
+# of-run: run a single OpenFOAM command inside container (non-interactive).
 set -euo pipefail
 
 if [ $# -lt 1 ]; then
@@ -26,11 +13,20 @@ TAG="${OPENFOAM_TAG:-2406}"
 
 UIDGID_ARGS=(--user "$(id -u)":"$(id -g)")
 
+# Source ESI or Foundation bashrc if present, then run the command
+SRC_OF='
+if compgen -G "/usr/lib/openfoam/openfoam*/etc/bashrc" > /dev/null; then
+  source /usr/lib/openfoam/openfoam*/etc/bashrc
+elif compgen -G "/opt/openfoam*/etc/bashrc" > /dev/null; then
+  source /opt/openfoam*/etc/bashrc
+fi
+'
+
 CMD="$*"
 
 exec "${ENGINE}" run --rm -t \
   "${UIDGID_ARGS[@]}" \
   -v "$PWD:$PWD" -w "$PWD" \
   "${IMAGE}:${TAG}" \
-  -- bash -ic "$CMD"
+  -- bash -c "${SRC_OF}; ${CMD}"
 

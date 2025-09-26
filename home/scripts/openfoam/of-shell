@@ -1,16 +1,5 @@
 #!/usr/bin/env bash
-# of-shell: Open an interactive OpenFOAM-enabled shell inside a container.
-#
-# Features:
-# - Runs as the current host user (UID/GID mapping).
-# - Mounts the current working directory and sets it as workdir.
-# - Allocates TTY (-it) for interactive use.
-# - Inherits vi-style editing by bind-mounting host ~/.inputrc if present.
-#
-# Usage:
-#   of-shell
-#   of-shell <command> [args...]
-
+# of-shell: interactive OpenFOAM shell in container, staying in current workdir.
 set -euo pipefail
 
 ENGINE="${OPENFOAM_ENGINE:-docker}"            # docker or podman
@@ -20,17 +9,29 @@ TAG="${OPENFOAM_TAG:-2406}"
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 
-# Build mount array
+# Build mounts: map current directory to the same path inside the container
 MOUNTS=(-v "$PWD:$PWD" -w "$PWD")
-# If you have a host ~/.inputrc, map it to the container user to enable vi-mode.
+# Optional: pass host inputrc to container user 'openfoam' (harmless if not used)
 if [ -f "$HOME/.inputrc" ]; then
-  # container username is "openfoam" in this image
   MOUNTS+=(-v "$HOME/.inputrc:/home/openfoam/.inputrc:ro")
 fi
+
+# Helper that sources bashrc if present for either ESI (openfoam.com) or Foundation (openfoam.org)
+SRC_OF='
+if compgen -G "/usr/lib/openfoam/openfoam*/etc/bashrc" > /dev/null; then
+  # ESI/OpenCFD layout
+  # shellcheck disable=SC1091
+  source /usr/lib/openfoam/openfoam*/etc/bashrc
+elif compgen -G "/opt/openfoam*/etc/bashrc" > /dev/null; then
+  # Foundation layout
+  # shellcheck disable=SC1091
+  source /opt/openfoam*/etc/bashrc
+fi
+'
 
 exec "${ENGINE}" run --rm -it \
   --user "${HOST_UID}:${HOST_GID}" \
   "${MOUNTS[@]}" \
   "${IMAGE}:${TAG}" \
-  -- bash -i "$@"
+  -- bash -c "${SRC_OF}; exec bash -i"
 

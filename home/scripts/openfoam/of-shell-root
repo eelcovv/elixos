@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# of-shell-root: Open an interactive OpenFOAM-enabled shell as root inside a container.
-#
-# Same as of-shell, but runs as root. Also tries to pass vi-mode via ~/.inputrc if present.
-
+# of-shell-root: same as of-shell but run as root (for edge cases).
 set -euo pipefail
 
 ENGINE="${OPENFOAM_ENGINE:-docker}"
@@ -11,13 +8,20 @@ TAG="${OPENFOAM_TAG:-2406}"
 
 MOUNTS=(-v "$PWD:$PWD" -w "$PWD")
 if [ -f "$HOME/.inputrc" ]; then
-  # root's home is /root in the container
   MOUNTS+=(-v "$HOME/.inputrc:/root/.inputrc:ro")
 fi
+
+SRC_OF='
+if compgen -G "/usr/lib/openfoam/openfoam*/etc/bashrc" > /dev/null; then
+  source /usr/lib/openfoam/openfoam*/etc/bashrc
+elif compgen -G "/opt/openfoam*/etc/bashrc" > /dev/null; then
+  source /opt/openfoam*/etc/bashrc
+fi
+'
 
 exec "${ENGINE}" run --rm -it \
   --user 0:0 \
   "${MOUNTS[@]}" \
   "${IMAGE}:${TAG}" \
-  -- bash -i "$@"
+  -- bash -c "${SRC_OF}; exec bash -i"
 
