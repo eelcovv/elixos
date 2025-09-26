@@ -56,6 +56,17 @@ in {
         if [ "$TERM" = "xterm-ghostty" ]; then export TERM=xterm-256color; fi
         source <(fzf --zsh)
         HISTFILE=~/.zsh_history; HISTSIZE=10000; SAVEHIST=10000; setopt appendhistory
+
+        panic-theme() {
+          # theme to apply when your fonts are not readable in your current color palatte
+          kitty +kitten themes --reload-in=all "One Half Dark" >/dev/null 2>&1 || true
+
+          if command -v oh-my-posh >/dev/null 2>&1; then
+            eval "$(oh-my-posh init zsh --config 'paradox')"
+          fi
+
+          print "✅ Panic theme applied: Kitty=One Half Dark, OMP=paradox"
+        }
       '';
     };
 
