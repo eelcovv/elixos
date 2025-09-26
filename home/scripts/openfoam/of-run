@@ -11,20 +11,19 @@ ENGINE="${OPENFOAM_ENGINE:-docker}"             # docker or podman
 IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
 TAG="${OPENFOAM_TAG:-2406}"
 
-# Ensure files created are owned by current host user
 UIDGID_ARGS=(--user "$(id -u):$(id -g)")
 
-# Snippet that sources the correct OpenFOAM bashrc
-SRC_OF='for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
+# Snippet: source ESI or Foundation bashrc. No 'set -e' here!
+SRC_OF='
+for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
   if [ -r "$f" ]; then . "$f"; break; fi
-done'
+done
+'
 
-CMD=("$@")
-
+# Run "$@" after sourcing, preserving quoting
 exec "${ENGINE}" run --rm -t \
   "${UIDGID_ARGS[@]}" \
   -v "$PWD:/work" -w /work \
   --entrypoint /bin/bash \
   "${IMAGE}:${TAG}" \
-  -c "set -e; cd /work; ${SRC_OF}; exec bash -c \"\$*\"" bash "${CMD[@]}"
-
+  -c 'cd /work; '"${SRC_OF}"'; "$@"' bash "$@"

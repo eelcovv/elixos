@@ -11,15 +11,17 @@ HOST_GID="$(id -g)"
 
 MOUNTS=(-v "$PWD:/work" -w /work)
 
-# Snippet that sources the correct OpenFOAM bashrc
-SRC_OF='for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
+# Snippet: source ESI or Foundation bashrc. No 'set -e' here!
+SRC_OF='
+for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
   if [ -r "$f" ]; then . "$f"; break; fi
-done'
+done
+'
 
 exec "${ENGINE}" run --rm -it \
   --user "${HOST_UID}:${HOST_GID}" \
   "${MOUNTS[@]}" \
   --entrypoint /bin/bash \
   "${IMAGE}:${TAG}" \
-  -c "set -e; cd /work; ${SRC_OF}; exec bash -i"
+  -c 'cd /work; '"${SRC_OF}"'; exec bash -i'
 
