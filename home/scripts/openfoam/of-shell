@@ -1,37 +1,25 @@
 #!/usr/bin/env bash
-# of-shell: interactive OpenFOAM shell in container, staying in current workdir.
+# of-shell: open an interactive OpenFOAM-enabled shell inside the container.
 set -euo pipefail
 
-ENGINE="${OPENFOAM_ENGINE:-docker}"            # docker or podman
+ENGINE="${OPENFOAM_ENGINE:-docker}"
 IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
 TAG="${OPENFOAM_TAG:-2406}"
 
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 
-# Build mounts: map current directory to the same path inside the container
-MOUNTS=(-v "$PWD:$PWD" -w "$PWD")
-# Optional: pass host inputrc to container user 'openfoam' (harmless if not used)
-if [ -f "$HOME/.inputrc" ]; then
-  MOUNTS+=(-v "$HOME/.inputrc:/home/openfoam/.inputrc:ro")
-fi
+MOUNTS=(-v "$PWD:/work" -w /work)
 
-# Helper that sources bashrc if present for either ESI (openfoam.com) or Foundation (openfoam.org)
-SRC_OF='
-if compgen -G "/usr/lib/openfoam/openfoam*/etc/bashrc" > /dev/null; then
-  # ESI/OpenCFD layout
-  # shellcheck disable=SC1091
-  source /usr/lib/openfoam/openfoam*/etc/bashrc
-elif compgen -G "/opt/openfoam*/etc/bashrc" > /dev/null; then
-  # Foundation layout
-  # shellcheck disable=SC1091
-  source /opt/openfoam*/etc/bashrc
-fi
-'
+# Snippet that sources the correct OpenFOAM bashrc
+SRC_OF='for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
+  if [ -r "$f" ]; then . "$f"; break; fi
+done'
 
 exec "${ENGINE}" run --rm -it \
   --user "${HOST_UID}:${HOST_GID}" \
   "${MOUNTS[@]}" \
+  --entrypoint /bin/bash \
   "${IMAGE}:${TAG}" \
-  -- bash -c "${SRC_OF}; exec bash -i"
+  -c "set -e; cd /work; ${SRC_OF}; exec bash -i"
 
