@@ -11,19 +11,30 @@ ENGINE="${OPENFOAM_ENGINE:-docker}"             # docker or podman
 IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
 TAG="${OPENFOAM_TAG:-2406}"
 
+# Ensure files created are owned by current host user
 UIDGID_ARGS=(--user "$(id -u):$(id -g)")
 
-# Snippet: source ESI or Foundation bashrc. No 'set -e' here!
-SRC_OF='
-for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
-  if [ -r "$f" ]; then . "$f"; break; fi
-done
-'
+# Add after building the base args in of-run:
+RUN_ARGS=(
+  --user "$(id -u):$(id -g)"
+  -v "$PWD:/work" -w /work
+  --entrypoint /bin/bash
+)
+# Map ~/.inputrc globally for consistent vi keybindings (optional)
+if [ -f "$HOME/.inputrc" ]; then
+  RUN_ARGS+=(-v "$HOME/.inputrc:/etc/inputrc:ro")
+fi
 
-# Run "$@" after sourcing, preserving quoting
+
+# Run "$@" after (optionally) sourcing OpenFOAM env. The for-loop is inline; no empty leading ';'.
 exec "${ENGINE}" run --rm -t \
   "${UIDGID_ARGS[@]}" \
   -v "$PWD:/work" -w /work \
   --entrypoint /bin/bash \
   "${IMAGE}:${TAG}" \
-  -c 'cd /work; '"${SRC_OF}"'; "$@"' bash "$@"
+  -c 'cd /work
+      for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
+        if [ -r "$f" ]; then . "$f"; break; fi
+      done
+      "$@"' bash "$@"
+

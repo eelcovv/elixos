@@ -1,17 +1,38 @@
 #!/usr/bin/env bash
-# of-shell: open an interactive OpenFOAM-enabled shell inside the container.
+# of-shell: Open an interactive OpenFOAM-enabled shell inside the container.
+# - Mounts current host dir to /work and stays there
+# - Forces /bin/bash entrypoint (image won't reset your workdir)
+# - Sources ESI/Foundation OpenFOAM bashrc
+# - Enables readline vi-mode by mapping host ~/.inputrc -> /etc/inputrc (if present)
+# - Optionally maps host ~/.bashrc_openfoam -> /work/.bashrc and sets HOME=/work
+#   (keeps host-specific ~/.bashrc out of the container)
+
 set -euo pipefail
 
-ENGINE="${OPENFOAM_ENGINE:-docker}"
+ENGINE="${OPENFOAM_ENGINE:-docker}"             # docker or podman
 IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
 TAG="${OPENFOAM_TAG:-2406}"
 
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 
+# Stable mountpoint (/work) so we always start in the correct folder
 MOUNTS=(-v "$PWD:/work" -w /work)
 
-# Snippet: source ESI or Foundation bashrc. No 'set -e' here!
+# Map host ~/.inputrc globally to enable readline vi-mode inside the container
+if [ -f "$HOME/.inputrc" ]; then
+  MOUNTS+=(-v "$HOME/.inputrc:/etc/inputrc:ro")
+fi
+
+# If you have small, container-safe tweaks, put them in ~/.bashrc_openfoam on the host.
+# We'll mount it as /work/.bashrc and set HOME=/work so interactive shells read it.
+EXTRA_ENV=()
+if [ -f "$HOME/.bashrc_openfoam" ]; then
+  MOUNTS+=(-v "$HOME/.bashrc_openfoam:/work/.bashrc:ro")
+  EXTRA_ENV+=(-e HOME=/work)
+fi
+
+# Inline snippet to source OpenFOAM env (ESI or Foundation). No 'set -e' inside container!
 SRC_OF='
 for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
   if [ -r "$f" ]; then . "$f"; break; fi
@@ -21,7 +42,10 @@ done
 exec "${ENGINE}" run --rm -it \
   --user "${HOST_UID}:${HOST_GID}" \
   "${MOUNTS[@]}" \
+  "${EXTRA_ENV[@]}" \
   --entrypoint /bin/bash \
   "${IMAGE}:${TAG}" \
-  -c 'cd /work; '"${SRC_OF}"'; exec bash -i'
+  -c 'cd /work
+      '"${SRC_OF}"'
+      exec bash -i'
 
