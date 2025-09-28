@@ -171,17 +171,14 @@ in {
     systemd.user.services."waybar-managed" = {
       Unit = {
         Description = "Waybar (managed)";
-        After = ["graphical-session.target"];
-        PartOf = ["graphical-session.target"];
+        After = ["hyprland-session.target"];
+        PartOf = ["hyprland-session.target"];
       };
       Service = {
         Type = "simple";
         Environment = ["XDG_RUNTIME_DIR=%t"];
         ExecStartPre = ["${waitForWL}" "${pkgs.coreutils}/bin/sleep 0.25"];
-
-        # Use theme config via 'current' and CSS via 'active'
         ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/active/style.css";
-
         TimeoutStopSec = "2s";
         KillMode = "mixed";
         Restart = "on-failure";
@@ -189,15 +186,14 @@ in {
         StandardOutput = "journal";
         StandardError = "journal";
       };
-      Install.WantedBy = ["graphical-session.target"];
+      Install.WantedBy = ["hyprland-session.target"];
     };
 
-    # nm-applet (unchanged)
     systemd.user.services."nm-applet" = {
       Unit = {
         Description = "NetworkManager Applet";
-        After = ["graphical-session.target"];
-        PartOf = ["graphical-session.target"];
+        After = ["hyprland-session.target"];
+        PartOf = ["hyprland-session.target"];
       };
       Service = {
         ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
@@ -207,7 +203,7 @@ in {
         RestartSec = 1;
         Environment = ["XDG_RUNTIME_DIR=%t"];
       };
-      Install.WantedBy = ["graphical-session.target"];
+      Install.WantedBy = ["hyprland-session.target"];
     };
 
     gtk = {
