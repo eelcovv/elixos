@@ -14,8 +14,6 @@
     "$HOME/bin"
   ];
 
-  home-manager.backupFileExtension = "bak";
-
   home.packages = with pkgs; [
     htop
     wget
