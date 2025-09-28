@@ -20,8 +20,6 @@ This NixOS configuration module defines common system settings:
     lib/conditional-secrets.nix
   ];
 
-  home-manager.backupFileExtension = "bak";
-
   options = {
     globalSshClientUsers = lib.mkOption {
       type = lib.types.listOf lib.types.str;
