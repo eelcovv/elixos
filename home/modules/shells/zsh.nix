@@ -42,7 +42,7 @@ in {
       };
 
       initContent = ''
-        # Remember chosen prompt style at shell runtime
+        # Keep the chosen prompt style available in the shell session for later restoration
         export ZSH_PROMPT_STYLE="${lib.escapeShellArg cfg.promptStyle}"
 
         ${lib.optionalString (cfg.promptStyle == "powerlevel10k") ''
@@ -60,7 +60,7 @@ in {
         command -v fzf >/dev/null 2>&1 && source <(fzf --zsh)
         HISTFILE=~/.zsh_history; HISTSIZE=10000; SAVEHIST=10000; setopt appendhistory
 
-        # ---------- Universal OSC helpers (fallback for non-Kitty terminals) ----------
+        # ---------- Universal OSC helpers (fallback when not using Kitty) ----------
         _osc4_set() { printf '\033]4;%d;#%s\007' "$1" "$2"; }  # set ANSI color slot n to #RRGGBB
 
         panic-osc-theme() {
@@ -75,7 +75,7 @@ in {
         }
 
         reset-osc-theme() {
-          # Conservative defaults — pas aan naar je 'normale' look indien gewenst
+          # Restore conservative defaults — adjust these to your normal theme colors
           printf '\033]10;#d0d0d0\007'   # foreground
           printf '\033]11;#101010\007'   # background
           printf '\033]12;#d0d0d0\007'   # cursor
@@ -104,10 +104,10 @@ in {
         # ---------- Prompt switchers ----------
         _set_simple_prompt() {
           if command -v oh-my-posh >/dev/null 2>&1; then
-            # Paradox is vrij rustig/contrasterend
+            # "paradox" is simple and high-contrast
             eval "$(oh-my-posh init zsh --config 'paradox')"
           else
-            # Fallback naar een minimale p10k (indien aanwezig)
+            # Fallback to a minimal p10k if present
             if [ -f ~/.p10k.zsh ]; then
               source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
               source ~/.p10k.zsh
@@ -125,7 +125,7 @@ in {
               [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
               ;;
             *)
-              # oh-my-zsh classic themes (al via programs.zsh.oh-my-zsh.theme)
+              # oh-my-zsh classic themes are already handled via programs.zsh.oh-my-zsh.theme
               ;;
           esac
         }
@@ -134,50 +134,48 @@ in {
         panic-theme() {
           local applied=""
 
-          # 1) Prefer Kitty RC (instant, palette-level)
+          # 1) Prefer Kitty remote control (instant, palette level)
           if command -v kitty >/dev/null 2>&1 && { [ -n "$KITTY_LISTEN_ON" ] || [ "$TERM" = "xterm-kitty" ]; }; then
             kitty @ set-colors --all --configured "$HOME/.config/kitty/panic.conf" >/dev/null 2>&1 && applied="kitty"
           fi
 
-          # 2) Fallback: OSC (works in veel terminals inclusief Ghostty)
+          # 2) Fallback: OSC (works in many terminals, including Ghostty)
           if [ -z "$applied" ]; then
             panic-osc-theme
             applied="osc"
           fi
 
-          # 3) Prompt en highlighting veiliger maken
+          # 3) Make prompt and highlighting safer
           _set_simple_prompt
           _apply_safe_highlighting
 
-          print "✅ Panic theme applied (${applied}: high-contrast palette + safer prompt/highlighting)."
+          print "✅ Panic theme applied ($applied: high-contrast palette + safer prompt/highlighting)."
         }
 
         reset-theme() {
           local reset_by=""
 
-          # 1) Prefer Kitty RC terug naar je dynamische wallust/matugen kleuren
-          #    (colors-wallust.conf staat bij jou declaratief klaar)
+          # 1) Prefer Kitty reset back to your wallust/matugen theme
           if command -v kitty >/dev/null 2>&1 && { [ -n "$KITTY_LISTEN_ON" ] || [ "$TERM" = "xterm-kitty" ]; }; then
-            # Probeer eerst een live set-colors op jouw wallust file
             if kitty @ set-colors --all --configured "$HOME/.config/kitty/colors-wallust.conf" >/dev/null 2>&1; then
               reset_by="kitty"
             else
-              # Als RC faalt, val terug op themes-kitten of themeFile
+              # Fallback to themes kitten or the static themeFile
               kitty +kitten themes --reload-in=all "One Half Dark" >/dev/null 2>&1 && reset_by="kitty-kitten"
             fi
           fi
 
-          # 2) Fallback: herstel globale voorgrond/achtergrond via OSC
+          # 2) Fallback: restore via OSC
           if [ -z "$reset_by" ]; then
             reset-osc-theme
             reset_by="osc"
           fi
 
-          # 3) Herstel je normale prompt + (optioneel) highlighting terugzetten
+          # 3) Restore your normal prompt and clear highlighting overrides
           _restore_prompt
           _clear_safe_highlighting
 
-          print "↩️  Theme reset (${reset_by})."
+          print "↩️  Theme reset ($reset_by)."
         }
       '';
     };
