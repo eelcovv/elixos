@@ -26,6 +26,7 @@
   xdg.configFile."kitty/kitty.conf".source = ./kitty.conf;
   xdg.configFile."kitty/custom.conf".source = ./custom.conf;
   xdg.configFile."kitty/panic.conf".source = ./panic.conf;
+  xdg.configFile."kitty/opacity.conf".source = ./opacity.conf;
   xdg.configFile."kitty/colors-wallust.conf".source = ./colors-wallust.conf;
   xdg.configFile."kitty/settings/kitty-cursor-trail.conf".source = ./settings/kitty-cursor-trail.conf;
 }

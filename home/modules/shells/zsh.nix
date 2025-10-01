@@ -137,6 +137,8 @@ in {
           # 1) Prefer Kitty remote control (instant, palette level)
           if command -v kitty >/dev/null 2>&1 && { [ -n "$KITTY_LISTEN_ON" ] || [ "$TERM" = "xterm-kitty" ]; }; then
             kitty @ set-colors --all --configured "$HOME/.config/kitty/panic.conf" >/dev/null 2>&1 && applied="kitty"
+            # Force full opacity during panic
+            kitty @ set-background-opacity 1 >/dev/null 2>&1 || true
           fi
 
           # 2) Fallback: OSC (works in many terminals, including Ghostty)
@@ -163,6 +165,8 @@ in {
               # Fallback to themes kitten or the static themeFile
               kitty +kitten themes --reload-in=all "One Half Dark" >/dev/null 2>&1 && reset_by="kitty-kitten"
             fi
+            # Restore your normal semi-transparency
+            kitty @ set-background-opacity 0.7 >/dev/null 2>&1 || true
           fi
 
           # 2) Fallback: restore via OSC
