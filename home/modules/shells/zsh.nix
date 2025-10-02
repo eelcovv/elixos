@@ -136,7 +136,7 @@ in {
 
           # 1) Prefer Kitty remote control (instant, palette level)
           if command -v kitty >/dev/null 2>&1 && { [ -n "$KITTY_LISTEN_ON" ] || [ "$TERM" = "xterm-kitty" ]; }; then
-            kitty @ set-colors --all --configured "$HOME/.config/kitty/panic.conf" >/dev/null 2>&1 && applied="kitty"
+            kitty @ set-colors --all --configured "$HOME/.config/kitty/settings/panic.conf" >/dev/null 2>&1 && applied="kitty"
             # Force full opacity during panic
             kitty @ set-background-opacity 1 >/dev/null 2>&1 || true
           fi
