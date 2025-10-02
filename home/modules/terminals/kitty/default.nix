@@ -24,9 +24,9 @@
   # Note: colors-matugen.conf is *not* declared here;
   # it should be written by Matugen at runtime.
   xdg.configFile."kitty/kitty.conf".source = ./kitty.conf;
-  xdg.configFile."kitty/custom.conf".source = ./settings/custom.conf;
-  xdg.configFile."kitty/panic.conf".source = ./settings/panic.conf;
-  xdg.configFile."kitty/opacity.conf".source = ./settings/opacity.conf;
+  xdg.configFile."kitty/settings/custom.conf".source = ./settings/custom.conf;
+  xdg.configFile."kitty/settings/panic.conf".source = ./settings/panic.conf;
+  xdg.configFile."kitty/settings/opacity.conf".source = ./settings/opacity.conf;
   xdg.configFile."kitty/colors-wallust.conf".source = ./colors-wallust.conf;
   xdg.configFile."kitty/settings/kitty-cursor-trail.conf".source = ./settings/kitty-cursor-trail.conf;
 }
