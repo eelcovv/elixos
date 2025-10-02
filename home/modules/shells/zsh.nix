@@ -80,25 +80,46 @@ in {
           printf '\033]11;#101010\007'   # background
           printf '\033]12;#d0d0d0\007'   # cursor
         }
+        panic-toggle() {
+          if [ -n "$_PANIC_ACTIVE" ]; then
+            reset-theme
+            unset _PANIC_ACTIVE
+            print "🔄 Panic mode deactivated."
+          else
+            panic-theme
+            export _PANIC_ACTIVE=1
+            print "🔄 Panic mode activated."
+          fi
+        }
 
         # ---------- ZSH syntax-highlighting: safe styles for "panic" ----------
         _apply_safe_highlighting() {
+          # Recreate as a global associative array and fill with conservative styles
           typeset -gA ZSH_HIGHLIGHT_STYLES
+
+          # Only widely-supported keys and basic colors
           ZSH_HIGHLIGHT_STYLES[default]='fg=white'
           ZSH_HIGHLIGHT_STYLES[command]='fg=white,bold'
           ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=white,bold'
           ZSH_HIGHLIGHT_STYLES[builtin]='fg=white,bold'
           ZSH_HIGHLIGHT_STYLES[alias]='fg=white,bold'
-          ZSH_HIGHLIGHT_STYLES[path]='fg=brightwhite,underline'
-          ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=brightwhite'
-          ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=brightwhite'
-          ZSH_HIGHLIGHT_STYLES[globbing]='fg=brightwhite,bold'
-          ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=white'
-          ZSH_HIGHLIGHT_STYLES[comment]='fg=brightblack'
+
+          # Paths shown during e.g. `cd`
+          ZSH_HIGHLIGHT_STYLES[path]='fg=white,underline'
+
+          # Arguments / globs
+          ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=yellow'
+          ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=yellow'
+          ZSH_HIGHLIGHT_STYLES[globbing]='fg=cyan,bold'
+
+          # Comments
+          ZSH_HIGHLIGHT_STYLES[comment]='fg=blue'
         }
 
+        # Instead of `unset`, reinitialize to an empty associative array
         _clear_safe_highlighting() {
-          unset ZSH_HIGHLIGHT_STYLES
+          typeset -gA ZSH_HIGHLIGHT_STYLES
+          ZSH_HIGHLIGHT_STYLES=()
         }
 
         # ---------- Prompt switchers ----------
@@ -151,6 +172,10 @@ in {
           _set_simple_prompt
           _apply_safe_highlighting
 
+          # 4) Optional: high-contrast LS_COLORS for ls/eza (comment out if undesired)
+          export _PANIC_OLD_LS_COLORS="$LS_COLORS"
+          export LS_COLORS='di=01;34:ln=01;36:so=01;35:pi=33:ex=01;32:bd=01;33:cd=01;33:su=01;31:sg=01;31:tw=01;34:ow=01;34:'
+
           print "✅ Panic theme applied ($applied: high-contrast palette + safer prompt/highlighting)."
         }
 
@@ -159,11 +184,11 @@ in {
 
           # 1) Prefer Kitty reset back to your wallust/matugen theme
           if command -v kitty >/dev/null 2>&1 && { [ -n "$KITTY_LISTEN_ON" ] || [ "$TERM" = "xterm-kitty" ]; }; then
-            if kitty @ set-colors --all --configured "$HOME/.config/kitty/colors-wallust.conf" >/dev/null 2>&1; then
-              reset_by="kitty"
+            # Try matugen first, fall back to wallust
+            if [ -f "$HOME/.config/kitty/colors-matugen.conf" ]; then
+              kitty @ set-colors --all --configured "$HOME/.config/kitty/colors-matugen.conf" >/dev/null 2>&1 && reset_by="kitty"
             else
-              # Fallback to themes kitten or the static themeFile
-              kitty +kitten themes --reload-in=all "One Half Dark" >/dev/null 2>&1 && reset_by="kitty-kitten"
+              kitty @ set-colors --all --configured "$HOME/.config/kitty/colors-wallust.conf" >/dev/null 2>&1 && reset_by="kitty"
             fi
             # Restore your normal semi-transparency
             kitty @ set-background-opacity 0.7 >/dev/null 2>&1 || true
@@ -178,6 +203,12 @@ in {
           # 3) Restore your normal prompt and clear highlighting overrides
           _restore_prompt
           _clear_safe_highlighting
+
+          # 4) Restore previous LS_COLORS if we changed it
+          if [ -n "$_PANIC_OLD_LS_COLORS" ]; then
+            export LS_COLORS="$_PANIC_OLD_LS_COLORS"
+            unset _PANIC_OLD_LS_COLORS
+          fi
 
           print "↩️  Theme reset ($reset_by)."
         }
