@@ -1,10 +1,13 @@
+{ config, pkgs, lib, ... }:
+
+{
   xdg.desktopEntries = {
     hyprshot-screen = {
       name = "Hyprshot (Screen)";
       genericName = "Screenshot";
       comment = "Capture the entire monitor";
       exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh screen";
-      icon = "applets-screenshooter"; # fallback: "org.gnome.Screenshot"
+      icon = "applets-screenshooter";
       terminal = false;
       categories = [ "Utility" "Graphics" ];
     };
@@ -39,3 +42,5 @@
       categories = [ "Utility" "Graphics" ];
     };
   };
+}
+
