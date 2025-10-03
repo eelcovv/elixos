@@ -1,4 +1,3 @@
-# home/modules/engineering/default.nix
 {
   pkgs,
   lib,
