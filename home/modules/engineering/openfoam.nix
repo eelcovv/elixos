@@ -77,5 +77,12 @@ in {
       source = scriptsDir + "/mkfoam";
       executable = true;
     };
+    home.file.".local/bin/vscode-of-shell" = {
+      text = ''
+        #!/usr/bin/env bash
+        exec of-shell bash
+      '';
+      executable = true;
+    };
   };
 }
