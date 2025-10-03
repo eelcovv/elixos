@@ -12,7 +12,7 @@
   wallpaperTargetDir = "${config.xdg.configHome}/wallpapers";
   defaultWallpaper = "${wallpaperTargetDir}/default.png";
 
-  # Wait until Hyprland answers to hyprctl (revents early-start failures)
+  # Wait until Hyprland answers to hyprctl (prevents early-start failures)
   waitForHypr = pkgs.writeShellScript "wait-for-hypr" ''
     for i in $(seq 1 60); do
       if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then
@@ -27,6 +27,7 @@ in {
   imports = [
     ./waybar
     ./waypaper
+    ./xdg.desktopEntries.nix
   ];
 
   config = {
@@ -48,18 +49,14 @@ in {
       imagemagick # for fallback wallpaper creation
     ];
 
-    # ---------------------------
     # Hyprland user session target
-    # ---------------------------
     systemd.user.targets."hyprland-session" = {
       Unit = {
         Description = "Hyprland graphical session (user)";
       };
     };
 
-    # ---------------------------
     # Notifications (SwayNC)
-    # ---------------------------
     systemd.user.services."swaync" = {
       Unit = {
         Description = "SwayNotificationCenter";
@@ -74,9 +71,7 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    # -------------------------------------------------------
     # Ensure ~/.local/bin ends up in the systemd user PATH
-    # -------------------------------------------------------
     systemd.user.services."import-user-env" = {
       Unit = {
         Description = "Import PATH into systemd user environment";
@@ -93,17 +88,13 @@ in {
       Install = {WantedBy = ["default.target"];};
     };
 
-    # ---------------------------
     # Session environment
-    # ---------------------------
     home.sessionVariables = {
       WALLPAPER_DIR = wallpaperTargetDir;
       SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/keyring/ssh";
     };
 
-    # ---------------------------
     # Hyprland config files
-    # ---------------------------
     xdg.configFile."hypr/hyprland.conf".source = "${hyprDir}/hyprland.conf";
     xdg.configFile."hypr/hyprlock.conf".source = "${hyprDir}/hyprlock.conf";
     xdg.configFile."hypr/hypridle.conf".source = "${hyprDir}/hypridle.conf";
@@ -120,9 +111,7 @@ in {
       fi
     '';
 
-    # ---------------------------
     # Display watcher utilities
-    # ---------------------------
     home.file.".local/bin/hypr-switch-displays" = {
       source = "${scriptsDir}/hypr-switch-displays.sh";
       executable = true;
@@ -152,9 +141,7 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    # ---------------------------
     # Hyprpaper: single wallpaper manager (daemon)
-    # ---------------------------
     xdg.configFile."hypr/hyprpaper.conf".text = ''
       ipc = on
       splash = false
@@ -190,9 +177,7 @@ in {
       Install = {WantedBy = ["hyprland-session.target"];};
     };
 
-    # ---------------------------
     # Cleanup legacy wallpaper timers
-    # ---------------------------
     home.activation.purgeLegacyWallpaperUnits = lib.hm.dag.entryAfter ["reloadSystemd"] ''
       systemctl --user stop    waypaper-random.service 2>/dev/null || true
       systemctl --user stop    waypaper-random.timer   2>/dev/null || true
