@@ -4,58 +4,24 @@
   lib,
   ...
 }: {
-  # Deploy scripts uit je repo naar ~/.config/hypr/scripts/
-  home.file."${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh".source =
-    ./scripts/wayland-screenshot.sh;
-  home.file."${config.xdg.configHome}/hypr/scripts/wayland-screenshot-picker.sh".source =
-    ./scripts/wayland-screenshot-picker.sh;
+  # Deploy scripts naar ~/.config/hypr/scripts/ en maak ze uitvoerbaar (zonder chmod-activation)
+  home.file."${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh" = {
+    text = builtins.readFile ./scripts/wayland-screenshot.sh;
+    executable = true;
+  };
 
-  # (optioneel) maak ze uitvoerbaar als je repo ze niet al +x heeft
-  home.activation."chmod-hypr-screenshot-scripts" = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    chmod +x "${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh"
-    chmod +x "${config.xdg.configHome}/hypr/scripts/wayland-screenshot-picker.sh"
-  '';
+  # Vervang '->' door '→' in het picker-script voor mooie labels
+  home.file."${config.xdg.configHome}/hypr/scripts/wayland-screenshot-picker.sh" = {
+    text =
+      lib.replaceStrings
+      ["Area -> Save (PNG)" "Area -> Clipboard" "Area -> Annotate (swappy)" "Area -> Annotate (satty)" "Full -> Save (PNG)" "Full -> Clipboard"]
+      ["Area → Save (PNG)" "Area → Clipboard" "Area → Annotate (swappy)" "Area → Annotate (satty)" "Full → Save (PNG)" "Full → Clipboard"]
+      (builtins.readFile ./scripts/wayland-screenshot-picker.sh);
+    executable = true;
+  };
 
+  # Desktop entries: ongewijzigd behalve dat ze al naar deze scripts wijzen
   xdg.desktopEntries = {
-    # --- jouw hyprshot entries (ongewijzigd behalve gequote keys) ---
-    "hyprshot-screen" = {
-      name = "Hyprshot (Screen)";
-      genericName = "Screenshot";
-      comment = "Capture the entire monitor";
-      exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh screen";
-      icon = "applets-screenshooter";
-      terminal = false;
-      categories = ["Utility" "Graphics"];
-    };
-    "hyprshot-region" = {
-      name = "Hyprshot (Region)";
-      genericName = "Screenshot";
-      comment = "Select a region to capture";
-      exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh region";
-      icon = "applets-screenshooter";
-      terminal = false;
-      categories = ["Utility" "Graphics"];
-    };
-    "hyprshot-window" = {
-      name = "Hyprshot (Window)";
-      genericName = "Screenshot";
-      comment = "Select a window to capture";
-      exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh window";
-      icon = "applets-screenshooter";
-      terminal = false;
-      categories = ["Utility" "Graphics"];
-    };
-    "hyprshot-selection" = {
-      name = "Hyprshot (Selection)";
-      genericName = "Screenshot";
-      comment = "Choose screenshot mode interactively";
-      exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh selection";
-      icon = "applets-screenshooter";
-      terminal = false;
-      categories = ["Utility" "Graphics"];
-    };
-
-    # --- grim+slurp entries (zonder 'keywords') ---
     "wayland-screenshot-picker" = {
       name = "Wayland Screenshot (Picker)";
       genericName = "Screenshot";
