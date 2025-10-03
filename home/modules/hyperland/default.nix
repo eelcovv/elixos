@@ -125,6 +125,14 @@ in {
       source = "${scriptsDir}/hyprshot-launcher.sh";
       executable = true;
     };
+    home.file.".local/bin/wayland-screenshot" = {
+      source = "${scriptsDir}/wayland-screenshot.sh";
+      executable = true;
+    };
+    home.file.".local/bin/wayland-screenshot-picker" = {
+      source = "${scriptsDir}/wayland-screenshot-picker.sh";
+      executable = true;
+    };
 
     # Expose calculator script from ./scripts to ~/.local/bin
     home.file.".local/bin/calculator" = {
