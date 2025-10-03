@@ -1,101 +1,23 @@
-{ config, pkgs, lib, ... }:
-let
-  waylandScreenshot = pkgs.writeShellApplication {
-    name = "wayland-screenshot";
-    runtimeInputs = with pkgs; [ grim slurp wl-clipboard swappy satty ];
-    text = ''
-      #!/usr/bin/env bash
-      set -euo pipefail
-
-      DIR="${SCREENSHOT_DIR:-$HOME/Pictures/Screenshots}"
-      mkdir -p "$DIR"
-
-      timestamp() { date +'%Y-%m-%d_%H-%M-%S'; }
-      file_png="$DIR/screenshot_$(timestamp).png"
-
-      notify() {
-        command -v notify-send >/dev/null 2>&1 || return 0
-        notify-send -a "Screenshot" "$1" "$2" || true
-      }
-
-      cmd="${1:-}"
-      case "$cmd" in
-        area-save)
-          grim -g "$(slurp)" "$file_png"
-          notify "Saved" "$file_png"
-          echo "$file_png"
-          ;;
-        area-clipboard)
-          grim -g "$(slurp)" - | wl-copy --type image/png
-          notify "Copied to clipboard" "Selection captured"
-          ;;
-        area-annotate)
-          grim -g "$(slurp)" - | swappy -f -
-          ;;
-        area-annotate-satty)
-          if command -v satty >/dev/null 2>&1; then
-            grim -g "$(slurp)" - | satty -f - --copy-command wl-copy
-          else
-            grim -g "$(slurp)" - | swappy -f -
-          fi
-          ;;
-        full-save)
-          grim "$file_png"
-          notify "Saved" "$file_png"
-          echo "$file_png"
-          ;;
-        full-clipboard)
-          grim - | wl-copy --type image/png
-          notify "Copied to clipboard" "Full screen captured"
-          ;;
-        *)
-          echo "Usage: $0 {area-save|area-clipboard|area-annotate|area-annotate-satty|full-save|full-clipboard}" >&2
-          exit 2
-          ;;
-      esac
-    '';
-  };
-
-  screenshotPicker = pkgs.writeShellApplication {
-    name = "screenshot-picker";
-    runtimeInputs = with pkgs; [ rofi wofi waylandScreenshot ];
-    text = ''
-      #!/usr/bin/env bash
-      set -euo pipefail
-
-      PICKER=""
-      if command -v rofi >/dev/null 2>&1; then
-        PICKER="rofi -dmenu -p Screenshot"
-      elif command -v wofi >/dev/null 2>&1; then
-        PICKER="wofi --dmenu -p Screenshot"
-      else
-        echo "No rofi/wofi found." >&2
-        exit 1
-      fi
-
-      options=(
-        "Area -> Save (PNG):::wayland-screenshot area-save"
-        "Area -> Clipboard:::wayland-screenshot area-clipboard"
-        "Area -> Annotate (swappy):::wayland-screenshot area-annotate"
-        "Area -> Annotate (satty):::wayland-screenshot area-annotate-satty"
-        "Full -> Save (PNG):::wayland-screenshot full-save"
-        "Full -> Clipboard:::wayland-screenshot full-clipboard"
-      )
-
-      label_list=$(printf '%s\n' "${options[@]}" | cut -d':::' -f1)
-      choice=$(echo "$label_list" | eval "$PICKER") || exit 0
-      cmd=$(printf '%s\n' "${options[@]}" | grep -F "$choice" | head -n1 | cut -d':::' -f2-)
-      exec bash -lc "$cmd"
-    '';
-  };
-in
 {
-  home.packages = with pkgs; [
-    grim slurp wl-clipboard swappy satty rofi wofi
-  ];
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
+  # Deploy scripts uit je repo naar ~/.config/hypr/scripts/
+  home.file."${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh".source =
+    ./scripts/wayland-screenshot.sh;
+  home.file."${config.xdg.configHome}/hypr/scripts/wayland-screenshot-picker.sh".source =
+    ./scripts/wayland-screenshot-picker.sh;
+
+  # (optioneel) maak ze uitvoerbaar als je repo ze niet al +x heeft
+  home.activation."chmod-hypr-screenshot-scripts" = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    chmod +x "${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh"
+    chmod +x "${config.xdg.configHome}/hypr/scripts/wayland-screenshot-picker.sh"
+  '';
 
   xdg.desktopEntries = {
-    # Bestaande hyprshot-entries — let op: keys met '-' nu gequote
+    # --- jouw hyprshot entries (ongewijzigd behalve gequote keys) ---
     "hyprshot-screen" = {
       name = "Hyprshot (Screen)";
       genericName = "Screenshot";
@@ -103,9 +25,8 @@ in
       exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh screen";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Utility" "Graphics" ];
+      categories = ["Utility" "Graphics"];
     };
-
     "hyprshot-region" = {
       name = "Hyprshot (Region)";
       genericName = "Screenshot";
@@ -113,9 +34,8 @@ in
       exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh region";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Utility" "Graphics" ];
+      categories = ["Utility" "Graphics"];
     };
-
     "hyprshot-window" = {
       name = "Hyprshot (Window)";
       genericName = "Screenshot";
@@ -123,9 +43,8 @@ in
       exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh window";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Utility" "Graphics" ];
+      categories = ["Utility" "Graphics"];
     };
-
     "hyprshot-selection" = {
       name = "Hyprshot (Selection)";
       genericName = "Screenshot";
@@ -133,74 +52,66 @@ in
       exec = "${config.xdg.configHome}/hypr/scripts/hyprshot-launcher.sh selection";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Utility" "Graphics" ];
+      categories = ["Utility" "Graphics"];
     };
 
-    # Nieuwe grim+slurp entries — keys gequote
+    # --- grim+slurp entries (zonder 'keywords') ---
     "wayland-screenshot-picker" = {
       name = "Wayland Screenshot (Picker)";
       genericName = "Screenshot";
       comment = "Capture screenshots via grim+slurp (picker)";
-      exec = "${screenshotPicker}/bin/screenshot-picker";
+      exec = "${config.xdg.configHome}/hypr/scripts/wayland-screenshot-picker.sh";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Graphics" "Utility" ];
-      keywords = [ "screenshot" "screen" "capture" "wayland" "grim" "slurp" ];
+      categories = ["Graphics" "Utility"];
     };
-
     "wayland-screenshot-area-clipboard" = {
       name = "Screenshot (Area -> Clipboard)";
       comment = "Capture a region to clipboard";
-      exec = "${waylandScreenshot}/bin/wayland-screenshot area-clipboard";
+      exec = "${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh area-clipboard";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Graphics" "Utility" ];
+      categories = ["Graphics" "Utility"];
     };
-
     "wayland-screenshot-area-save" = {
       name = "Screenshot (Area -> Save)";
       comment = "Capture a region and save as PNG";
-      exec = "${waylandScreenshot}/bin/wayland-screenshot area-save";
+      exec = "${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh area-save";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Graphics" "Utility" ];
+      categories = ["Graphics" "Utility"];
     };
-
     "wayland-screenshot-area-annotate" = {
       name = "Screenshot (Area -> Annotate, swappy)";
       comment = "Capture a region and annotate with swappy";
-      exec = "${waylandScreenshot}/bin/wayland-screenshot area-annotate";
+      exec = "${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh area-annotate";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Graphics" "Utility" ];
+      categories = ["Graphics" "Utility"];
     };
-
     "wayland-screenshot-area-annotate-satty" = {
       name = "Screenshot (Area -> Annotate, satty)";
       comment = "Capture a region and annotate with satty";
-      exec = "${waylandScreenshot}/bin/wayland-screenshot area-annotate-satty";
+      exec = "${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh area-annotate-satty";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Graphics" "Utility" ];
+      categories = ["Graphics" "Utility"];
     };
-
     "wayland-screenshot-full-save" = {
       name = "Screenshot (Full -> Save)";
       comment = "Capture the full screen and save as PNG";
-      exec = "${waylandScreenshot}/bin/wayland-screenshot full-save";
+      exec = "${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh full-save";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Graphics" "Utility" ];
+      categories = ["Graphics" "Utility"];
     };
-
     "wayland-screenshot-full-clipboard" = {
       name = "Screenshot (Full -> Clipboard)";
       comment = "Capture the full screen to clipboard";
-      exec = "${waylandScreenshot}/bin/wayland-screenshot full-clipboard";
+      exec = "${config.xdg.configHome}/hypr/scripts/wayland-screenshot.sh full-clipboard";
       icon = "applets-screenshooter";
       terminal = false;
-      categories = [ "Graphics" "Utility" ];
+      categories = ["Graphics" "Utility"];
     };
   };
 }
-
