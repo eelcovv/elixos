@@ -117,7 +117,12 @@ in {
       executable = true;
     };
     home.file.".local/bin/hypr-display-watcher" = {
-      text = builtins.readFile ./scripts/hypr-display-watcher.sh;
+      source = "${scriptsDir}/hypr-display-watcher.sh";
+      executable = true;
+    };
+
+    home.file.".local/bin/hyprshot-launcher" = {
+      source = "${scriptsDir}/hyprshot-launcher.sh";
       executable = true;
     };
 
