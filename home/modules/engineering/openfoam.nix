@@ -77,6 +77,10 @@ in {
       source = scriptsDir + "/mkfoam";
       executable = true;
     };
+    home.file.".local/bin/foamMPI" = {
+      source = scriptsDir + "/foamMPI";
+      executable = true;
+    };
     home.file.".local/bin/vscode-of-shell" = {
       text = ''
         #!/usr/bin/env bash
