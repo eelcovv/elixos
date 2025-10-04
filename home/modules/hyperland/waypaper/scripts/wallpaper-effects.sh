@@ -1,51 +1,79 @@
 #!/usr/bin/env bash
+# Menu to pick an effect keyword, persist it to effect.conf, and apply immediately.
+
 set -euo pipefail
-HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"; [[ -r "$HELPER" ]] && source "$HELPER" || true
-notify(){ type notify >/dev/null 2>&1 || { notify(){ printf '%s: %s\n' "wallpaper-effects" "$*"; }; }; notify "$@"; }
 
-effects_dir="$HOME/.config/hypr/effects/wallpaper"
-effect_file="$HOME/.config/hypr/settings/wallpaper-effect.sh"
-cache_file="$HOME/.cache/hyprlock-assets/current_wallpaper"
-rofi_config="${ROFI_CONFIG:-$HOME/.config/rofi/config.rasi}"
+CONF="$HOME/.config/hypr/settings/effect.conf"
+EFFECTS_DIR="$HOME/.config/hypr/effects/wallpaper"
+CACHE_FILE="$HOME/.cache/hyprlock-assets/current_wallpaper"
 
-apply_current() {
-  local wp
-  if [[ -f "$cache_file" ]]; then
-    wp="$(sed 's|~|'"$HOME"'|g' "$cache_file")"
-    exec "$HOME/.local/bin/wallpaper.sh" "$wp"
+# Ensure dirs exist
+mkdir -p "$(dirname "$CONF")"
+
+# Collect available effects = filenames under $EFFECTS_DIR plus "off"
+declare -a choices
+choices=("off")
+if [[ -d "$EFFECTS_DIR" ]]; then
+  while IFS= read -r -d '' f; do
+    base="$(basename "$f")"
+    choices+=("$base")
+  done < <(find "$EFFECTS_DIR" -maxdepth 1 -type f -perm -u=x -print0 2>/dev/null)
+fi
+
+# Current effect (from conf if present)
+current="off"
+if [[ -r "$CONF" ]]; then
+  current="$(tr -d '\r' < "$CONF" | awk 'NF{print $1; exit}')"
+fi
+
+# Build menu with [current] tag
+declare -a labels
+for c in "${choices[@]}"; do
+  lab="$c"
+  [[ "$c" == "$current" ]] && lab="$lab  [current]"
+  labels+=("$lab")
+done
+
+pick_menu() {
+  if command -v rofi >/dev/null 2>&1; then
+    printf '%s\n' "${labels[@]}" | rofi -dmenu -i -no-show-icons -p "Effect" -l 15
+  elif command -v wofi >/dev/null 2>&1; then
+    printf '%s\n' "${labels[@]}" | wofi --dmenu --prompt "Effect" --allow-markup
   else
-    exit 0
+    printf '%s\n' "${labels[@]}" | fzf --prompt="Effect> " || true
   fi
 }
 
-if [[ $# -gt 0 ]]; then
-  arg="$1"; [[ "$arg" == ~* ]] && arg="${arg/#\~/$HOME}"
-  if [[ -f "$arg" ]] && echo "$arg" | grep -Eiq '\.(png|jpg|webp)$'; then
-    printf '%s\n' "$arg" > "$cache_file"; exec "$HOME/.local/bin/wallpaper.sh" "$arg"
-  fi
-  case "$arg" in
-    none|off|disable) printf 'off\n' > "$effect_file"; apply_current ;;
-    reload)           apply_current ;;
-    *) if [[ -r "$effects_dir/$arg" ]]; then printf '%s\n' "$arg" > "$effect_file"; apply_current
-       else notify "Unknown effect '$arg'"; exit 2; fi ;;
-  esac
-  exit 0
-fi
-
-mapfile -t options < <( { printf 'None (no effect)\n'; ls -1 "$effects_dir" 2>/dev/null; } | sed '/^\s*$/d' | sort -f )
-current="off"; [[ -f "$effect_file" ]] && current="$(<"$effect_file")"
-
-annotated=(); for opt in "${options[@]}"; do val="$opt"; [[ "$opt" == "None (no effect)" ]] && val="off"
-  label="$opt"; [[ "$val" == "$current" ]] && label="$label  [current]"; annotated+=("$label"); done
-
-if command -v rofi >/dev/null 2>&1; then
-  choice="$(printf '%s\n' "${annotated[@]}" | rofi -dmenu -i -no-show-icons -l 12 -p "Effect" -config "$rofi_config")"
-elif command -v wofi >/dev/null 2>&1; then
-  choice="$(printf '%s\n' "${annotated[@]}" | wofi --dmenu --prompt "Effect" --allow-markup)"
-else
-  choice="$(printf '%s\n' "${annotated[@]}" | fzf --prompt="Effect> " || true)"
-fi
+choice="$(pick_menu)"
 [[ -n "${choice:-}" ]] || exit 0
-choice="${choice%%  [current]*}"; new="$choice"; [[ "$choice" == "None (no effect)" ]] && new="off"
-printf '%s\n' "$new" > "$effect_file"; apply_current
+choice="${choice%%  [current]*}"
+
+# Validate choice (must be "off" or an executable file under EFFECTS_DIR)
+if [[ "$choice" != "off" ]]; then
+  if [[ ! -x "$EFFECTS_DIR/$choice" ]]; then
+    printf 'Effect script not found or not executable: %s\n' "$EFFECTS_DIR/$choice" >&2
+    exit 1
+  fi
+fi
+
+# Persist to effect.conf (single keyword)
+printf '%s\n' "$choice" > "$CONF"
+
+# Apply immediately to current wallpaper (if we have one)
+if [[ -r "$CACHE_FILE" ]]; then
+  img="$(<"$CACHE_FILE")"
+  [[ "$img" == ~* ]] && img="${img/#\~/$HOME}"
+  if [[ -f "$img" ]]; then
+    # Call pipeline with explicit override so we see effect right away
+    QUIET=0 "$HOME/.local/bin/wallpaper.sh" --image "$img" --effect "$choice" --verbose || true
+    exit 0
+  fi
+fi
+
+# No current image → just notify
+if command -v notify-send >/dev/null 2>&1; then
+  notify-send "Wallpaper effect set" "$choice"
+else
+  printf 'Wallpaper effect set: %s\n' "$choice"
+fi
 

@@ -72,7 +72,17 @@ in {
       }
     ];
 
-    xdg.configFile."hypr/settings/effect.conf".text = "off\n";
+    # English comments inside the code block
+    home.activation.ensureEffectConf = lib.hm.dag.entryAfter ["linkGeneration"] ''
+      set -euo pipefail
+      CONF="$HOME/.config/hypr/settings/effect.conf"
+      if [ ! -e "$CONF" ]; then
+        mkdir -p "$(dirname "$CONF")"
+        echo off > "$CONF"
+        chmod 0644 "$CONF"
+      fi
+    '';
+
     xdg.configFile."hypr/settings/blur.sh".text = "50x30\n";
     xdg.configFile."hypr/settings/wallpaper-automation.sh".text = "300\n";
 
