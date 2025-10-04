@@ -15,6 +15,7 @@
     blender
     meshlab
     gmsh
+    gnuplot
     freecad-wayland
     gsettings-desktop-schemas
     hicolor-icon-theme
