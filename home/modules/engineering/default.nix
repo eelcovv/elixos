@@ -14,6 +14,7 @@
   home.packages = with pkgs; [
     blender
     meshlab
+    gmsh
     freecad-wayland
     gsettings-desktop-schemas
     hicolor-icon-theme

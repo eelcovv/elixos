@@ -1,3 +1,4 @@
+# English comments inside the code block
 {
   config,
   pkgs,
@@ -20,26 +21,18 @@ in {
   imports = [./fetcher.nix];
 
   options = {
-    hyprland.wallpaper = {
-      enable = lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
-
-      random = {
-        enable = lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
-        intervalSeconds = lib.mkOption {
-          type = lib.types.int;
-          default = 3600;
-          description = "Interval (seconds) for the random wallpaper timer.";
-        };
-      };
-
-      fetch = {
-        enable = lib.mkEnableOption "Enable periodic wallpaper fetching (handled centrally)";
-        onCalendar = lib.mkOption {
-          type = lib.types.str;
-          default = "weekly";
-          description = "systemd OnCalendar schedule used by the central fetcher.";
-        };
-      };
+    hyprland.wallpaper.enable = lib.mkEnableOption "Enable Hyprland wallpaper tools (Waypaper + helpers)";
+    hyprland.wallpaper.random.enable = lib.mkEnableOption "Rotate wallpapers randomly via a systemd timer";
+    hyprland.wallpaper.random.intervalSeconds = lib.mkOption {
+      type = lib.types.int;
+      default = 3600;
+      description = "Interval (seconds) for the random wallpaper timer.";
+    };
+    hyprland.wallpaper.fetch.enable = lib.mkEnableOption "Enable periodic wallpaper fetching (handled centrally)";
+    hyprland.wallpaper.fetch.onCalendar = lib.mkOption {
+      type = lib.types.str;
+      default = "weekly";
+      description = "systemd OnCalendar schedule used by the central fetcher.";
     };
   };
 
@@ -47,7 +40,6 @@ in {
     # Avoid starting/restarting user services during HM switch (keeps activation snappy)
     systemd.user.startServices = false;
 
-    # Runtime tools used by your wallpaper helpers
     home.packages =
       (with pkgs; [
         waypaper
@@ -63,7 +55,7 @@ in {
       ])
       ++ lib.optionals (pkgs ? pywalfox) [pkgs.pywalfox];
 
-    # 1) Install helper scripts into ~/.local/bin (executable)
+    # Helper scripts
     home.file = lib.mkMerge [
       (installScript "wallpaper.sh")
       (installScript "wallpaper-restore.sh")
@@ -80,54 +72,27 @@ in {
       }
     ];
 
-    # 2) Deliver settings declaratively (no seeding-by-running)
-    #    - wallpaper-effect.sh: safe no-op placeholder, executable
-    #    - blur.sh / wallpaper-automation.sh: plain text config (non-exec)
-    xdg.configFile."hypr/settings/wallpaper-effect.sh" = {
-      text = ''
-        #!/usr/bin/env sh
-        # Hyprland wallpaper effect placeholder; intentionally a no-op.
-        exit 0
-      '';
-      executable = true;
-    };
-
+    xdg.configFile."hypr/settings/effect.conf".text = "off\n";
     xdg.configFile."hypr/settings/blur.sh".text = "50x30\n";
     xdg.configFile."hypr/settings/wallpaper-automation.sh".text = "300\n";
 
-    # 3) Create cache file if missing (runtime file; do not manage declaratively)
+    # Create runtime cache file
     home.activation.ensureWallpaperCache = lib.hm.dag.entryAfter ["linkGeneration"] ''
       set -eu
       S="$HOME/.config/hypr/settings"
       mkdir -p "$S"
-      if [ ! -e "$S/wallpaper_cache" ]; then
-        : > "$S/wallpaper_cache"
-        chmod 0644 "$S/wallpaper_cache"
-      fi
+      [ -e "$S/wallpaper_cache" ] || : > "$S/wallpaper_cache"
+      chmod 0644 "$S/wallpaper_cache"
     '';
 
-    # 4) Optional: call effect script only if present and executable (non-fatal)
-    home.activation.ensureWallpaperEffectGuard = lib.hm.dag.entryAfter ["linkGeneration"] ''
-      S="$HOME/.config/hypr/settings/wallpaper-effect.sh"
-      if [ -x "$S" ]; then
-        "$S" || true
-      fi
-    '';
+    # Remove the old "ensureWallpaperEffectGuard" hook; not needed anymore.
 
-    # 5) Set a random wallpaper once at session start (guarded; non-fatal)
+    # Initial random at session start; avoid hard PartOf=hyprland-session.target to prevent cycles
     systemd.user.services."wallpaper-initial-random" = {
       Unit = {
         Description = "Set a random wallpaper at session start";
-        After = ["hyprpaper.service" "hyprland-session.target"];
-        PartOf = ["hyprland-session.target"];
-        Requires = ["hyprpaper.service"];
-
-        # One executable check, multiple path-exists globs
-        ConditionPathIsExecutable = "%h/.local/bin/wallpaper-random.sh";
-        ConditionPathExistsGlob = [
-          wallpaperGlob # %h/.config/wallpapers/*.{png,jpg,jpeg,webp,...}
-          "%t/hypr/*" # Hyprland runtime socket present
-        ];
+        After = ["graphical-session.target" "hyprpaper.service"];
+        Wants = ["graphical-session.target"];
       };
       Service = {
         Type = "oneshot";
@@ -137,21 +102,15 @@ in {
         ];
         ExecStart = "/bin/sh -lc '%h/.local/bin/wallpaper-random.sh || true'";
       };
-      Install.WantedBy = ["hyprland-session.target"];
+      Install.WantedBy = ["default.target"];
     };
 
-    # 6) Periodic rotation (guarded; non-fatal)
+    # Periodic rotation; no PartOf, no Conditions (we guard inside the script)
     systemd.user.services."wallpaper-rotate" = {
       Unit = {
         Description = "Rotate wallpaper periodically";
-        PartOf = ["hyprland-session.target"];
-        After = ["hyprpaper.service"];
-
-        ConditionPathIsExecutable = "%h/.local/bin/wallpaper-random.sh";
-        ConditionPathExistsGlob = [
-          wallpaperGlob
-          "%t/hypr/*"
-        ];
+        After = ["graphical-session.target" "hyprpaper.service"];
+        Wants = ["graphical-session.target"];
       };
       Service = {
         Type = "oneshot";
@@ -161,10 +120,10 @@ in {
         ];
         ExecStart = "/bin/sh -lc '%h/.local/bin/wallpaper-random.sh || true'";
       };
-      Install.WantedBy = ["hyprland-session.target"];
+      Install.WantedBy = ["default.target"];
     };
 
-    # 7) Timer uses your option (random.intervalSeconds)
+    # Timer only under timers.target (avoid tying it to hyprland targets → less cycles)
     systemd.user.timers."wallpaper-rotate" = {
       Unit.Description = "Timer for wallpaper rotation";
       Timer = {
@@ -172,11 +131,11 @@ in {
         OnUnitActiveSec = "${toString config.hyprland.wallpaper.random.intervalSeconds}s";
         Unit = "wallpaper-rotate.service";
         AccuracySec = "30s";
+        Persistent = true;
       };
-      Install.WantedBy = ["timers.target" "hyprland-session.target"];
+      Install.WantedBy = ["timers.target"];
     };
 
-    # Make sure ~/.local/bin is in PATH for your helper scripts
     home.sessionPath = lib.mkAfter ["$HOME/.local/bin"];
   };
 }

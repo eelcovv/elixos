@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
-# Apply a wallpaper (optionally with effect), generate previews,
-# and run theming tools. Uses 'notify' from helper-functions.sh.
+# Apply a wallpaper, optional effect, then theming.
+# English comments inside the code block.
 set -euo pipefail
 
 : "${QUIET:=0}"
 
-# --- single-run lock (prevents overlap) ---
+# --- single-run lock ---
 lockfile="/tmp/wallpaper.sh.lock"
 exec 99>"$lockfile"
 flock -n 99 || exit 0
 
 # ---------- Helper + fallback notify ----------
 HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"
-if [[ -r "$HELPER" ]]; then
-  # shellcheck disable=SC1090
-  source "$HELPER" || true
-fi
+if [[ -r "$HELPER" ]]; then source "$HELPER" || true; fi
 if [[ "$(type -t notify 2>/dev/null)" != "function" ]]; then
   notify() {
     local title="$1"; shift
@@ -39,15 +36,12 @@ _waitForHypr() {
 
 # ---------- Paths & settings ----------
 settings_dir="$HOME/.config/hypr/settings"
-effects_dir="$HOME/.config/hypr/effects/wallpaper"
+effects_dir="$HOME/.config/hypr/effects/wallpaper"  # effect scripts live here
 
 hypr_cache_folder="$HOME/.cache/hyprlock-assets"
 mkdir -p "$hypr_cache_folder"
-
 generatedversions="$hypr_cache_folder/wallpaper-generated"
 mkdir -p "$generatedversions"
-
-# NOTE: removed the old waypaperrunning guard
 
 force_generate=0
 cachefile="$hypr_cache_folder/current_wallpaper"
@@ -57,10 +51,10 @@ squarewallpaper="$hypr_cache_folder/square_wallpaper.png"
 rasifile="$hypr_cache_folder/current_wallpaper.rasi"
 
 blurfile="$settings_dir/blur.sh"
-effectfile="$settings_dir/wallpaper-effect.sh"
+effectconf="$settings_dir/effect.conf"
 defaultwallpaper="$HOME/.config/wallpapers/default.png"
 
-# Cache toggle via presence file
+# Cache toggle
 use_cache=0
 if [[ -f "$settings_dir/wallpaper_cache" ]]; then
   use_cache=1; notify "Wallpaper" "Cache enabled"
@@ -72,12 +66,28 @@ fi
 blur="50x30"
 [[ -f "$blurfile" ]] && blur="$(<"$blurfile")"
 
+# ---------- CLI: allow explicit --image/--effect ----------
+IMG=""
+EFFECT="${WALLPAPER_EFFECT:-}"  # env override optional
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --image)  IMG="$2"; shift 2 ;;
+    --effect) EFFECT="$2"; shift 2 ;;
+    --verbose) QUIET="0"; shift ;;
+    -h|--help)
+      echo "Usage: $(basename "$0") --image /abs/path [--effect KEYWORD] [--verbose]"; exit 2 ;;
+    *)  # Backward-compatible: single arg is image path
+      [[ -z "$IMG" ]] && IMG="$1" || true; shift ;;
+  esac
+done
+
 # ---------- Determine source wallpaper ----------
-if [[ "${1:-}" == "" ]]; then
+if [[ -z "${IMG:-}" ]]; then
   wallpaper="$defaultwallpaper"
   [[ -f "$cachefile" ]] && wallpaper="$(<"$cachefile")"
 else
-  wallpaper="$1"
+  wallpaper="$IMG"
 fi
 [[ "$wallpaper" == ~* ]] && wallpaper="${wallpaper/#\~/$HOME}"
 echo "$wallpaper" > "$cachefile"
@@ -85,32 +95,44 @@ tmpwallpaper="$wallpaper"
 wallpaperfilename="$(basename "$wallpaper")"
 notify "Wallpaper" "Source: $wallpaperfilename"
 
-# ---------- Read & validate effect (always initialise!) ----------
-effect="off"
-[[ -f "$effectfile" ]] && effect="$(<"$effectfile")"
-[[ "$effect" == ~* ]] && effect="${effect/#\~/$HOME}"
-if [[ "$effect" != "off" && ! -r "$effects_dir/$effect" ]]; then
-  notify "Effect" "Invalid effect '$effect' → using off"
-  effect="off"
+# ---------- Determine effect keyword safely ----------
+# Priority: CLI --effect > env WALLPAPER_EFFECT > effect.conf > "off"
+if [[ -z "$EFFECT" && -r "$effectconf" ]]; then
+  # read first non-empty token; ignore trailing comments/lines
+  EFFECT="$(tr -d '\r' < "$effectconf" | awk 'NF{print $1; exit}')"
 fi
+EFFECT="${EFFECT:-off}"
 
-# ---------- Apply effect (if any) ----------
+# Normalize to whitelist
+case "$EFFECT" in
+  off|none|blur|pixelate|dim|mono) : ;;
+  *) notify "Effect" "Invalid effect '$EFFECT' → using off"; EFFECT="off" ;;
+esac
+
+# ---------- Apply effect (by keyword → optional script) ----------
 used_wallpaper="$wallpaper"
-if [[ "$effect" != "off" ]]; then
-  used_wallpaper="$generatedversions/$effect-$wallpaperfilename"
-  if [[ -f "$used_wallpaper" && "$force_generate" == "0" && "$use_cache" == "1" ]]; then
-    notify "Effect" "Using cached: $effect-$wallpaperfilename"
+if [[ "$EFFECT" != "off" && "$EFFECT" != "none" ]]; then
+  candidate="$effects_dir/$EFFECT"
+  if [[ -r "$candidate" ]]; then
+    used_wallpaper="$generatedversions/$EFFECT-$wallpaperfilename"
+    if [[ -f "$used_wallpaper" && "$force_generate" == "0" && "$use_cache" == "1" ]]; then
+      notify "Effect" "Using cached: $EFFECT-$wallpaperfilename"
+    else
+      notify "Effect" "Generating: $EFFECT-$wallpaperfilename"
+      # shellcheck disable=SC1090
+      source "$candidate"
+    fi
   else
-    notify "Effect" "Generating: $effect-$wallpaperfilename"
-    # shellcheck disable=SC1090
-    source "$effects_dir/$effect"
+    notify "Effect" "Script for '$EFFECT' not found → using off"
+    EFFECT="off"
+    used_wallpaper="$wallpaper"
   fi
 else
   notify "Effect" "off"
 fi
 
 # ---------- Skip theme work if nothing changed ----------
-state_key="$effect|$used_wallpaper"
+state_key="$EFFECT|$used_wallpaper"
 run_theme=1
 if [[ -f "$last_applied" ]] && [[ "$state_key" == "$(cat "$last_applied")" ]]; then
   notify "Wallpaper" "Same as last time → skip theming"
@@ -119,11 +141,10 @@ else
   echo "$state_key" > "$last_applied"
 fi
 
-# ---------- Set wallpaper (only if not already set by Waypaper) ----------
+# ---------- Set wallpaper ----------
 if [[ "${WALLPAPER_ALREADY_SET:-0}" != "1" ]]; then
   _waitForHypr
   notify "Wallpaper" "Setting: $used_wallpaper"
-  # Set quietly via Waypaper (handles hyprpaper IPC & preload)
   if command -v waypaper >/dev/null 2>&1; then
     waypaper --backend hyprpaper --wallpaper "$used_wallpaper" >/dev/null 2>&1 || true
   fi
@@ -137,7 +158,7 @@ if [[ "$run_theme" == "1" ]]; then
   wallust run "$used_wallpaper" || notify "Wallust" "failed (ignored)"
 fi
 
-# ---------- UI reloads (only if theme changed) ----------
+# ---------- UI reloads ----------
 if [[ "$run_theme" == "1" ]]; then
   if systemctl --user is-active --quiet waybar.service 2>/dev/null; then
     pkill -USR2 waybar || true
@@ -159,8 +180,8 @@ if [[ "$run_theme" == "1" ]]; then
   command -v swaync-client >/dev/null 2>&1 && swaync-client -rs || true
 fi
 
-# ---------- Blurred preview (cached) ----------
-blurred_cache="$generatedversions/blur-$blur-$effect-$wallpaperfilename.png"
+# ---------- Previews (unchanged logic, small tidy) ----------
+blurred_cache="$generatedversions/blur-$blur-$EFFECT-$wallpaperfilename.png"
 if [[ -f "$blurred_cache" && "$force_generate" == "0" && "$use_cache" == "1" ]]; then
   notify "Blur" "Using cached preview"
 else
@@ -171,10 +192,8 @@ else
 fi
 cp "$blurred_cache" "$blurredwallpaper"
 
-# ---------- Rofi preview ----------
 echo "* { current-image: url(\"$blurredwallpaper\", height); }" > "$rasifile"
 
-# ---------- Square-cropped preview ----------
 notify "Square" "Generating square-cropped preview"
 magick "$tmpwallpaper" -gravity Center -extent 1:1 "$squarewallpaper"
 cp "$squarewallpaper" "$generatedversions/square-$wallpaperfilename.png"
