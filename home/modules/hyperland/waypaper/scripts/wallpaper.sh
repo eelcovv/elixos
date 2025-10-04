@@ -10,9 +10,12 @@ lockfile="/tmp/wallpaper.sh.lock"
 exec 99>"$lockfile"
 flock -n 99 || exit 0
 
-# ---------- Helper + fallback notify ----------
+# Helper notify
 HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"
-if [[ -r "$HELPER" ]]; then source "$HELPER" || true; fi
+if [[ -r "$HELPER" ]]; then
+  # shellcheck disable=SC1090
+  source "$HELPER" || true
+fi
 if [[ "$(type -t notify 2>/dev/null)" != "function" ]]; then
   notify() {
     local title="$1"; shift
@@ -25,7 +28,7 @@ if [[ "$(type -t notify 2>/dev/null)" != "function" ]]; then
   }
 fi
 
-# ---------- Small wait for Hyprland to be ready ----------
+# Small Hypr wait
 _waitForHypr() {
   if command -v hyprctl >/dev/null 2>&1; then
     for _ in {1..20}; do hyprctl monitors -j >/dev/null 2>&1 && return 0; sleep 0.1; done
@@ -72,8 +75,8 @@ EFFECT="${WALLPAPER_EFFECT:-}"  # env override optional
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --image)  IMG="$2"; shift 2 ;;
-    --effect) EFFECT="$2"; shift 2 ;;
+    --image)   IMG="$2"; shift 2 ;;
+    --effect)  EFFECT="$2"; shift 2 ;;
     --verbose) QUIET="0"; shift ;;
     -h|--help)
       echo "Usage: $(basename "$0") --image /abs/path [--effect KEYWORD] [--verbose]"; exit 2 ;;
@@ -98,34 +101,29 @@ notify "Wallpaper" "Source: $wallpaperfilename"
 # ---------- Determine effect keyword safely ----------
 # Priority: CLI --effect > env WALLPAPER_EFFECT > effect.conf > "off"
 if [[ -z "$EFFECT" && -r "$effectconf" ]]; then
-  # read first non-empty token; ignore trailing comments/lines
   EFFECT="$(tr -d '\r' < "$effectconf" | awk 'NF{print $1; exit}')"
 fi
 EFFECT="${EFFECT:-off}"
 
-# Normalize to whitelist
-case "$EFFECT" in
-  off|none|blur|pixelate|dim|mono) : ;;
-  *) notify "Effect" "Invalid effect '$EFFECT' → using off"; EFFECT="off" ;;
-esac
+# Accept any readable effect script; 'off'/'none' are special
+if [[ "$EFFECT" != "off" && "$EFFECT" != "none" ]]; then
+  if [[ ! -r "$effects_dir/$EFFECT" ]]; then
+    notify "Effect" "Invalid effect '$EFFECT' → using off"
+    EFFECT="off"
+  fi
+fi
 
-# ---------- Apply effect (by keyword → optional script) ----------
+# ---------- Apply effect (by keyword → source script) ----------
 used_wallpaper="$wallpaper"
 if [[ "$EFFECT" != "off" && "$EFFECT" != "none" ]]; then
   candidate="$effects_dir/$EFFECT"
-  if [[ -r "$candidate" ]]; then
-    used_wallpaper="$generatedversions/$EFFECT-$wallpaperfilename"
-    if [[ -f "$used_wallpaper" && "$force_generate" == "0" && "$use_cache" == "1" ]]; then
-      notify "Effect" "Using cached: $EFFECT-$wallpaperfilename"
-    else
-      notify "Effect" "Generating: $EFFECT-$wallpaperfilename"
-      # shellcheck disable=SC1090
-      source "$candidate"
-    fi
+  used_wallpaper="$generatedversions/$EFFECT-$wallpaperfilename"
+  if [[ -f "$used_wallpaper" && "$force_generate" == "0" && "$use_cache" == "1" ]]; then
+    notify "Effect" "Using cached: $EFFECT-$wallpaperfilename"
   else
-    notify "Effect" "Script for '$EFFECT' not found → using off"
-    EFFECT="off"
-    used_wallpaper="$wallpaper"
+    notify "Effect" "Generating: $EFFECT-$wallpaperfilename"
+    # shellcheck disable=SC1090
+    source "$candidate"
   fi
 else
   notify "Effect" "off"
@@ -180,7 +178,7 @@ if [[ "$run_theme" == "1" ]]; then
   command -v swaync-client >/dev/null 2>&1 && swaync-client -rs || true
 fi
 
-# ---------- Previews (unchanged logic, small tidy) ----------
+# ---------- Previews ----------
 blurred_cache="$generatedversions/blur-$blur-$EFFECT-$wallpaperfilename.png"
 if [[ -f "$blurred_cache" && "$force_generate" == "0" && "$use_cache" == "1" ]]; then
   notify "Blur" "Using cached preview"

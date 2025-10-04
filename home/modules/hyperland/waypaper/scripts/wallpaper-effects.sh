@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Menu to pick an effect keyword, persist it to effect.conf, and apply immediately.
+# Accepts readable files/symlinks (execute bit not required for 'source').
 
 set -euo pipefail
 
@@ -7,27 +8,26 @@ CONF="$HOME/.config/hypr/settings/effect.conf"
 EFFECTS_DIR="$HOME/.config/hypr/effects/wallpaper"
 CACHE_FILE="$HOME/.cache/hyprlock-assets/current_wallpaper"
 
-# Ensure dirs exist
 mkdir -p "$(dirname "$CONF")"
 
-# Collect available effects = filenames under $EFFECTS_DIR plus "off"
-declare -a choices
-choices=("off")
+# Collect effects: include regular files AND symlinks; require readability (-r) only.
+choices=(off)
 if [[ -d "$EFFECTS_DIR" ]]; then
   while IFS= read -r -d '' f; do
-    base="$(basename "$f")"
-    choices+=("$base")
-  done < <(find "$EFFECTS_DIR" -maxdepth 1 -type f -perm -u=x -print0 2>/dev/null)
+    if [[ (-f "$f" || -L "$f") && -r "$f" ]]; then
+      choices+=("$(basename "$f")")
+    fi
+  done < <(find "$EFFECTS_DIR" -maxdepth 1 \( -type f -o -type l \) -print0 2>/dev/null)
 fi
 
-# Current effect (from conf if present)
+# Current effect
 current="off"
 if [[ -r "$CONF" ]]; then
   current="$(tr -d '\r' < "$CONF" | awk 'NF{print $1; exit}')"
 fi
 
-# Build menu with [current] tag
-declare -a labels
+# Build menu
+labels=()
 for c in "${choices[@]}"; do
   lab="$c"
   [[ "$c" == "$current" ]] && lab="$lab  [current]"
@@ -44,36 +44,30 @@ pick_menu() {
   fi
 }
 
-choice="$(pick_menu)"
-[[ -n "${choice:-}" ]] || exit 0
+choice="$(pick_menu)"; [[ -n "${choice:-}" ]] || exit 0
 choice="${choice%%  [current]*}"
 
-# Validate choice (must be "off" or an executable file under EFFECTS_DIR)
+# Validate selection: either "off" or readable effect file
 if [[ "$choice" != "off" ]]; then
-  if [[ ! -x "$EFFECTS_DIR/$choice" ]]; then
-    printf 'Effect script not found or not executable: %s\n' "$EFFECTS_DIR/$choice" >&2
+  eff="$EFFECTS_DIR/$choice"
+  if [[ ! -e "$eff" || ! -r "$eff" ]]; then
+    printf 'Effect script not readable or missing: %s\n' "$eff" >&2
     exit 1
   fi
 fi
 
-# Persist to effect.conf (single keyword)
+# Persist
 printf '%s\n' "$choice" > "$CONF"
 
-# Apply immediately to current wallpaper (if we have one)
+# Apply immediately to current wallpaper (if available)
 if [[ -r "$CACHE_FILE" ]]; then
   img="$(<"$CACHE_FILE")"
   [[ "$img" == ~* ]] && img="${img/#\~/$HOME}"
   if [[ -f "$img" ]]; then
-    # Call pipeline with explicit override so we see effect right away
     QUIET=0 "$HOME/.local/bin/wallpaper.sh" --image "$img" --effect "$choice" --verbose || true
     exit 0
   fi
 fi
 
-# No current image → just notify
-if command -v notify-send >/dev/null 2>&1; then
-  notify-send "Wallpaper effect set" "$choice"
-else
-  printf 'Wallpaper effect set: %s\n' "$choice"
-fi
+printf 'Wallpaper effect set: %s\n' "$choice"
 
