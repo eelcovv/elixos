@@ -17,7 +17,7 @@
   waitForWL = pkgs.writeShellScript "wait-for-wayland" ''
     set -eu
     for i in $(seq 1 50); do
-      # Fixed typo: HYPRLAND_INSTANCE_SIGNATURE
+      # Fixed name: HYPRLAND_INSTANCE_SIGNATURE
       if [ -n "''${WAYLAND_DISPLAY-}" ] || [ -n "''${HYPRLAND_INSTANCE_SIGNATURE-}" ]; then
         exit 0
       fi
@@ -33,6 +33,16 @@ in {
     programs.waybar.enable = true;
     programs.waybar.package = pkgs.waybar;
     programs.waybar.systemd.enable = false; # We manage our own unit
+
+    # Hide any global Waybar autostart desktop entry by shadowing it
+    # NOTE: xdg.autostart.* is NOT a valid HM option; write the file directly.
+    xdg.configFile."autostart/waybar.desktop".text = ''
+      [Desktop Entry]
+      Name=Waybar
+      Exec=waybar
+      Type=Application
+      Hidden=true
+    '';
 
     home.packages = with pkgs; [
       pavucontrol
@@ -99,10 +109,8 @@ in {
       cfg_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
       cur_dir="''${cfg_dir}/current"
 
-      # config.jsonc -> current/config.jsonc (family config)
       ln -sfn "''${cur_dir}/config.jsonc" "''${cfg_dir}/config.jsonc"
 
-      # style.css (top-level) -> current/style.css (family base style)
       if [ -f "''${cur_dir}/style.css" ]; then
         ln -sfn "''${cur_dir}/style.css" "''${cfg_dir}/style.css"
       fi
@@ -132,15 +140,6 @@ in {
       if [ ! -e "''${act_dir}/colors.css" ]; then
         ln -sfn "''${cur_dir}/colors.css" "''${act_dir}/colors.css"
       fi
-    '';
-
-    # Hide any global Waybar autostart desktop entry (prevents duplicate launch)
-    xdg.autostart."waybar.desktop".text = ''
-      [Desktop Entry]
-      Name=Waybar
-      Exec=waybar
-      Type=Application
-      Hidden=true
     '';
 
     # Custom helper scripts
