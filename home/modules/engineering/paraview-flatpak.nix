@@ -9,11 +9,11 @@
   flatpakBin = "${pkgs.flatpak}/bin/flatpak";
   flathubRepo = "https://flathub.org/repo/flathub.flatpakrepo";
 
-  # Common flatpak run flags. We inject env vars that fix the misplaced file dialog:
-  # - PARAVIEW_USE_NATIVE_FILE_DIALOG=1 → use Qt's native dialog (works reliably)
+  # Common flatpak run command:
+  # - PARAVIEW_USE_NATIVE_FILE_DIALOG=1 → forceer Qt-native dialoog als sandbox het toelaat
   commonRun = "run --env=PARAVIEW_USE_NATIVE_FILE_DIALOG=1 ${cfg.appId}";
 
-  # X11 variant: additionally force Qt to use XCB (XWayland), which avoids Wayland geometry bugs.
+  # X11-variant (XWayland): robuuste fallback tegen Wayland-geometry issues
   x11Run = "run --env=PARAVIEW_USE_NATIVE_FILE_DIALOG=1 --env=QT_QPA_PLATFORM=xcb ${cfg.appId}";
 in {
   options.engineering.paraviewFlatpak = {
@@ -47,7 +47,7 @@ in {
     wrapBinary = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Install ~/.local/bin/paraview that runs the Flatpak ParaView.";
+      description = "Install ~/.local/bin/paraview-flatpak helper script.";
     };
 
     desktopEntries = {
@@ -62,28 +62,71 @@ in {
         description = "Also create a desktop entry that forces the X11 (xcb) backend.";
       };
     };
+
+    # Nieuwe opties: zet Flatpak override + Hyprland rules
+    flatpakOverrideNativeDialog = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Apply "flatpak override --filesystem=home" so the Qt native file dialog
+        can access the FS without portals. This prevents off-screen portal dialogs.
+      '';
+    };
+
+    hyprlandRules = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Install Hyprland window rules to center/float file dialogs.";
+      };
+      # Je kunt extra titels/classes toevoegen indien gewenst.
+      titles = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = ["Open File" "Open Folder" "Save As" "Save File"];
+        description = "Dialog window titles to match (regex anchors added automatically).";
+      };
+      classes = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [
+          "xdg-desktop-portal-gtk"
+          "xdg-desktop-portal-kde"
+          "org.kde.kdialog"
+        ];
+        description = "WM classes of common portal dialogs to match.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
     home.packages = [pkgs.flatpak];
-
     home.sessionPath = lib.mkBefore ["${config.home.homeDirectory}/.local/bin"];
 
-    # Make Flatpak-exported .desktop files visible in menus
+    # Zorg dat Flatpak-exported .desktop files in je menu zichtbaar zijn
     home.sessionVariables.XDG_DATA_DIRS = "$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:$XDG_DATA_DIRS";
 
+    # 1) Flathub toevoegen (indien nodig)
     home.activation.flatpakUserFlathub = lib.mkIf cfg.addFlathub (lib.hm.dag.entryAfter ["writeBoundary"] ''
       if ! ${flatpakBin} remotes --user --columns=name | grep -qx "flathub"; then
         ${flatpakBin} remote-add --if-not-exists --user flathub ${flathubRepo} || true
       fi
     '');
 
+    # 2) ParaView installeren (indien nodig)
     home.activation.flatpakInstallParaView = lib.hm.dag.entryAfter ["flatpakUserFlathub"] ''
       if ! ${flatpakBin} list --app --user --columns=application | grep -qx "${cfg.appId}"; then
         ${flatpakBin} install -y --user flathub ${cfg.appId} || true
       fi
     '';
 
+    # 3) Override zodat Qt-native file dialog niet terugvalt op portal vanwege FS sandbox
+    home.activation.flatpakOverrideParaView = lib.mkIf cfg.flatpakOverrideNativeDialog (
+      lib.hm.dag.entryAfter ["flatpakInstallParaView"] ''
+        # Grant access to $HOME so native dialog can browse files without the portal
+        ${flatpakBin} override --user --filesystem=home ${cfg.appId} || true
+      ''
+    );
+
+    # Auto-update
     systemd.user.services."flatpak-update-user" = lib.mkIf cfg.autoUpdate.enable {
       Unit = {Description = "Flatpak update (user scope)";};
       Service = {
@@ -92,7 +135,6 @@ in {
       };
       Install.WantedBy = ["default.target"];
     };
-
     systemd.user.timers."flatpak-update-user" = lib.mkIf cfg.autoUpdate.enable {
       Unit.Description = "Schedule Flatpak update (user scope)";
       Timer = {
@@ -102,29 +144,13 @@ in {
       Install.WantedBy = ["timers.target"];
     };
 
-    # CLI wrappers
-    home.file.".local/bin/paraview-flatpak" = {
+    # CLI helper
+    home.file.".local/bin/paraview-flatpak" = lib.mkIf cfg.wrapBinary {
       executable = true;
       text = ''
         #!/usr/bin/env bash
         set -euo pipefail
         exec ${flatpakBin} ${commonRun} "$@"
-      '';
-    };
-
-    home.file.".local/bin/paraview" = lib.mkIf cfg.wrapBinary {
-      executable = true;
-      text = ''
-        #!/usr/bin/env bash
-        # Wrapper that fixes the off-screen file dialog on Hyprland/Wayland by
-        # enabling ParaView's native file dialog. If you want to force X11,
-        # set PARAVIEW_FORCE_X11=1 in your env or use the X11 desktop entry.
-        set -euo pipefail
-        if [[ "${PARAVIEW_FORCE_X11: -0}" = "1" ]]; then
-          exec ${flatpakBin} ${x11Run} "$@"
-        else
-          exec ${flatpakBin} ${commonRun} "$@"
-        fi
       '';
     };
 
@@ -150,6 +176,26 @@ in {
       terminal = false;
       categories = ["Graphics" "Science" "Education"];
       startupNotify = true;
+    };
+
+    # 4) Hyprland rules om eventuele portal-dialogen te centreren/floaten als ze tóch gebruikt worden
+    wayland.windowManager.hyprland.settings = lib.mkIf cfg.hyprlandRules.enable {
+      # Combineer regels voor titles en classes:
+      windowrulev2 = let
+        # regex met anchors voor titels
+        titleRules =
+          map (t: "float,title:^(?i:" + lib.escapeRegex t + ")$") cfg.hyprlandRules.titles
+          ++ map (t: "center,title:^(?i:" + lib.escapeRegex t + ")$") cfg.hyprlandRules.titles
+          ++ map (t: "move 50% 50%,title:^(?i:" + lib.escapeRegex t + ")$") cfg.hyprlandRules.titles
+          ++ map (t: "size 70% 70%,title:^(?i:" + lib.escapeRegex t + ")$") cfg.hyprlandRules.titles;
+
+        classRules =
+          map (c: "float,class:^(" + lib.escapeRegex c + ")$") cfg.hyprlandRules.classes
+          ++ map (c: "center,class:^(" + lib.escapeRegex c + ")$") cfg.hyprlandRules.classes
+          ++ map (c: "move 50% 50%,class:^(" + lib.escapeRegex c + ")$") cfg.hyprlandRules.classes
+          ++ map (c: "size 70% 70%,class:^(" + lib.escapeRegex c + ")$") cfg.hyprlandRules.classes;
+      in
+        titleRules ++ classRules;
     };
   };
 }
