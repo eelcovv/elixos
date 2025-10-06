@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 # of-run: Run a single OpenFOAM command inside the container (non-interactive).
-# - Sources the OpenFOAM environment (ESI/Foundation).
-# - Preserves functions like `foamVersion` (bash function) by detecting and invoking them correctly.
-# - Avoids double tags on the image ref.
-# - Works with Docker or Podman (select via OPENFOAM_ENGINE).
+# - Sources OpenFOAM env (ESI/Foundation).
+# - Enables alias expansion so commands like `foamVersion` (alias/function) work.
+# - Avoids double image tags.
+# - Uses Docker or Podman (via OPENFOAM_ENGINE).
 
 set -euo pipefail
 
+# --- Usage check ---
 if [[ $# -lt 1 ]]; then
   echo "Usage: of-run <command> [args...]" >&2
   exit 2
 fi
 
-# --- Engine & image selection --------------------------------------------------
+# --- Engine & image selection ---
 ENGINE="${OPENFOAM_ENGINE:-docker}"                                # docker | podman
 IMAGE_ENV="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"  # may include tag
 TAG="${OPENFOAM_TAG:-2406}"
@@ -24,7 +25,7 @@ else
   IMAGE_REF="${IMAGE_ENV}:${TAG}"
 fi
 
-# --- Container base args -------------------------------------------------------
+# --- Container run args ---
 RUN_ARGS=(
   --rm
   -t
@@ -33,41 +34,35 @@ RUN_ARGS=(
   --entrypoint /bin/bash
 )
 
-# QoL: map host readline settings
+# Optional: map host readline settings
 if [[ -f "$HOME/.inputrc" ]]; then
   RUN_ARGS+=(-v "$HOME/.inputrc:/etc/inputrc:ro")
 fi
 
-# --- Initialization inside the container --------------------------------------
+# --- Init inside container ---
 # 1) cd /work
-# 2) source the first readable OpenFOAM bashrc/openfoam file
-# 3) detect if the requested command ($1) is a bash function; if so, invoke it
-#    without 'exec' to keep function resolution; otherwise 'exec' the binary.
-INIT='
-cd /work;
-# Source OpenFOAM environment (ESI/Foundation paths)
+# 2) source OpenFOAM env (first readable candidate)
+# 3) enable alias expansion for non-interactive shell
+# 4) if the command is alias/function -> eval "$*"
+#    else -> exec "$@" (binary/builtin)
+INIT=$'cd /work; \
 for f in \
   /usr/lib/openfoam/openfoam*/etc/bashrc \
   /opt/OpenFOAM/OpenFOAM-*/etc/bashrc \
   /opt/openfoam*/etc/bashrc \
   /usr/lib/openfoam/openfoam*/etc/openfoam \
   /opt/OpenFOAM/OpenFOAM-*/etc/openfoam \
-  /opt/openfoam*/etc/openfoam
-do
-  if [[ -r "$f" ]]; then . "$f"; break; fi
-done
+  /opt/openfoam*/etc/openfoam; do \
+  if [[ -r "$f" ]]; then . "$f"; break; fi; \
+done; \
+shopt -s expand_aliases; \
+cmd="$1"; kind="$(type -t "$cmd" || true)"; \
+if [[ "$kind" == "alias" || "$kind" == "function" ]]; then \
+  eval "$*"; \
+else \
+  exec "$@"; \
+fi'
 
-# Decide how to run the user command ($@)
-cmd="$1"
-kind="$(type -t "$cmd" || true)"
-if [[ "$kind" == "function" ]]; then
-  # Run as a function (no exec) so shell functions like `foamVersion` work
-  "$@"
-else
-  # Replace shell with the binary/builtin for proper exit codes and signals
-  exec "$@"
-fi
-'
-
-# Run container: we pass a dummy $0 ("of-run") before user args so $1 is the command
+# Note: pass a dummy $0 ("of-run") so $1 is the actual command.
 exec "$ENGINE" run "${RUN_ARGS[@]}" "$IMAGE_REF" -lc "$INIT" of-run "$@"
+

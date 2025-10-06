@@ -8,6 +8,13 @@
   cfg = config.engineering.paraviewFlatpak;
   flatpakBin = "${pkgs.flatpak}/bin/flatpak";
   flathubRepo = "https://flathub.org/repo/flathub.flatpakrepo";
+
+  # Common flatpak run flags. We inject env vars that fix the misplaced file dialog:
+  # - PARAVIEW_USE_NATIVE_FILE_DIALOG=1 → use Qt's native dialog (works reliably)
+  commonRun = "run --env=PARAVIEW_USE_NATIVE_FILE_DIALOG=1 ${cfg.appId}";
+
+  # X11 variant: additionally force Qt to use XCB (XWayland), which avoids Wayland geometry bugs.
+  x11Run = "run --env=PARAVIEW_USE_NATIVE_FILE_DIALOG=1 --env=QT_QPA_PLATFORM=xcb ${cfg.appId}";
 in {
   options.engineering.paraviewFlatpak = {
     enable = lib.mkEnableOption "Install ParaView via Flatpak for this user";
@@ -95,12 +102,13 @@ in {
       Install.WantedBy = ["timers.target"];
     };
 
+    # CLI wrappers
     home.file.".local/bin/paraview-flatpak" = {
       executable = true;
       text = ''
         #!/usr/bin/env bash
         set -euo pipefail
-        exec ${flatpakBin} run ${cfg.appId} "$@"
+        exec ${flatpakBin} ${commonRun} "$@"
       '';
     };
 
@@ -108,16 +116,24 @@ in {
       executable = true;
       text = ''
         #!/usr/bin/env bash
+        # Wrapper that fixes the off-screen file dialog on Hyprland/Wayland by
+        # enabling ParaView's native file dialog. If you want to force X11,
+        # set PARAVIEW_FORCE_X11=1 in your env or use the X11 desktop entry.
         set -euo pipefail
-        exec ${flatpakBin} run ${cfg.appId} "$@"
+        if [[ "${PARAVIEW_FORCE_X11: -0}" = "1" ]]; then
+          exec ${flatpakBin} ${x11Run} "$@"
+        else
+          exec ${flatpakBin} ${commonRun} "$@"
+        fi
       '';
     };
 
+    # Desktop entries
     xdg.desktopEntries.paraview-flatpak = lib.mkIf cfg.desktopEntries.enable {
       name = "ParaView (Flatpak)";
       genericName = "Data analysis and visualization";
-      comment = "ParaView via Flatpak";
-      exec = "flatpak run ${cfg.appId} %U";
+      comment = "ParaView via Flatpak (native file dialog enabled)";
+      exec = "flatpak ${commonRun} %U";
       icon = cfg.appId;
       terminal = false;
       categories = ["Graphics" "Science" "Education"];
@@ -128,8 +144,8 @@ in {
     xdg.desktopEntries.paraview-flatpak-x11 = lib.mkIf (cfg.desktopEntries.enable && cfg.desktopEntries.x11Variant) {
       name = "ParaView (Flatpak, X11)";
       genericName = "Data analysis and visualization";
-      comment = "ParaView via Flatpak (forces X11 backend)";
-      exec = "env QT_QPA_PLATFORM=xcb flatpak run ${cfg.appId} %U";
+      comment = "ParaView via Flatpak (forces X11 backend; fixes Wayland dialog placement)";
+      exec = "flatpak ${x11Run} %U";
       icon = cfg.appId;
       terminal = false;
       categories = ["Graphics" "Science" "Education"];
