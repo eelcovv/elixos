@@ -2,39 +2,55 @@
 # of-run: run a single OpenFOAM command inside the container (non-interactive).
 set -euo pipefail
 
-if [ $# -lt 1 ]; then
+if [[ $# -lt 1 ]]; then
   echo "Usage: of-run <command> [args...]" >&2
   exit 2
 fi
 
-ENGINE="${OPENFOAM_ENGINE:-docker}"             # docker or podman
-IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
+ENGINE="${OPENFOAM_ENGINE:-docker}"                           # docker | podman
+IMAGE_ENV="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-dev}" # mag mét of zonder tag
 TAG="${OPENFOAM_TAG:-2406}"
 
-# Ensure files created are owned by current host user
-UIDGID_ARGS=(--user "$(id -u):$(id -g)")
+# Als IMAGE_ENV al een tag bevat (':'), gebruik die volledig; anders plak :TAG
+if [[ "$IMAGE_ENV" == *:* ]]; then
+  IMAGE_REF="$IMAGE_ENV"
+else
+  IMAGE_REF="${IMAGE_ENV}:${TAG}"
+fi
 
-# Add after building the base args in of-run:
+# Basis docker/podman args
 RUN_ARGS=(
+  --rm
+  -t
   --user "$(id -u):$(id -g)"
   -v "$PWD:/work" -w /work
   --entrypoint /bin/bash
 )
-# Map ~/.inputrc globally for consistent vi keybindings (optional)
-if [ -f "$HOME/.inputrc" ]; then
+
+# QoL: map ~/.inputrc (optioneel)
+if [[ -f "$HOME/.inputrc" ]]; then
   RUN_ARGS+=(-v "$HOME/.inputrc:/etc/inputrc:ro")
 fi
 
+# Bouw inner bash -lc script: source OF-omgeving en voer het commando uit
+# We geven het gebruikers-commando als "$@" door via 'bash -lc' trampoline,
+# zodat haakjes/quotes als *argumenten* blijven bestaan.
+INNER_CMD=$'cd /work\n'\
+$'for f in \n'\
+$'  /usr/lib/openfoam/openfoam*/etc/bashrc \n'\
+$'  /opt/OpenFOAM/OpenFOAM-*/etc/bashrc \n'\
+$'  /opt/openfoam*/etc/bashrc \n'\
+$'  /usr/lib/openfoam/openfoam*/etc/openfoam \n'\
+$'  /opt/OpenFOAM/OpenFOAM-*/etc/openfoam \n'\
+$'  /opt/openfoam*/etc/openfoam \n'\
+$'do\n'\
+$'  [[ -r "$f" ]] && . "$f" && break\n'\
+$'done\n'\
+$'exec "$@"\n'
 
-# Run "$@" after (optionally) sourcing OpenFOAM env. The for-loop is inline; no empty leading ';'.
-exec "${ENGINE}" run --rm -t \
-  "${UIDGID_ARGS[@]}" \
-  -v "$PWD:/work" -w /work \
-  --entrypoint /bin/bash \
-  "${IMAGE}:${TAG}" \
-  -c 'cd /work
-      for f in /usr/lib/openfoam/openfoam*/etc/bashrc /opt/openfoam*/etc/bashrc; do
-        if [ -r "$f" ]; then . "$f"; break; fi
-      done
-      "$@"' bash "$@"
+# Start container:
+#   bash -lc "<source...; exec "$@">" -- bash <user-cmd> <args...>
+# Hierdoor ziet de innerlijke shell jouw commando exact zoals je het intypte.
+exec "$ENGINE" run "${RUN_ARGS[@]}" "$IMAGE_REF" \
+  -lc "$INNER_CMD" -- bash "$@"
 
