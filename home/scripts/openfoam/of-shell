@@ -2,14 +2,14 @@
 # of-shell: Enter an OpenFOAM (ESI/Foundation) container shell
 # with persistent cfMesh binaries on PATH and QoL mounts (inputrc/bashrc).
 #
-# - Uses env from your Home Manager module:
+# - Uses env from Home Manager:
 #     OPENFOAM_ENGINE  (docker|podman)
-#     OPENFOAM_IMAGE   (full ref incl. :tag, e.g. docker.io/opencfd/openfoam-dev:2406)
+#     OPENFOAM_IMAGE   (full ref incl. tag, e.g. docker.io/opencfd/openfoam-dev:2406)
 # - Persists sources/builds under ~/.local/share/openfoam on the host
-# - Exposes persisted cfMesh binaries via PATH inside the container
-# - Maps ~/.inputrc -> /etc/inputrc (readline vi-mode etc.)
-# - Optionally maps ~/.bashrc_openfoam -> /work/.bashrc and sources it (no HOME override)
-# - If the OpenFOAM env is NOT pre-sourced (e.g. Foundation images), it will try to source it.
+# - Adds persisted cfMesh binaries to PATH inside the container
+# - Maps ~/.inputrc -> /etc/inputrc (readline settings)
+# - Optionally maps ~/.bashrc_openfoam -> /work/.bashrc and sources it
+# - If OpenFOAM env is NOT pre-sourced (Foundation, etc.), it will try to source it.
 
 set -euo pipefail
 
@@ -36,7 +36,7 @@ if [[ -f "$HOME/.inputrc" ]]; then
   MOUNTS+=(-v "$HOME/.inputrc:/etc/inputrc:ro")
 fi
 
-# QoL: optional, lightweight tweaks without touching container HOME
+# QoL: optional bashrc for container (no HOME override)
 MOUNT_BASHRC_OPENFOAM=0
 if [[ -f "$HOME/.bashrc_openfoam" ]]; then
   MOUNTS+=(-v "$HOME/.bashrc_openfoam:/work/.bashrc:ro")
@@ -46,8 +46,8 @@ fi
 # Persist mount for builds and exported tools
 MOUNTS+=(-v "${HOST_PERSIST}:${CONTAINER_PERSIST}")
 
-# Fallback OpenFOAM env sourcing (only if WM_PROJECT_DIR is missing)
-read -r -d '' SRC_OF <<"EOS"
+# Portable OpenFOAM env sourcing snippet (no 'read -d ""' to avoid set -e trap)
+SRC_OF="$(cat <<'EOS'
 if [[ -z "${WM_PROJECT_DIR:-}" ]]; then
   for f in \
     /usr/lib/openfoam/openfoam*/etc/bashrc \
@@ -58,33 +58,44 @@ if [[ -z "${WM_PROJECT_DIR:-}" ]]; then
     /opt/openfoam*/etc/openfoam
   do
     if [[ -r "$f" ]]; then
-      # shellcheck disable=SC1090
       . "$f"
       break
     fi
   done
 fi
 EOS
+)"
 
-# Build the inner command
-if [[ $# -gt 0 ]]; then
-  # Non-interactive: run provided command
-  INNER_CMD=$'cd /work\n'"${SRC_OF}"$'\nexport PATH='"'${CFMESH_BIN_CONT}'"$':"$PATH"\n'
+# Build inner command for bash -lc
+build_inner_cmd() {
+  local cmd
+  cmd='cd /work
+'"${SRC_OF}"'
+export PATH='"'"${CFMESH_BIN_CONT}"'"':"$PATH"
+'
   if [[ "${MOUNT_BASHRC_OPENFOAM}" == "1" ]]; then
-    INNER_CMD+=$'[ -r /work/.bashrc ] && . /work/.bashrc\n'
+    cmd+='[ -r /work/.bashrc ] && . /work/.bashrc
+'
   fi
-  INNER_CMD+="$*\n"
-else
-  # Interactive shell
-  INNER_CMD=$'cd /work\n'"${SRC_OF}"$'\nexport PATH='"'${CFMESH_BIN_CONT}'"$':"$PATH"\n'
-  if [[ "${MOUNT_BASHRC_OPENFOAM}" == "1" ]]; then
-    INNER_CMD+=$'[ -r /work/.bashrc ] && . /work/.bashrc\n'
+
+  if [[ $# -gt 0 ]]; then
+    # Non-interactive
+    cmd+="$*
+"
+  else
+    # Interactive
+    cmd+='exec bash -i
+'
   fi
-  INNER_CMD+=$'exec bash -i\n'
-fi
+  printf '%s' "${cmd}"
+}
+
+# If arguments provided, pass them into the container command string
+INNER_CMD="$(build_inner_cmd "$@")"
 
 exec "${ENGINE}" run --rm -it \
   --user "${HOST_UID}:${HOST_GID}" \
   "${MOUNTS[@]}" \
   --entrypoint /bin/bash \
   "${IMAGE}" -lc "${INNER_CMD}"
+
