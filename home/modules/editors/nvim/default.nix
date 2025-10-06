@@ -24,7 +24,7 @@
       cmp-nvim-lsp # LSP source for nvim-cmp
       cmp-buffer # buffer completion
       cmp-path # file path completion
-      cmp-spell # spelling 
+      cmp-spell # spelling
       lspkind-nvim # nice icons in autocompletion
       lualine-nvim # statusline
     ];

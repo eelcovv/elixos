@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   home.packages = [
     pkgs.phoronix-test-suite
     pkgs.firefox
@@ -40,4 +43,3 @@
   '';
   home.file.".local/bin/run-benchmarks".executable = true;
 }
-

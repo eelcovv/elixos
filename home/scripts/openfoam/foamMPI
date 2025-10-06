@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# foamMPI — generic OpenFOAM MPI launcher (single host).
+# Does NOT run blockMesh/decomposePar/reconstructPar*. You manage those yourself.
+# Defaults: --bind-to none --map-by slot (works well in containers).
+#
+# Usage:
+#   foamMPI -n <NP> <application> [-- app-args...]
+# Examples:
+#   foamMPI -n 10 snappyHexMesh -- -parallel -overwrite
+#   foamMPI -n 10 simpleFoam     -- -parallel
+#
+# Notes:
+# - If a file named 'hostfile' exists in CWD, it will be used automatically.
+# - If running as root, adds --allow-run-as-root automatically.
+
+NP=""
+APP=""
+APP_ARGS=()
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -n|--np) NP="$2"; shift 2;;
+    --) shift; APP_ARGS+=("$@"); break;;
+    -h|--help)
+      echo "Usage: $0 -n NP <application> [-- app-args...]"; exit 0;;
+    *) if [[ -z "${APP:-}" ]]; then APP="$1"; shift; else APP_ARGS+=("$1"); shift; fi ;;
+  esac
+done
+
+if [[ -z "${NP:-}" || -z "${APP:-}" ]]; then
+  echo "ERROR: need -n <NP> and <application>. Try: $0 -n 10 snappyHexMesh -- -parallel -overwrite" >&2
+  exit 2
+fi
+
+# Optional hostfile if present
+HOSTARG=()
+if [[ -f hostfile ]]; then
+  HOSTARG=(--hostfile hostfile)
+fi
+
+# Allow run as root if needed
+ALLOW=()
+if [[ "$(id -u)" == "0" ]]; then
+  ALLOW=(--allow-run-as-root)
+fi
+
+# (Friendly) warning if processor* don’t match NP and you're about to run -parallel
+if printf '%s ' "${APP_ARGS[@]}" | grep -q -- ' -parallel'; then
+  PROC_DIRS=$(ls -1d processor* 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "${PROC_DIRS:-0}" -gt 0 && "$PROC_DIRS" != "$NP" ]]; then
+    echo "WARNING: found $PROC_DIRS processor directories but NP=$NP. Decomposition mismatch?" >&2
+  fi
+fi
+
+# Run
+exec mpirun -np "$NP" "${HOSTARG[@]}" "${ALLOW[@]}" \
+  --bind-to none --map-by slot \
+  "$APP" "${APP_ARGS[@]}"

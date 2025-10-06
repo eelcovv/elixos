@@ -34,7 +34,7 @@ terminate_clients() {
 
 		echo ":: PID $pid has terminated."
 	done
-	bash $home/.config/ml4w/listeners.sh --stopall
+	bash $HOME/.config/ml4w/listeners.sh --stopall
 }
 
 if [[ "$1" == "exit" ]]; then

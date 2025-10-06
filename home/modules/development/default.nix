@@ -1,3 +1,4 @@
+# home/modules/development/default.nix
 {
   config,
   pkgs,
@@ -12,13 +13,11 @@
     ./pypi.nix
     ./python.nix
     ./python-devtools.nix
-    ./python-rt-libs.nix
     ./uv.nix
     ./vscode.nix
     ./rootless-podman-storage.nix
   ];
 
-  # enable PyPI integration (writes ~/.pypirc from /run/secrets/*)
   pypi = {
     enable = true;
     davelab = {
@@ -28,14 +27,17 @@
     };
   };
 
+  # Global CLI tools only (no compilers/runtimes here)
   home.packages = with pkgs; [
     alejandra
     direnv
-    gcc
     nodejs
     gnumake
     htop
     tree
     wget
+
+    # Ensure 'systemctl' is available for HM activation scripts
+    systemd
   ];
 }

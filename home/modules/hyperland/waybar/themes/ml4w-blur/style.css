@@ -503,15 +503,16 @@ window#waybar.empty #window {
  * Tray
  * ----------------------------------------------------- */
 
-#tray {
-    padding: 0px 15px 0px 0px;
-    color: @textcolor3;
+ /* Recolor symbolic tray icons to follow your text color */
+#tray * {
+    -gtk-icon-effect: highlight;  /* werkt alleen bij symbolic icons */
+    color: @textcolor3;           /* komt uit je theme */
 }
 
+/* Dim/attention states blijven zoals je had */
 #tray > .passive {
     -gtk-icon-effect: dim;
 }
-
 #tray > .needs-attention {
     -gtk-icon-effect: highlight;
 }

@@ -23,8 +23,8 @@ shopt -s nullglob
 
 declare -A exts
 
-# Process .png first, then .jpg, to keep display order as "png,jpg" when both exist
-for f in "$DIR"/*.png "$DIR"/*.jpg; do
+# Process .png first, then .jpg, then webp, to keep display order as "png,jpg,wepb" when both exist
+for f in "$DIR"/*.png "$DIR"/*.jpg "$DIR"/*.webp; do
   [[ -e "$f" ]] || continue
   base="$(basename "$f")"
   ext="${base##*.}"

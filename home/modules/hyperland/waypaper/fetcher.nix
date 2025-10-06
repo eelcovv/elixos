@@ -19,12 +19,12 @@
       #!/usr/bin/env bash
       # Fetch wallpapers into ~/.config/wallpapers (or $WALLPAPER_DIR)
       # Env overrides:
-      #   REPO_URL      (default: https://github.com/mylinuxforwork/wallpaper)
+      #   REPO_URL      (default: https://github.com/eelcovv/wallpaper)
       #   REPO_BRANCH   (default: main)
       #   WALLPAPER_DIR (default: ${wpDir})
       set -euo pipefail
 
-      REPO_URL="''${REPO_URL:-https://github.com/mylinuxforwork/wallpaper}"
+      REPO_URL="''${REPO_URL:-https://github.com/eelcovv/wallpaper}"
       REPO_BRANCH="''${REPO_BRANCH:-main}"
       WALLPAPER_DIR="''${WALLPAPER_DIR:-${wpDir}}"
 

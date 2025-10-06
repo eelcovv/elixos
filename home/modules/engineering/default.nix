@@ -1,4 +1,3 @@
-# home/modules/engineering/default.nix
 {
   pkgs,
   lib,
@@ -15,6 +14,8 @@
   home.packages = with pkgs; [
     blender
     meshlab
+    gmsh
+    gnuplot
     freecad-wayland
     gsettings-desktop-schemas
     hicolor-icon-theme

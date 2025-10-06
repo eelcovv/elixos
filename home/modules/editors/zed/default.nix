@@ -13,7 +13,7 @@
     ];
 
     userSettings = {
-      imports = [ ./remote-projects.nix ];
+      imports = [./remote-projects.nix];
 
       vim_mode = true;
       base_keymap = "VSCode";
@@ -22,17 +22,15 @@
 
       # direnv
       load_direnv = "shell_hook";
-      languages.Nix.language_servers = [ "nixd" "!nil" ]; # Force use of nixd over nil
-      lsp =
-        let
-          useDirenv = { binary.path_lookup = true; };
-        in
-        {
-          haskell = useDirenv;
-          rust_analyzer = useDirenv;
-          # FIXME: This won't work unless Zed is started inside of direnv shell.
-          nixd = useDirenv;
-        };
+      languages.Nix.language_servers = ["nixd" "!nil"]; # Force use of nixd over nil
+      lsp = let
+        useDirenv = {binary.path_lookup = true;};
+      in {
+        haskell = useDirenv;
+        rust_analyzer = useDirenv;
+        # FIXME: This won't work unless Zed is started inside of direnv shell.
+        nixd = useDirenv;
+      };
 
       # Look & feel
       ui_font_size = 16;

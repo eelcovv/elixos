@@ -1,51 +1,73 @@
 #!/usr/bin/env bash
+# Menu to pick an effect keyword, persist it to effect.conf, and apply immediately.
+# Accepts readable files/symlinks (execute bit not required for 'source').
+
 set -euo pipefail
-HELPER="$HOME/.config/hypr/scripts/helper-functions.sh"; [[ -r "$HELPER" ]] && source "$HELPER" || true
-notify(){ type notify >/dev/null 2>&1 || { notify(){ printf '%s: %s\n' "wallpaper-effects" "$*"; }; }; notify "$@"; }
 
-effects_dir="$HOME/.config/hypr/effects/wallpaper"
-effect_file="$HOME/.config/hypr/settings/wallpaper-effect.sh"
-cache_file="$HOME/.cache/hyprlock-assets/current_wallpaper"
-rofi_config="${ROFI_CONFIG:-$HOME/.config/rofi/config.rasi}"
+CONF="$HOME/.config/hypr/settings/effect.conf"
+EFFECTS_DIR="$HOME/.config/hypr/effects/wallpaper"
+CACHE_FILE="$HOME/.cache/hyprlock-assets/current_wallpaper"
 
-apply_current() {
-  local wp
-  if [[ -f "$cache_file" ]]; then
-    wp="$(sed 's|~|'"$HOME"'|g' "$cache_file")"
-    exec "$HOME/.local/bin/wallpaper.sh" "$wp"
+mkdir -p "$(dirname "$CONF")"
+
+# Collect effects: include regular files AND symlinks; require readability (-r) only.
+choices=(off)
+if [[ -d "$EFFECTS_DIR" ]]; then
+  while IFS= read -r -d '' f; do
+    if [[ (-f "$f" || -L "$f") && -r "$f" ]]; then
+      choices+=("$(basename "$f")")
+    fi
+  done < <(find "$EFFECTS_DIR" -maxdepth 1 \( -type f -o -type l \) -print0 2>/dev/null)
+fi
+
+# Current effect
+current="off"
+if [[ -r "$CONF" ]]; then
+  current="$(tr -d '\r' < "$CONF" | awk 'NF{print $1; exit}')"
+fi
+
+# Build menu
+labels=()
+for c in "${choices[@]}"; do
+  lab="$c"
+  [[ "$c" == "$current" ]] && lab="$lab  [current]"
+  labels+=("$lab")
+done
+
+pick_menu() {
+  if command -v rofi >/dev/null 2>&1; then
+    printf '%s\n' "${labels[@]}" | rofi -dmenu -i -no-show-icons -p "Effect" -l 15
+  elif command -v wofi >/dev/null 2>&1; then
+    printf '%s\n' "${labels[@]}" | wofi --dmenu --prompt "Effect" --allow-markup
   else
-    exit 0
+    printf '%s\n' "${labels[@]}" | fzf --prompt="Effect> " || true
   fi
 }
 
-if [[ $# -gt 0 ]]; then
-  arg="$1"; [[ "$arg" == ~* ]] && arg="${arg/#\~/$HOME}"
-  if [[ -f "$arg" ]] && echo "$arg" | grep -Eiq '\.(png|jpg)$'; then
-    printf '%s\n' "$arg" > "$cache_file"; exec "$HOME/.local/bin/wallpaper.sh" "$arg"
+choice="$(pick_menu)"; [[ -n "${choice:-}" ]] || exit 0
+choice="${choice%%  [current]*}"
+
+# Validate selection: either "off" or readable effect file
+if [[ "$choice" != "off" ]]; then
+  eff="$EFFECTS_DIR/$choice"
+  if [[ ! -e "$eff" || ! -r "$eff" ]]; then
+    printf 'Effect script not readable or missing: %s\n' "$eff" >&2
+    exit 1
   fi
-  case "$arg" in
-    none|off|disable) printf 'off\n' > "$effect_file"; apply_current ;;
-    reload)           apply_current ;;
-    *) if [[ -r "$effects_dir/$arg" ]]; then printf '%s\n' "$arg" > "$effect_file"; apply_current
-       else notify "Unknown effect '$arg'"; exit 2; fi ;;
-  esac
-  exit 0
 fi
 
-mapfile -t options < <( { printf 'None (no effect)\n'; ls -1 "$effects_dir" 2>/dev/null; } | sed '/^\s*$/d' | sort -f )
-current="off"; [[ -f "$effect_file" ]] && current="$(<"$effect_file")"
+# Persist
+printf '%s\n' "$choice" > "$CONF"
 
-annotated=(); for opt in "${options[@]}"; do val="$opt"; [[ "$opt" == "None (no effect)" ]] && val="off"
-  label="$opt"; [[ "$val" == "$current" ]] && label="$label  [current]"; annotated+=("$label"); done
-
-if command -v rofi >/dev/null 2>&1; then
-  choice="$(printf '%s\n' "${annotated[@]}" | rofi -dmenu -i -no-show-icons -l 12 -p "Effect" -config "$rofi_config")"
-elif command -v wofi >/dev/null 2>&1; then
-  choice="$(printf '%s\n' "${annotated[@]}" | wofi --dmenu --prompt "Effect" --allow-markup)"
-else
-  choice="$(printf '%s\n' "${annotated[@]}" | fzf --prompt="Effect> " || true)"
+# Apply immediately to current wallpaper (if available)
+if [[ -r "$CACHE_FILE" ]]; then
+  img="$(<"$CACHE_FILE")"
+  [[ "$img" == ~* ]] && img="${img/#\~/$HOME}"
+  if [[ -f "$img" ]]; then
+    QUIET=0 "$HOME/.local/bin/wallpaper.sh" --image "$img" --effect "$choice" --verbose || true
+    exit 0
+  fi
 fi
-[[ -n "${choice:-}" ]] || exit 0
-choice="${choice%%  [current]*}"; new="$choice"; [[ "$choice" == "None (no effect)" ]] && new="off"
-printf '%s\n' "$new" > "$effect_file"; apply_current
+
+printf 'Wallpaper effect set: %s\n' "$choice"
 

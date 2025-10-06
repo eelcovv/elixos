@@ -13,6 +13,10 @@
   sshUsers = ["eelco"];
   configuredUsers = ["eelco"];
 
+  services.displayManager.gdm.enable = true;
+  services.displayManager.gdm.wayland = true;
+  services.displayManager.defaultSession = "hyprland";
+
   imports =
     # 🧱 Basic modules
     [
@@ -34,6 +38,7 @@
     # 🛠️ Services
     [
       ../modules/services/ssh-client-keys.nix
+      ../modules/services/login.nix
     ]
     ++
     # 💻 Hardware and disk setup

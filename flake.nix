@@ -14,6 +14,9 @@
     disko.url = "github:nix-community/disko";
     sops-nix.url = "github:Mic92/sops-nix";
     flake-utils.url = "github:numtide/flake-utils";
+
+    # OpenGL driver wrapper (NVIDIA/Intel/AMD) for GUI/VTK apps
+    nixgl.url = "github:guibou/nixGL";
   };
 
   ##############################################################################
@@ -63,7 +66,7 @@
       users = hostUsersMap.${hostName} or [];
     in
       nixpkgs.lib.nixosSystem {
-        # Make flake inputs available to NixOS modules
+        # Expose flake inputs to NixOS modules
         specialArgs = {
           inherit inputs self;
           userModulesPath = ./home/users;
@@ -71,6 +74,9 @@
 
         modules =
           [
+            # Ensure hostPlatform is set for all hosts (required by newer NixOS)
+            {nixpkgs.hostPlatform = nixpkgs.lib.mkDefault system;}
+
             # Host base module
             hostFiles.${hostName}
 
@@ -104,7 +110,7 @@
                       };
                     }
 
-                    # Your actual HM user configuration
+                    # Actual HM user configuration
                     (./home/users + "/${u}")
                   ];
                 });
@@ -117,33 +123,65 @@
     ############################################################################
     # DevShells for all default systems
     ############################################################################
-    devShells = flake-utils.lib.eachDefaultSystem (
-      sys: let
-        pkgs = import nixpkgs {system = sys;};
-      in {
-        default = pkgs.mkShell {
-          # Common dev tools
-          packages = with pkgs; [
-            pre-commit
-            alejandra
-            rage
-            sops
-            yq-go
-            OVMF
-            qemu
-            git
-            openssh
-            age
-            just
-            prettier
-            nodejs
-          ];
+    # flake.nix — devShells exported in BOTH orientations: name-first AND system-first
+    devShells = let
+      # Limit to Linux systems (avoids Darwin breakages, e.g., OVMF on macOS)
+      systems = ["x86_64-linux" "aarch64-linux"];
+
+      # Build the shell set for one system
+      mkShellSet = sys: let
+        # Import pkgs for the target system
+        pkgs = import nixpkgs {
+          system = sys;
+          config = {allowUnfree = true;};
+        };
+
+        # Import your centralized shells (parameterized by 'system')
+        shells =
+          (import ./nixos/modules/profiles/devshells/default.nix {
+            inherit pkgs inputs;
+            system = sys;
+          }).devShells;
+
+        # General-purpose dev shell; guard Linux-only packages
+        general_default = pkgs.mkShell {
+          packages = with pkgs;
+            [
+              pre-commit
+              alejandra
+              rage
+              sops
+              yq-go
+              git
+              openssh
+              age
+              just
+              prettier
+              nodejs
+            ]
+            # Only on Linux (OVMF/qemu break on Darwin in your pin)
+            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [OVMF qemu];
+
           shellHook = ''
             echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
           '';
         };
-      }
-    );
+      in
+        # Return the per-system shell set, plus your general and default aliases
+        shells
+        // {
+          general = general_default;
+          default = shells.py_build; # convenience default
+        };
+
+      # System-first map: devShells.${system}.{py_build,py_light,py_vtk,default,general}
+      bySystem = nixpkgs.lib.genAttrs systems mkShellSet;
+
+      # Name-first map: devShells.{py_build,py_light,py_vtk,default,general}.${system}
+      byName = flake-utils.lib.eachSystem systems mkShellSet;
+    in
+      # Export both maps; keys don't collide (different top-level names)
+      byName // bySystem;
 
     ############################################################################
     # NixOS hosts
@@ -166,7 +204,7 @@
                 config = {allowUnfree = true;};
               };
               modules = [
-                # Make inputs available to HM modules
+                # Expose inputs to HM modules
                 {
                   _module.args = {
                     inherit inputs self;
@@ -174,7 +212,7 @@
                   };
                 }
 
-                # Your HM user configuration
+                # Actual HM user configuration
                 (./home/users + "/${user}")
               ];
             };

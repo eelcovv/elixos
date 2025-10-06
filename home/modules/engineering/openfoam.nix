@@ -34,7 +34,18 @@ in {
   };
 
   config = mkIf cfg.enable {
-    home.packages = [pkgs.coreutils pkgs.bashInteractive];
+    home.packages = [
+      pkgs.coreutils
+      pkgs.bashInteractive
+
+      # Tooling voor tree-sitter / node-gyp builds
+      pkgs.gcc
+      pkgs.gnumake
+      pkgs.pkg-config
+      pkgs.nodejs_22
+      pkgs.tree-sitter
+      pkgs.git
+    ];
 
     # Make sure ~/.local/bin is on PATH (Home Manager usually put this, but just in case)
     home.sessionPath = ["$HOME/.local/bin"];
@@ -64,6 +75,17 @@ in {
     };
     home.file.".local/bin/mkfoam" = {
       source = scriptsDir + "/mkfoam";
+      executable = true;
+    };
+    home.file.".local/bin/foamMPI" = {
+      source = scriptsDir + "/foamMPI";
+      executable = true;
+    };
+    home.file.".local/bin/vscode-of-shell" = {
+      text = ''
+        #!/usr/bin/env bash
+        exec of-shell bash
+      '';
       executable = true;
     };
   };

@@ -34,6 +34,7 @@
     # 🛠️ Services
     [
       ../modules/services/ssh-client-keys.nix
+      ../modules/services/login.nix
     ]
     ++
     # 💻 Hardware and disk setup
