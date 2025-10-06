@@ -26,8 +26,7 @@
 
   engineering.openfoam = {
     enable = true;
-    engine = "docker"; # of "podman"
-    image = "docker.io/opencfd/openfoam-default";
+    variant = "dev";
     tag = "2406";
   };
 }
