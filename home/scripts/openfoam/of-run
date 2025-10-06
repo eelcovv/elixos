@@ -11,7 +11,7 @@ ENGINE="${OPENFOAM_ENGINE:-docker}"                           # docker | podman
 IMAGE_ENV="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-dev}" # mag mét of zonder tag
 TAG="${OPENFOAM_TAG:-2406}"
 
-# Als IMAGE_ENV al een tag bevat (':'), gebruik die volledig; anders plak :TAG
+# If image_env already contains a tag (':'), use it completely; Different Plak: Tag
 if [[ "$IMAGE_ENV" == *:* ]]; then
   IMAGE_REF="$IMAGE_ENV"
 else
@@ -32,9 +32,9 @@ if [[ -f "$HOME/.inputrc" ]]; then
   RUN_ARGS+=(-v "$HOME/.inputrc:/etc/inputrc:ro")
 fi
 
-# Bouw inner bash -lc script: source OF-omgeving en voer het commando uit
-# We geven het gebruikers-commando als "$@" door via 'bash -lc' trampoline,
-# zodat haakjes/quotes als *argumenten* blijven bestaan.
+# Build inner Bash -LC Script: Source or environment and carry out the command
+# We pass on the user -command as "$@" via 'Bash -LC' trampoline,
+# so that hooks/quotes such as * arguments * continue to exist.
 INNER_CMD=$'cd /work\n'\
 $'for f in \n'\
 $'  /usr/lib/openfoam/openfoam*/etc/bashrc \n'\
@@ -50,7 +50,7 @@ $'exec "$@"\n'
 
 # Start container:
 #   bash -lc "<source...; exec "$@">" -- bash <user-cmd> <args...>
-# Hierdoor ziet de innerlijke shell jouw commando exact zoals je het intypte.
+# This causes the inner shell to run the  shell  exactly as you typed it
 exec "$ENGINE" run "${RUN_ARGS[@]}" "$IMAGE_REF" \
   -lc "$INNER_CMD" -- bash "$@"
 
