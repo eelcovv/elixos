@@ -16,17 +16,34 @@
   # Wait until a Wayland compositor (Hyprland/Sway) is ready
   waitForWL = pkgs.writeShellScript "wait-for-wayland" ''
     set -eu
-    for i in $(seq 1 50); do
-      # Fixed name: HYPRLAND_INSTANCE_SIGNATURE
-      if [ -n "''${WAYLAND_DISPLAY-}" ] || [ -n "''${HYPRLAND_INSTANCE_SIGNATURE-}" ]; then
+    uid="$(id -u)"
+
+    # Loop up to 120 times (~30 seconds) waiting for Wayland/Hyprland to be ready
+    for i in $(seq 1 120); do
+      # 1) Check via hyprctl if Hyprland is ready
+      if command -v ${pkgs.hyprland}/bin/hyprctl >/dev/null 2>&1; then
+        if ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null 2>&1; then
+          exit 0
+        fi
+      fi
+
+      # 2) Check if WAYLAND_DISPLAY is set and the socket exists
+      if [ -n "''${WAYLAND_DISPLAY-}" ] && [ -e "/run/user/''${uid}/''${WAYLAND_DISPLAY}" ]; then
         exit 0
       fi
-      if command -v pgrep >/dev/null 2>&1 && pgrep -x hyprland >/dev/null 2>&1; then
-        exit 0
+
+      # 3) Fallback: check for running compositor process
+      if command -v pgrep >/dev/null 2>&1; then
+        if pgrep -x Hyprland >/dev/null 2>&1 || pgrep -x hyprland >/dev/null 2>&1; then
+          exit 0
+        fi
       fi
-      sleep 0.1
+
+      sleep 0.25
     done
-    exit 0
+
+    # If still not ready after 30 seconds, exit with error so systemd can retry
+    exit 1
   '';
 in {
   config = {
@@ -169,8 +186,13 @@ in {
         Environment = ["XDG_RUNTIME_DIR=%t"];
         # Kill any stray Waybar before starting
         ExecStartPre = [
-          "${pkgs.procps}/bin/pkill -x waybar || true"
+          # Kill any existing Waybar instances; ignore failure if none running
+          "-${pkgs.procps}/bin/pkill -x waybar"
+
+          # Wait for Wayland/Hyprland readiness before starting Waybar
           "${waitForWL}"
+
+          # Add a small safety delay
           "${pkgs.coreutils}/bin/sleep 0.25"
         ];
         ExecStart = "${pkgs.waybar}/bin/waybar -l trace -c ${cfgPath}/config.jsonc -s ${cfgPath}/active/style.css";
