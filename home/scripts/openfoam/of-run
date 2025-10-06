@@ -1,24 +1,32 @@
 #!/usr/bin/env bash
-# of-run: run a single OpenFOAM command inside the container (non-interactive).
+# of-run: Run a single OpenFOAM command inside the container (non-interactive).
+# - Sources the OpenFOAM environment automatically.
+# - Works with both Docker and Podman.
+# - Automatically maps the current working directory to /work.
+# - Prevents double tags like ":2406:2406".
+# - Safely executes commands even with spaces, parentheses, or quotes.
+
 set -euo pipefail
 
+# --- Usage check ---
 if [[ $# -lt 1 ]]; then
   echo "Usage: of-run <command> [args...]" >&2
   exit 2
 fi
 
-ENGINE="${OPENFOAM_ENGINE:-docker}"                           # docker | podman
-IMAGE_ENV="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-dev}" # mag mét of zonder tag
+# --- Environment setup ---
+ENGINE="${OPENFOAM_ENGINE:-docker}"                            # docker or podman
+IMAGE_ENV="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"  # may include tag
 TAG="${OPENFOAM_TAG:-2406}"
 
-# If image_env already contains a tag (':'), use it completely; Different Plak: Tag
+# Append :TAG only if not already present in IMAGE_ENV
 if [[ "$IMAGE_ENV" == *:* ]]; then
   IMAGE_REF="$IMAGE_ENV"
 else
   IMAGE_REF="${IMAGE_ENV}:${TAG}"
 fi
 
-# Basis docker/podman args
+# --- Container run arguments ---
 RUN_ARGS=(
   --rm
   -t
@@ -27,30 +35,22 @@ RUN_ARGS=(
   --entrypoint /bin/bash
 )
 
-# QoL: map ~/.inputrc (optioneel)
+# Optional QoL mount for readline settings
 if [[ -f "$HOME/.inputrc" ]]; then
   RUN_ARGS+=(-v "$HOME/.inputrc:/etc/inputrc:ro")
 fi
 
-# Build inner Bash -LC Script: Source or environment and carry out the command
-# We pass on the user -command as "$@" via 'Bash -LC' trampoline,
-# so that hooks/quotes such as * arguments * continue to exist.
-INNER_CMD=$'cd /work\n'\
-$'for f in \n'\
-$'  /usr/lib/openfoam/openfoam*/etc/bashrc \n'\
-$'  /opt/OpenFOAM/OpenFOAM-*/etc/bashrc \n'\
-$'  /opt/openfoam*/etc/bashrc \n'\
-$'  /usr/lib/openfoam/openfoam*/etc/openfoam \n'\
-$'  /opt/OpenFOAM/OpenFOAM-*/etc/openfoam \n'\
-$'  /opt/openfoam*/etc/openfoam \n'\
-$'do\n'\
-$'  [[ -r "$f" ]] && . "$f" && break\n'\
-$'done\n'\
-$'exec "$@"\n'
+# --- Build initialization command ---
+# Enter /work, source the first available OpenFOAM bashrc, then exec the user's command.
+INIT='cd /work; f=""; for f in \
+/usr/lib/openfoam/openfoam*/etc/bashrc \
+/opt/OpenFOAM/OpenFOAM-*/etc/bashrc \
+/opt/openfoam*/etc/bashrc \
+/usr/lib/openfoam/openfoam*/etc/openfoam \
+/opt/OpenFOAM/OpenFOAM-*/etc/openfoam \
+/opt/openfoam*/etc/openfoam; \
+do [ -r "$f" ] && . "$f" && break; done; exec "$@"'
 
-# Start container:
-#   bash -lc "<source...; exec "$@">" -- bash <user-cmd> <args...>
-# This causes the inner shell to run the  shell  exactly as you typed it
-exec "$ENGINE" run "${RUN_ARGS[@]}" "$IMAGE_REF" \
-  -lc "$INNER_CMD" -- bash "$@"
-
+# --- Execute container ---
+# Pass user command as "$@" so it executes exactly as typed.
+exec "$ENGINE" run "${RUN_ARGS[@]}" "$IMAGE_REF" -lc "$INIT" of-run "$@"
