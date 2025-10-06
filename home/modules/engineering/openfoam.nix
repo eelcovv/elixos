@@ -100,6 +100,10 @@ in {
       source = scriptsDir + "/foamMPI";
       executable = true;
     };
+    home.file.".local/bin/of-build-cfmesh" = {
+      source = scriptsDir + "/of-build-cfmesh";
+      executable = true;
+    };
     home.file.".local/bin/vscode-of-shell" = {
       text = ''
         #!/usr/bin/env bash
