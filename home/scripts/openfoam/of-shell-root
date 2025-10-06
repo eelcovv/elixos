@@ -1,27 +1,98 @@
 #!/usr/bin/env bash
-# of-shell-root: same as of-shell but run as root (for edge cases).
+# of-shell-root: Enter an OpenFOAM container as root with persistent cfMesh PATH and QoL mounts.
+# - Uses OPENFOAM_ENGINE and OPENFOAM_IMAGE from environment (IMAGE is a full ref incl. :tag).
+# - Mounts host persist dir to BOTH /home/openfoam/.local/share/openfoam and /root/.local/share/openfoam
+# - Does NOT append ":${TAG}" to the image (OPENFOAM_IMAGE must already include the tag if needed).
+# - Tries to source OpenFOAM bashrc if WM_PROJECT_DIR is not set (Foundation portability).
+
 set -euo pipefail
 
 ENGINE="${OPENFOAM_ENGINE:-docker}"
-IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-default}"
-TAG="${OPENFOAM_TAG:-2406}"
+IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-dev:2406}"  # full reference incl. :tag
 
-MOUNTS=(-v "$PWD:$PWD" -w "$PWD")
-if [ -f "$HOME/.inputrc" ]; then
-  MOUNTS+=(-v "$HOME/.inputrc:/root/.inputrc:ro")
+# Host persist dir
+HOST_PERSIST="${HOME}/.local/share/openfoam"
+mkdir -p "${HOST_PERSIST}"
+
+# Container persist dirs
+PERSIST_USER="/home/openfoam/.local/share/openfoam"
+PERSIST_ROOT="/root/.local/share/openfoam"
+
+# cfMesh bin (we put it under the persist dir)
+CFMESH_BIN_REL="cfmesh/bin"
+CFMESH_BIN_USER="${PERSIST_USER}/${CFMESH_BIN_REL}"
+CFMESH_BIN_ROOT="${PERSIST_ROOT}/${CFMESH_BIN_REL}"
+
+# Stable mounts: /work is the project dir
+MOUNTS=(-v "$PWD:/work" -w /work)
+
+# QoL: map host ~/.inputrc to container-wide inputrc
+if [[ -f "$HOME/.inputrc" ]]; then
+  MOUNTS+=(-v "$HOME/.inputrc:/etc/inputrc:ro")
 fi
 
-SRC_OF='
-if compgen -G "/usr/lib/openfoam/openfoam*/etc/bashrc" > /dev/null; then
-  source /usr/lib/openfoam/openfoam*/etc/bashrc
-elif compgen -G "/opt/openfoam*/etc/bashrc" > /dev/null; then
-  source /opt/openfoam*/etc/bashrc
+# Optional: mount host ~/.bashrc_openfoam as /work/.bashrc (sourced below)
+USE_WORK_BASHRC=0
+if [[ -f "$HOME/.bashrc_openfoam" ]]; then
+  MOUNTS+=(-v "$HOME/.bashrc_openfoam:/work/.bashrc:ro")
+  USE_WORK_BASHRC=1
+fi
+
+# Persist mounts (mount to BOTH user and root homes for flexibility)
+MOUNTS+=(-v "${HOST_PERSIST}:${PERSIST_USER}")
+MOUNTS+=(-v "${HOST_PERSIST}:${PERSIST_ROOT}")
+
+# Portable OpenFOAM env sourcing if not pre-sourced by image
+SRC_OF="$(cat <<'EOS'
+if [[ -z "${WM_PROJECT_DIR:-}" ]]; then
+  for f in \
+    /usr/lib/openfoam/openfoam*/etc/bashrc \
+    /opt/OpenFOAM/OpenFOAM-*/etc/bashrc \
+    /opt/openfoam*/etc/bashrc \
+    /usr/lib/openfoam/openfoam*/etc/openfoam \
+    /opt/OpenFOAM/OpenFOAM-*/etc/openfoam \
+    /opt/openfoam*/etc/openfoam
+  do
+    if [[ -r "$f" ]]; then
+      . "$f"
+      break
+    fi
+  done
+fi
+EOS
+)"
+
+# Build inner command for root shell
+build_inner_cmd() {
+  local cmd
+  # Prefer the root persist cfMesh bin, fall back to user persist (both are same host mount)
+  cmd='cd /work
+'"${SRC_OF}"'
+if [[ -d "'"${CFMESH_BIN_ROOT}"'" ]]; then
+  export PATH="'"${CFMESH_BIN_ROOT}"':$PATH"
+elif [[ -d "'"${CFMESH_BIN_USER}"'" ]]; then
+  export PATH="'"${CFMESH_BIN_USER}"':$PATH"
 fi
 '
+  if [[ "${USE_WORK_BASHRC}" == "1" ]]; then
+    cmd+='[ -r /work/.bashrc ] && . /work/.bashrc
+'
+  fi
+  if [[ $# -gt 0 ]]; then
+    cmd+="$*
+"
+  else
+    cmd+='exec bash -i
+'
+  fi
+  printf '%s' "${cmd}"
+}
 
+INNER_CMD="$(build_inner_cmd "$@")"
+
+# Run as root (no --user flag)
 exec "${ENGINE}" run --rm -it \
-  --user 0:0 \
   "${MOUNTS[@]}" \
-  "${IMAGE}:${TAG}" \
-  -- bash -c "${SRC_OF}; exec bash -i"
+  --entrypoint /bin/bash \
+  "${IMAGE}" -lc "${INNER_CMD}"
 
