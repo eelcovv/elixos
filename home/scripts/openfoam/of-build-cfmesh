@@ -15,7 +15,7 @@ if [[ "${1:-}" == "--update" ]]; then
   ACTION="update"
 fi
 
-# Host-persistent dirs + APT caches (faster re-installs)
+# Host-persistent dirs + APT caches (for faster re-installs)
 HOST_PERSIST="${HOME}/.local/share/openfoam"
 APT_ARCHIVES="${HOME}/.cache/apt-archives"
 APT_LISTS="${HOME}/.cache/apt-lists"
@@ -25,12 +25,20 @@ mkdir -p "${HOST_PERSIST}" "${APT_ARCHIVES}" "${APT_LISTS}"
 PERSIST_USER="/home/openfoam/.local/share/openfoam"
 PERSIST_ROOT="/root/.local/share/openfoam"
 
-# --- Inner script (no `-u`!) -------------------------------------------------
+# --- Inner script: source OpenFOAM bashrc safely inside a function ----------
 INNER_SCRIPT="$(cat <<'EOS'
-set -e -o pipefail  # IMPORTANT: no `-u` here, OpenFOAM bashrc may reference unset vars
+# NOTE: do NOT use `set -u` here; OpenFOAM env expects unset checks sometimes.
+set -e -o pipefail
 
-# Source OpenFOAM env if not already present (portable across images)
-if [[ -z "${WM_PROJECT_DIR:-}" ]]; then
+# Source OpenFOAM env inside a function with relaxed options to avoid
+# 'pop_var_context' errors from ESI config scripts.
+__foam_env() {
+  # Save current shell options
+  local _opts
+  _opts="$(set +o)"
+  # Relax strictness while sourcing
+  set +e +u +o pipefail
+
   for f in \
     /usr/lib/openfoam/openfoam*/etc/bashrc \
     /opt/OpenFOAM/OpenFOAM-*/etc/bashrc \
@@ -39,8 +47,20 @@ if [[ -z "${WM_PROJECT_DIR:-}" ]]; then
     /opt/OpenFOAM/OpenFOAM-*/etc/openfoam \
     /opt/openfoam*/etc/openfoam
   do
-    if [[ -r "$f" ]]; then . "$f"; break; fi
+    if [[ -r "$f" ]]; then
+      # shellcheck disable=SC1090
+      . "$f"
+      break
+    fi
   done
+
+  # Restore shell options
+  eval "$_opts"
+}
+
+# Only source if environment not already active
+if [[ -z "${WM_PROJECT_DIR:-}" ]]; then
+  __foam_env
 fi
 
 # Use the root-mounted persist path (mirrors the host dir)
