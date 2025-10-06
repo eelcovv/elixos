@@ -5,10 +5,6 @@
   desktop.enableKde = true;
   desktop.enableHyperland = true;
 
-  services.displayManager.gdm.enable = true;
-  services.displayManager.gdm.wayland = true;
-  services.displayManager.defaultSession = "hyprland";
-
   # Definine host-specifi sshUsers
   sshUsers = ["eelco"];
   configuredUsers = ["eelco"];
