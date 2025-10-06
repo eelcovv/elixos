@@ -1,0 +1,87 @@
+
+#!/usr/bin/env bash
+# of-build-cfmesh: Build cfMesh (integration-cfmesh v2406) via of-shell
+# and export its executable tools into a persistent bin directory.
+#
+# Run this from the HOST (not inside the container):
+#   of-build-cfmesh            # clone + build
+#   of-build-cfmesh --update   # pull + rebuild
+#
+# Result (host):
+#   ~/.local/share/openfoam/cfmesh/bin/{cartesianMesh, surfaceFeatureEdges, surfaceGenerateBoundingBox}
+
+set -euo pipefail
+
+ACTION="clone"
+if [[ "${1:-}" == "--update" ]]; then
+  ACTION="update"
+fi
+
+# Minimal sanity: ensure of-shell is available
+if ! command -v of-shell >/dev/null 2>&1; then
+  echo "Error: of-shell not found on PATH." >&2
+  exit 1
+fi
+
+# Inline builder to execute inside the container (using explicit /home/openfoam paths)
+read -r -d '' INNER <<'EOS'
+set -euo pipefail
+
+# Explicit container paths (persist volume mounted here by of-shell)
+PERSIST="/home/openfoam/.local/share/openfoam"
+SRC_DIR="${PERSIST}/src/integration-cfmesh"
+BIN_DIR="${PERSIST}/cfmesh/bin"
+
+mkdir -p "${PERSIST}/src" "${BIN_DIR}"
+
+# Ensure git is present inside the container (dev image often has it; if not, instruct user)
+if ! command -v git >/dev/null 2>&1; then
+  echo "[cfMesh] 'git' is missing in the container."
+  echo "Run on the HOST: of-shell-root -c 'apt-get update && apt-get install -y git ca-certificates'"
+  exit 2
+fi
+
+if [[ "${ACTION}" == "clone" ]]; then
+  if [[ ! -d "${SRC_DIR}/.git" ]]; then
+    echo "[cfMesh] Cloning integration-cfmesh (branch v2406)…"
+    git clone --branch v2406 https://develop.openfoam.com/Community/integration-cfmesh.git "${SRC_DIR}"
+  else
+    echo "[cfMesh] Repo already exists. Use --update to pull latest."
+  fi
+else
+  if [[ -d "${SRC_DIR}/.git" ]]; then
+    echo "[cfMesh] Updating integration-cfmesh…"
+    git -C "${SRC_DIR}" pull --ff-only
+  else
+    echo "[cfMesh] No repo to update; cloning fresh."
+    git clone --branch v2406 https://develop.openfoam.com/Community/integration-cfmesh.git "${SRC_DIR}"
+  fi
+fi
+
+echo "[cfMesh] Building…"
+cd "${SRC_DIR}"
+./Allwmake -j
+
+echo "[cfMesh] Exporting binaries…"
+TOOLS=( cartesianMesh surfaceFeatureEdges surfaceGenerateBoundingBox )
+for t in "${TOOLS[@]}"; do
+  # First try PATH (wmake may have installed into FOAM bins)
+  if command -v "${t}" >/dev/null 2>&1; then
+    cp -vf "$(command -v "${t}")" "${BIN_DIR}/"
+    continue
+  fi
+  # Fallback: search within repo tree
+  FOUND="$(find . -type f -name "${t}" -perm -111 | head -n 1 || true)"
+  if [[ -n "${FOUND}" ]]; then
+    cp -vf "${FOUND}" "${BIN_DIR}/"
+  else
+    echo "[cfMesh] Warning: could not locate '${t}' after build."
+  fi
+done
+
+echo "[cfMesh] Done. Binaries in: ${BIN_DIR}"
+EOS
+
+# Pass ACTION into the container env and run the inner script via of-shell
+export ACTION
+of-shell bash -lc "${INNER}"
