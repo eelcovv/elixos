@@ -1,45 +1,62 @@
 #!/usr/bin/env bash
-# of-build-cfmesh: Build cfMesh (integration-cfmesh v2406) via of-shell
-# and export its tools into a persistent bin dir on the host.
-#
-# Usage (HOST, not inside container):
-#   of-build-cfmesh            # initial clone + build
-#   of-build-cfmesh --update   # pull latest + rebuild
-#
-# Result on host:
-#   ~/.local/share/openfoam/cfmesh/bin/{cartesianMesh, surfaceFeatureEdges, surfaceGenerateBoundingBox}
+# Build cfMesh (integration-cfmesh v2406) inside the ESI dev image
+# and export binaries to a host-persistent bin dir.
+# Runs as root for apt-get, then chowns results to your host UID:GID.
 
 set -euo pipefail
+
+ENGINE="${OPENFOAM_ENGINE:-docker}"
+IMAGE="${OPENFOAM_IMAGE:-docker.io/opencfd/openfoam-dev:2406}"  # full ref incl. :tag
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
 
 ACTION="clone"
 if [[ "${1:-}" == "--update" ]]; then
   ACTION="update"
 fi
 
-# Ensure 'of-shell' exists
-if ! command -v of-shell >/dev/null 2>&1; then
-  echo "[of-build-cfmesh] Error: 'of-shell' not found on PATH." >&2
-  exit 1
+# Host-persistent dirs + APT caches (faster re-installs)
+HOST_PERSIST="${HOME}/.local/share/openfoam"
+APT_ARCHIVES="${HOME}/.cache/apt-archives"
+APT_LISTS="${HOME}/.cache/apt-lists"
+mkdir -p "${HOST_PERSIST}" "${APT_ARCHIVES}" "${APT_LISTS}"
+
+# Container mountpoints (same host dir mounted at both)
+PERSIST_USER="/home/openfoam/.local/share/openfoam"
+PERSIST_ROOT="/root/.local/share/openfoam"
+
+# --- Inner script (no `-u`!) -------------------------------------------------
+INNER_SCRIPT="$(cat <<'EOS'
+set -e -o pipefail  # IMPORTANT: no `-u` here, OpenFOAM bashrc may reference unset vars
+
+# Source OpenFOAM env if not already present (portable across images)
+if [[ -z "${WM_PROJECT_DIR:-}" ]]; then
+  for f in \
+    /usr/lib/openfoam/openfoam*/etc/bashrc \
+    /opt/OpenFOAM/OpenFOAM-*/etc/bashrc \
+    /opt/openfoam*/etc/bashrc \
+    /usr/lib/openfoam/openfoam*/etc/openfoam \
+    /opt/OpenFOAM/OpenFOAM-*/etc/openfoam \
+    /opt/openfoam*/etc/openfoam
+  do
+    if [[ -r "$f" ]]; then . "$f"; break; fi
+  done
 fi
 
-# Build the inner script as a string WITHOUT using 'read -d ""'
-INNER="$(cat <<'EOS'
-set -euo pipefail
-
-PERSIST="/home/openfoam/.local/share/openfoam"
+# Use the root-mounted persist path (mirrors the host dir)
+PERSIST="/root/.local/share/openfoam"
 SRC_DIR="${PERSIST}/src/integration-cfmesh"
 BIN_DIR="${PERSIST}/cfmesh/bin"
-
 mkdir -p "${PERSIST}/src" "${BIN_DIR}"
 
-# Check for git inside the container (dev image usually has it)
+# Ensure git is present (dev image often has it; otherwise install quickly)
 if ! command -v git >/dev/null 2>&1; then
-  echo "[cfMesh] 'git' is missing in the container."
-  echo "[cfMesh] Run on HOST: of-shell-root -c 'apt-get update && apt-get install -y git ca-certificates'"
-  exit 2
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git ca-certificates
 fi
 
-if [[ "${ACTION}" == "clone" ]]; then
+# Clone or update
+if [[ "${ACTION:-clone}" == "clone" ]]; then
   if [[ ! -d "${SRC_DIR}/.git" ]]; then
     echo "[cfMesh] Cloning integration-cfmesh (branch v2406)…"
     git clone --branch v2406 https://develop.openfoam.com/Community/integration-cfmesh.git "${SRC_DIR}"
@@ -56,32 +73,43 @@ else
   fi
 fi
 
+# Build
 echo "[cfMesh] Building…"
 cd "${SRC_DIR}"
 ./Allwmake -j
 
+# Export selected tools to BIN_DIR (extend if needed)
 echo "[cfMesh] Exporting binaries…"
 TOOLS=( cartesianMesh surfaceFeatureEdges surfaceGenerateBoundingBox )
-
 for t in "${TOOLS[@]}"; do
-  # Prefer PATH (in case wmake installed into FOAM bin dirs)
   if command -v "${t}" >/dev/null 2>&1; then
     cp -vf "$(command -v "${t}")" "${BIN_DIR}/"
     continue
   fi
-  # Fallback: search the repo tree for an executable with this name
   FOUND="$(find . -type f -name "${t}" -perm -111 | head -n 1 || true)"
   if [[ -n "${FOUND}" ]]; then
     cp -vf "${FOUND}" "${BIN_DIR}/"
   else
-    echo "[cfMesh] Warning: could not locate '${t}' after build."
+    echo "[cfMesh] Warning: could not locate ${t} after build."
   fi
 done
 
-echo "[cfMesh] Done. Binaries in: ${BIN_DIR}"
+# Fix ownership for the host user
+chown -R "${HOST_UID:?}":"${HOST_GID:?}" "${PERSIST}"
+
+echo "[cfMesh] Done. Binaries in ${BIN_DIR} (mirrored on host)."
 EOS
 )"
 
-# Export ACTION for the inner script and run via of-shell
-export ACTION
-of-shell bash -lc "${INNER}"
+# Pipe the inner script via STDIN (avoids quoting pitfalls)
+printf '%s' "${INNER_SCRIPT}" | "${ENGINE}" run --rm -i \
+  -v "$PWD:/work" -w /work \
+  -v "${HOST_PERSIST}:${PERSIST_USER}" \
+  -v "${HOST_PERSIST}:${PERSIST_ROOT}" \
+  -v "${APT_ARCHIVES}:/var/cache/apt/archives" \
+  -v "${APT_LISTS}:/var/lib/apt/lists" \
+  --entrypoint /bin/bash \
+  -e HOST_UID="${HOST_UID}" -e HOST_GID="${HOST_GID}" -e ACTION="${ACTION}" \
+  "${IMAGE}" -s
+
+echo "[of-build-cfmesh] Completed."
