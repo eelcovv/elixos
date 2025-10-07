@@ -42,6 +42,7 @@
       ../modules/hardware/bluetooth.nix
       ../hardware/tongfang/configuration.nix
       ../disks/tongfang.nix
+      ../disks/windows-tongfang.nix
     ]
     ++
     # 🧩 External modules
