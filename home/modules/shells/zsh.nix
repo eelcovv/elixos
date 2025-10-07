@@ -169,7 +169,7 @@ in {
           fi
 
           # 3) Make prompt and highlighting safer
-          _set_simple_prompt
+          # _set_simple_prompt
           _apply_safe_highlighting
 
           # 4) Optional: high-contrast LS_COLORS for ls/eza (comment out if undesired)
