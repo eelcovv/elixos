@@ -35,6 +35,7 @@
     [
       ../modules/services/ssh-client-keys.nix
       ../modules/services/login.nix
+      ../modules/services/printing.nix
     ]
     ++
     # 💻 Hardware and disk setup
