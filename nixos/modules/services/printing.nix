@@ -1,46 +1,60 @@
 # nixos/modules/services/printing.nix
-{pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
+  ##############################################################################
+  # System-wide CUPS setup with a fixed IPP queue for Brother DCP-L2530DW
+  ##############################################################################
   services.printing = {
     enable = true;
-    webInterface = true;
-    drivers = with pkgs; [gutenprint brlaser];
+    webInterface = true; # CUPS UI: http://localhost:631
+    drivers = with pkgs; [
+      gutenprint # generic drivers
+      brlaser # Brother open driver (backup)
+    ];low
+    browsed.enable = false; # we use a fixed queue, not autodiscovery
   };
+
+  # mDNS/Avahi optional but harmless
   services.avahi = {
     enable = true;
     nssmdns4 = true;
     openFirewall = true;
   };
 
+  ##############################################################################
+  # Declarative printer queue
+  ##############################################################################
   hardware.printers = {
     ensureDefaultPrinter = "Brother_DCP_L2530DW";
     ensurePrinters = [
       {
         name = "Brother_DCP_L2530DW";
-        # Optie 1: vast IP (robuust)
-        deviceUri = "ipps://192.168.000.139/ipp/print";
-        model = "everywhere";
+        # ip of wifi at the first floor
+        deviceUri = "ipp://192.168.0.139/ipp/print";
+        model = "everywhere"; # IPP Everywhere (driverless)
         ppdOptions = {
           PageSize = "A4";
-          Duplex = "DuplexNoTumble";
+          Duplex = "DuplexNoTumble"; # long-edge duplex on A4
         };
       }
-      # Of optie 2: mDNS-hostnaam zodra je die weet
-      # { name = "Brother_DCP_L2530DW";
-      #   deviceUri = "ipps://BRWXXXXXXX.local/ipp/print";
-      #   model = "everywhere";
-      #   ppdOptions = { PageSize = "A4"; Duplex = "DuplexNoTumble"; };
-      # }
     ];
   };
 
-  # (optioneel) maak ensure-printers iets toleranter voor Wi-Fi timing
+  ##############################################################################
+  # Ensure printers service waits for network and retries
+  ##############################################################################
   systemd.services.ensure-printers = {
     after = ["NetworkManager-wait-online.service" "cups.service"];
     wants = ["NetworkManager-wait-online.service" "cups.service"];
+    unitConfig = {
+      StartLimitIntervalSec = "0";
+    };
     serviceConfig = {
       Restart = "on-failure";
       RestartSec = "15s";
-      StartLimitIntervalSec = 0;
     };
   };
 }
