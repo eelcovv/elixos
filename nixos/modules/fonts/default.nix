@@ -12,6 +12,14 @@
       nerd-fonts.sauce-code-pro
       nerd-fonts.fantasque-sans-mono
       nerd-fonts.mononoki
+      stix-two # contains STIX Two Math
+      xits-math # XITS Math
+      libertinus # Libertinus (incl. Math)
+
+      # optional but handy
+      roboto # body/sans fallback
+      tex-gyre # TeX Gyre Heros/Pagella etc.
+      dejavu_fonts # DejaVu Sans Mono fallback
     ];
   };
 }
