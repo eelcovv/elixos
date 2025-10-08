@@ -1,13 +1,7 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
-  fonts = {
-    fontconfig.enable = true;
-
-    packages = with pkgs; [
+# nixos/modules/fonts/default.nix
+{pkgs, ...}: {
+  config = {
+    fonts.packages = with pkgs; [
       # basis
       noto-fonts
       noto-fonts-cjk-sans
@@ -24,17 +18,17 @@
       nerd-fonts.mononoki
 
       # math (voor unicode-math)
-      stix-two # STIX Two Math
+      stix-two # bevat STIX Two Math
       xits-math
-      libertinus # Libertinus + Libertinus Math
+      libertinus # bevat Libertinus (incl. Math)
 
       # fallbacks die davefonts gebruikt
       roboto
       dejavu_fonts
 
-      # TeX Gyre families (let op koppeltekens)
-      tex-gyre-heros
-      tex-gyre-pagella
+      # TeX Gyre families — let op: specifieke derivaties, géén attrset
+      tex-gyre.heros
+      tex-gyre.pagella
     ];
   };
 }
