@@ -13,7 +13,7 @@
     drivers = with pkgs; [
       gutenprint # generic drivers
       brlaser # Brother open driver (backup)
-    ];low
+    ];
     browsed.enable = false; # we use a fixed queue, not autodiscovery
   };
 
