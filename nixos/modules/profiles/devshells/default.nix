@@ -294,5 +294,61 @@ in {
         ${addRuntimeLibs lib pkgs}
       '';
     };
+    py_build_c_fortran = pkgs.mkShell {
+      # Everything Meson/Ninja and the Fortran/C toolchain need
+      packages = with pkgs; [
+        python312
+        uv
+        meson
+        ninja
+        pkg-config
+        gcc
+        gfortran
+        # Useful if Meson dependency('openmp') wants to go via clang;
+        # with GCC we use libgomp, but this makes detection more robust.
+        openmp
+      ];
+
+      shellHook = ''
+            echo "🛠️  py_build_capytaine active (Meson + GCC/GFortran + f2py)"
+            ${python_consistency_hook}
+
+            # Make sure Meson/GNU toolchain is selected (instead of clang)
+            export CC=gcc
+            export CXX=g++
+            export FC=gfortran
+
+            # Numpy/f2py draait in de *actieve* interpreter. Bouw daarom in een venv.
+            if [ ! -d ".venv" ]; then
+              echo "📦 creating virtualenv with uv (system python)"
+              uv venv --python python3
+              . .venv/bin/activate
+              uv pip install --upgrade pip wheel
+              # Alleen numpy is nodig voor f2py en include-dirs
+              uv pip install numpy
+            else
+              . .venv/bin/activate
+              # Zeker weten dat numpy aanwezig is (idempotent)
+              python - <<'PY'
+        import importlib.util, sys
+        spec = importlib.util.find_spec("numpy")
+        sys.exit(0 if spec else 1)
+        PY
+              if [ $? -ne 0 ]; then
+                uv pip install numpy
+              fi
+            fi
+
+            # Optional: something more parallelism before Numpy/F2PY Builds
+            export NPY_NUM_BUILD_JOBS="''${NPY_NUM_BUILD_JOBS:-$(nproc)}"
+
+            echo "✅ Toolchain ready. Commands:"
+            echo "    meson setup build"
+            echo "    meson compile -C build"
+            echo "    meson install -C build"
+            echo
+            echo "Tip: run this from the capytaine repo-root."
+      '';
+    };
   };
 }
