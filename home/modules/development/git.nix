@@ -13,6 +13,11 @@
     extraConfig = {
       core.editor = "vim";
       color.ui = true;
+
+      # Disable pager for 'git branch' and optionally others
+      pager.branch = "false";
+      pager.diff = "false";
+      pager.log = "false";
     };
   };
 }
