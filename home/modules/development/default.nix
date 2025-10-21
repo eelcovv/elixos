@@ -31,7 +31,6 @@
   };
 
   sops.secrets."pypi_token_testpypi" = {
-    path = "${config.xdg.runDir}/secrets/pypi_token_testpypi";
     sopsFile = ../../../nixos/secrets/pypi/testpypi_token_eelco.yaml;
   };
 
