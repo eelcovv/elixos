@@ -27,7 +27,7 @@ in {
       enable = lib.mkEnableOption "Add a 'testpypi' index entry to ~/.pypirc";
       tokenPath = lib.mkOption {
         type = lib.types.str;
-        default = "/run/secrets/pypi_token_testpypi";
+        default = config.sops.secrets.pypi_token_testpypi.path;
         description = "Path to the TestPyPI API token (used with username=__token__).";
       };
     };
