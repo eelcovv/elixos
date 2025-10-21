@@ -25,6 +25,9 @@
       repository = "https://pypi.davelab.eu";
       auth.mode = "basic";
     };
+    testpypi = {
+      enable = true;
+    };
   };
 
   # Global CLI tools only (no compilers/runtimes here)
