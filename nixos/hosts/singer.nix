@@ -8,6 +8,9 @@
   # Definine host-specifi sshUsers
   sshUsers = ["eelco" "por"];
   configuredUsers = ["eelco" "por"];
+  services.displayManager.gdm.enable = true;
+  services.displayManager.gdm.wayland = true;
+  services.displayManager.defaultSession = "plasma";
 
   imports =
     # 🧱 Basic modules
@@ -31,6 +34,7 @@
     [
       ../modules/services/ssh-client-keys.nix
       ../modules/services/login.nix
+      ../modules/services/printing.nix
       ../modules/services/vpn-entries.nix
     ]
     ++
@@ -46,21 +50,21 @@
       inputs.disko.nixosModules.disko
       inputs.home-manager.nixosModules.home-manager
     ];
-    # 👇 Enable Flatpak profile on this host (uses ../modules/profiles/flatpak.nix)
-    profiles.flatpak = {
-      enable = true;
-      addSystemFlathub = true;
-      portals.hyprland = true;
-      portals.gtk = true;
-      # Optional: install system-scope apps automatically:
-      # systemApps = [ "org.paraview.ParaView" ];
-    };
+  # 👇 Enable Flatpak profile on this host (uses ../modules/profiles/flatpak.nix)
+  profiles.flatpak = {
+    enable = true;
+    addSystemFlathub = true;
+    portals.hyprland = true;
+    portals.gtk = true;
+    # Optional: install system-scope apps automatically:
+    # systemApps = [ "org.paraview.ParaView" ];
+  };
 
-    profiles.session.seedRememberLast = {
-      enable = true;
-      mapping = {
-        eelco = "hyprland";
-        por = "plasma";
-      };
+  profiles.session.seedRememberLast = {
+    enable = true;
+    mapping = {
+      eelco = "hyprland";
+      por = "plasma";
     };
-  }
+  };
+}
