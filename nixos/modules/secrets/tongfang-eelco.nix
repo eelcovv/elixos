@@ -10,7 +10,10 @@
   ];
 
   elx.pypi.user = "eelco";
-
+  
+  # Override YAML key names to match your file:
+  elx.pypi.keys.usernameKey = "davelab_username";
+  elx.pypi.keys.passwordKey = "davelab_password";
 
   sops.secrets.id_ed25519_eelco_tongfang = {
     sopsFile = ../../secrets/id_ed25519_eelco_tongfang.yaml;

@@ -25,14 +25,14 @@
       repository = "https://pypi.davelab.eu";
       auth.mode = "basic";
     };
-    testpypi = {
-      enable = true;
-    };
+    #testpypi = {
+    #  enable = true;
+    #};
   };
 
-  sops.secrets."pypi_token_testpypi" = {
-    sopsFile = ../../../nixos/secrets/pypi/testpypi_token_eelco.yaml;
-  };
+  #sops.secrets."pypi_token_testpypi" = {
+  #  sopsFile = ../../../nixos/secrets/pypi/testpypi_token_eelco.yaml;
+  #};
 
   # Global CLI tools only (no compilers/runtimes here)
   home.packages = with pkgs; [

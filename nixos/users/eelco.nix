@@ -12,28 +12,6 @@
   # sops-nix config: pad naar age keyfile
   sops.age.keyFile = "/etc/sops/age/keys.txt";
 
-  # secrets declaratie → komen in /run/secrets/pypi_token_main en pypi_token_davelab
-  sops.secrets = {
-    pypi_token_main = {
-      sopsFile = ../secrets/pypi/token_eelco.yaml;
-      key = "pypi_token";
-      owner = "eelco";
-      mode = "0400";
-    };
-    davelab_username = {
-      sopsFile = ../secrets/pypi/davelab_eelco.yaml;
-      key = "davelab_username";
-      owner = "eelco";
-      mode = "0400";
-    };
-    davelab_password = {
-      sopsFile = ../secrets/pypi/davelab_eelco.yaml;
-      key = "davelab_password";
-      owner = "eelco";
-      mode = "0400";
-    };
-  };
-
   users.users.eelco = {
     isNormalUser = true;
     createHome = true;

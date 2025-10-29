@@ -79,13 +79,13 @@ in
     };
 
     # TestPyPI token -> /run/secrets/pypi_token_testpypi
-    sops.secrets."pypi_token_testpypi" = lib.mkIf cfg.enableTestPyPI {
-      sopsFile = cfg.files.testFile;
-      key = cfg.keys.testKey;
-      owner = cfg.user;
-      group = "users";
-      mode = "0400";
-    };
+    #sops.secrets."pypi_token_testpypi" = lib.mkIf cfg.enableTestPyPI {
+    #  sopsFile = cfg.files.testFile;
+    #  key = cfg.keys.testKey;
+    #  owner = cfg.user;
+    #  group = "users";
+    #  mode = "0400";
+    #};
 
     # DaveLab basic auth -> /run/secrets/davelab_username + /run/secrets/davelab_password
     sops.secrets."davelab_username" = lib.mkIf cfg.enableDaveLabBasic {

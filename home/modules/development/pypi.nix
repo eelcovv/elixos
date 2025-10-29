@@ -23,14 +23,14 @@ in {
       };
     };
 
-    testpypi = {
-      enable = lib.mkEnableOption "Add a 'testpypi' index entry to ~/.pypirc";
-      tokenPath = lib.mkOption {
-        type = lib.types.str;
-        default = config.sops.secrets.pypi_token_testpypi.path;
-        description = "Path to the TestPyPI API token (used with username=__token__).";
-      };
-    };
+    #testpypi = {
+    #  enable = lib.mkEnableOption "Add a 'testpypi' index entry to ~/.pypirc";
+    #  tokenPath = lib.mkOption {
+    #    type = lib.types.str;
+    #    default = config.sops.secrets.pypi_token_testpypi.path;
+    #    description = "Path to the TestPyPI API token (used with username=__token__).";
+    #  };
+    #};
 
     davelab = {
       enable = lib.mkEnableOption "Add a 'davelab' index entry to ~/.pypirc";
@@ -77,7 +77,6 @@ in {
         dlabToken="${lib.escapeShellArg cfg.tokenPaths.davelab}"
         dlabUserPath="${lib.escapeShellArg cfg.davelab.auth.usernamePath}"
         dlabPassPath="${lib.escapeShellArg cfg.davelab.auth.passwordPath}"
-        testpypiTokenPath="${lib.escapeShellArg cfg.testpypi.tokenPath}"
 
         outfile="${lib.escapeShellArg "${homeDir}/.pypirc"}"
 
@@ -87,13 +86,6 @@ in {
         fi
 
         pypi_pass="$(cat "$main")"
-
-        testpypi_pass=""
-        if ${lib.boolToString cfg.testpypi.enable}; then
-          if [ -r "$testpypiTokenPath" ]; then
-            testpypi_pass="$(cat "$testpypiTokenPath")"
-          fi
-        fi
 
         dlab_user="__token__"
         dlab_pass="$pypi_pass"
@@ -123,9 +115,6 @@ in {
           if ${lib.boolToString cfg.davelab.enable}; then
             echo "    davelab"
           fi
-          if ${lib.boolToString cfg.testpypi.enable}; then
-            echo "    testpypi"
-          fi
 
           echo
           echo "[pypi]"
@@ -140,12 +129,6 @@ in {
             echo "password = $dlab_pass"
           fi
 
-          if ${lib.boolToString cfg.testpypi.enable} && [ -n "$testpypi_pass" ]; then
-            echo
-            echo "[testpypi]"
-            echo "username = __token__"
-            echo "password = $testpypi_pass"
-          fi
         } > "$tmp"
 
         install -m 0600 -o ${lib.escapeShellArg user} -g users "$tmp" "$outfile"
