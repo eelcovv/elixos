@@ -22,15 +22,8 @@
   ##############################################################################
   # Outputs
   ##############################################################################
-  outputs = inputs @ {
-    self,
-    nixpkgs,
-    disko,
-    home-manager,
-    sops-nix,
-    flake-utils,
-    ...
-  }: let
+  outputs = inputs@{ self, nixpkgs, disko, home-manager, sops-nix, flake-utils, ... }:
+  let
     system = "x86_64-linux";
 
     # Users and hosts used to auto-generate system and HM configs
@@ -66,91 +59,38 @@
       users = hostUsersMap.${hostName} or [];
     in
       nixpkgs.lib.nixosSystem {
-        # Expose flake inputs to NixOS modules
-        specialArgs = {
-          inherit inputs self;
-          userModulesPath = ./home/users;
-        };
-
-        modules =
-          [
-            # Ensure hostPlatform is set for all hosts (required by newer NixOS)
-            {nixpkgs.hostPlatform = nixpkgs.lib.mkDefault system;}
-
-            # Host base module
-            hostFiles.${hostName}
-
-            # Disko at system level (partitioning/formatting)
-            disko.nixosModules.disko
-
-            # sops-nix at system level (provides `sops.*` options and /run/secrets)
-            sops-nix.nixosModules.sops
-
-            # Home-Manager as a NixOS module (no HM sops here)
-            home-manager.nixosModules.home-manager
-          ]
-          # Auto-import OS user modules based on hostUsersMap
-          ++ builtins.map (u: ./nixos/users + "/${u}.nix") users;
+        specialArgs = { inherit inputs self; userModulesPath = ./home/users; };
+        modules = [
+          { nixpkgs.hostPlatform = nixpkgs.lib.mkDefault system; } # Ensure hostPlatform
+          hostFiles.${hostName}                                    # Host base module
+          disko.nixosModules.disko                                  # Disko module
+          sops-nix.nixosModules.sops                                # sops-nix at system level
+          home-manager.nixosModules.home-manager                   # HM module
+        ]
+        ++ builtins.map (u: ./nixos/users + "/${u}.nix") users;      # Auto-import OS user modules
       };
-  in {
+  in
+  {
     ############################################################################
     # DevShells for all default systems
     ############################################################################
     devShells = let
-      # Limit to Linux systems (avoids Darwin breakages, e.g., OVMF on macOS)
       systems = ["x86_64-linux" "aarch64-linux"];
-
-      # Build the shell set for one system
       mkShellSet = sys: let
-        # Import pkgs for the target system
-        pkgs = import nixpkgs {
-          system = sys;
-          config = {allowUnfree = true;};
-        };
-
-        # Import your centralized shells (parameterized by 'system')
-        shells =
-          (import ./nixos/modules/profiles/devshells/default.nix {
-            inherit pkgs inputs;
-            system = sys;
-          }).devShells;
-
-        # General-purpose dev shell; guard Linux-only packages
+        pkgs = import nixpkgs { system = sys; config = { allowUnfree = true; }; };
+        shells = (import ./nixos/modules/profiles/devshells/default.nix { inherit pkgs inputs; system = sys; }).devShells;
         general_default = pkgs.mkShell {
-          packages = with pkgs;
-            [
-              pre-commit
-              alejandra
-              rage
-              sops
-              yq-go
-              git
-              openssh
-              age
-              just
-              prettier
-              nodejs
-            ]
-            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [OVMF qemu];
-
+          packages = with pkgs; [
+            pre-commit alejandra rage sops yq-go git openssh age just prettier nodejs
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [OVMF qemu];
           shellHook = ''
             echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
           '';
         };
-      in
-        shells
-        // {
-          general = general_default;
-          default = shells.py_build; # convenience default
-        };
-
-      # System-first map: devShells.${system}.{py_build,py_light,py_vtk,default,general}
+      in shells // { general = general_default; default = shells.py_build; };
       bySystem = nixpkgs.lib.genAttrs systems mkShellSet;
-
-      # Name-first map: devShells.{py_build,py_light,py_vtk,default,general}.${system}
       byName = flake-utils.lib.eachSystem systems mkShellSet;
-    in
-      byName // bySystem;
+    in byName // bySystem;
 
     ############################################################################
     # NixOS hosts
@@ -161,51 +101,30 @@
     # Standalone Home-Manager profiles (outside NixOS)
     ############################################################################
     homeConfigurations = builtins.listToAttrs (
-      builtins.concatMap
-      (
-        user:
-          builtins.map
-          (host: let
-            pkgs = import nixpkgs {
-              inherit system;
-              config = {allowUnfree = true;};
-            };
+      builtins.concatMap (user:
+        builtins.map (host:
+          let
+            pkgs = import nixpkgs { inherit system; config = { allowUnfree = true; }; };
           in {
             name = "${user}@${host}";
             value = home-manager.lib.homeManagerConfiguration {
               inherit pkgs;
-
               modules = [
-                # Expose inputs to HM modules
-                {
-                  _module.args = {
-                    inherit inputs self;
-                    userModulesPath = ./home/users;
-                  };
-                }
-
-                # sops module (only for Home-Manager context)
-                {
-                  _module.args = {pkgs = pkgs;};
-                  imports = [(import sops-nix {inherit pkgs;}).homeModules.sops];
-                }
-
-                # Actual HM user configuration
+                { _module.args = { inherit inputs self; userModulesPath = ./home/users; }; }
+                # sops module for HM context
+                { _module.args = { pkgs = pkgs; }; imports = [(import sops-nix { inherit pkgs; }).homeModules.sops]; }
                 ./home/users/${user}
               ];
             };
-          })
-          allHosts
-      )
-      allUsers
+          }
+        ) allHosts
+      ) allUsers
     );
 
     ############################################################################
     # Convenience: buildable system derivations per host (exclude test-vm)
     ############################################################################
-    packages.${system} =
-      builtins.mapAttrs
-      (_: cfg: cfg.config.system.build.toplevel)
+    packages.${system} = builtins.mapAttrs (_: cfg: cfg.config.system.build.toplevel)
       (builtins.removeAttrs (builtins.mapAttrs (n: _: mkHost n) hostFiles) ["test-vm"]);
 
     ############################################################################
@@ -217,3 +136,4 @@
     };
   };
 }
+
