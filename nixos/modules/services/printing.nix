@@ -46,15 +46,16 @@
   ##############################################################################
   # Ensure printers service waits for network and retries
   ##############################################################################
-  systemd.services.ensure-printers = {
-    after = ["NetworkManager-wait-online.service" "cups.service"];
-    wants = ["NetworkManager-wait-online.service" "cups.service"];
-    unitConfig = {
-      StartLimitIntervalSec = "0";
-    };
-    serviceConfig = {
-      Restart = "on-failure";
-      RestartSec = "15s";
-    };
+systemd.services.ensure-printers = {
+  after = ["NetworkManager-wait-online.service" "cups.service"];
+  wants = ["NetworkManager-wait-online.service" "cups.service"];
+  unitConfig = {
+    StartLimitIntervalSec = "0";
   };
+  serviceConfig = {
+    Restart = "no";                  # stop met oneindig herstarten
+    RestartSec = "15s";
+    SuccessExitStatus = [ 0 1 ];     # beschouw exit-code 1 (printer unreachable) als OK
+  };
+};
 }

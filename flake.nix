@@ -111,8 +111,7 @@
               inherit pkgs;
               modules = [
                 { _module.args = { inherit inputs self; userModulesPath = ./home/users; }; }
-                # sops module for HM context
-                { _module.args = { pkgs = pkgs; }; imports = [(import sops-nix { inherit pkgs; }).homeModules.sops]; }
+                {}
                 ./home/users/${user}
               ];
             };
