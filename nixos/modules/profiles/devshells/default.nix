@@ -149,28 +149,52 @@
     prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
     prepend "${lib.getLib pkgs.gmp}/lib"
   '';
+
+  # ---- Global CA/TLS trust setup ----
+  caBundle = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+
+  tls_ca_hook = ''
+    # ✅ Global CA/TLS trust for all tools (Python, curl, git, nix)
+    export SSL_CERT_FILE='${caBundle}'
+    export REQUESTS_CA_BUNDLE="$SSL_CERT_FILE"
+    export GIT_SSL_CAINFO="$SSL_CERT_FILE"
+    export CURL_CA_BUNDLE="$SSL_CERT_FILE"
+    export NIX_SSL_CERT_FILE="$SSL_CERT_FILE"
+  '';
+
+  # ---- DRY mkDevShell helper ----
+  mkDevShell = {
+    extraPackages ? [],
+    extraHook ? "",
+  }:
+    pkgs.mkShell {
+      packages = [pkgs.cacert] ++ extraPackages;
+      shellHook = lib.concatStringsSep "\n" [
+        tls_ca_hook
+        python_consistency_hook
+        extraHook
+      ];
+    };
 in {
   devShells = {
-    py_light = pkgs.mkShell {
-      packages = with pkgs; [python312 uv pre-commit gmp];
-      shellHook = ''
+    py_light = mkDevShell {
+      extraPackages = with pkgs; [python312 uv pre-commit gmp];
+      extraHook = ''
         echo "🐍 py_light active (python + uv, no compilers)"
-        ${python_consistency_hook}
         ${addRuntimeLibs lib pkgs}
       '';
     };
 
-    py_build = pkgs.mkShell {
-      packages = with pkgs; [python312 uv gcc gfortran cmake pkg-config openblas gmp];
-      shellHook = ''
+    py_build = mkDevShell {
+      extraPackages = with pkgs; [python312 uv gcc gfortran cmake pkg-config openblas gmp];
+      extraHook = ''
         echo "🛠️  py_build active (gcc/gfortran/cmake/pkg-config/openblas)"
-        ${python_consistency_hook}
         ${addRuntimeLibs lib pkgs}
       '';
     };
 
-    py_vtk = pkgs.mkShell {
-      packages = with pkgs; [
+    py_vtk = mkDevShell {
+      extraPackages = with pkgs; [
         python312
         uv
         vtk
@@ -221,16 +245,21 @@ in {
         mesa-demos
         patchelf
         gmp
+        cairo
+        gdk-pixbuf
+        pango
+        libffi
+        libxml2
+        libxslt
       ];
-      shellHook = ''
-        ${python_consistency_hook}
+      extraHook = ''
         ${qt_wheel_shell_hook lib pkgs}
         ${addRuntimeLibs lib pkgs}
       '';
     };
 
-    py_build_vtk = pkgs.mkShell {
-      packages = with pkgs; [
+    py_build_vtk = mkDevShell {
+      extraPackages = with pkgs; [
         python312
         uv
         gcc
@@ -287,16 +316,15 @@ in {
         patchelf
         gmp
       ];
-      shellHook = ''
+      extraHook = ''
         echo "🛠️🖼️  py_build_vtk active (build toolchain + Qt/VTK wheels)"
-        ${python_consistency_hook}
         ${qt_wheel_shell_hook lib pkgs}
         ${addRuntimeLibs lib pkgs}
       '';
     };
-    py_build_c_fortran = pkgs.mkShell {
-      # Core toolchain and build tools
-      packages = with pkgs;
+
+    py_build_c_fortran = mkDevShell {
+      extraPackages = with pkgs;
         [
           python312
           uv
@@ -306,47 +334,37 @@ in {
           gcc
           gfortran
         ]
-        ++ lib.optionals pkgs.stdenv.isDarwin [
-          # Only needed on macOS/Clang builds for OpenMP support
-          pkgs.llvmPackages.openmp
-        ];
+        ++ lib.optionals pkgs.stdenv.isDarwin [pkgs.llvmPackages.openmp];
+      extraHook = ''
+                echo "🛠️  py_build_c_fortran active (Meson + GCC/GFortran + f2py)"
 
-      shellHook = ''
-            echo "🛠️  py_build_c_fortran active (Meson + GCC/GFortran + f2py)"
-            ${python_consistency_hook}
+                export CC=gcc
+                export CXX=g++
+                export FC=gfortran
 
-            # --- Compiler configuration ---
-            export CC=gcc
-            export CXX=g++
-            export FC=gfortran
-
-            # --- Python virtual environment ---
-            # Ensure an isolated venv exists with numpy for f2py and includes
-            if [ ! -d ".venv" ]; then
-              echo "📦 creating virtualenv with uv (system python)"
-              uv venv --python python3
-              . .venv/bin/activate
-              uv pip install --upgrade pip wheel
-              uv pip install numpy
-            else
-              . .venv/bin/activate
-              python - <<'PY'
+                if [ ! -d ".venv" ]; then
+                  echo "📦 creating virtualenv with uv (system python)"
+                  uv venv --python python3
+                  . .venv/bin/activate
+                  uv pip install --upgrade pip wheel
+                  uv pip install numpy
+                else
+                  . .venv/bin/activate
+                  python - <<'PY'
         import importlib.util, sys
         sys.exit(0 if importlib.util.find_spec("numpy") else 1)
         PY
-              if [ $? -ne 0 ]; then
-                uv pip install numpy
-              fi
-            fi
+                  if [ $? -ne 0 ]; then
+                    uv pip install numpy
+                  fi
+                fi
 
-            # --- Parallel build jobs for numpy/f2py ---
-            export NPY_NUM_BUILD_JOBS="''${NPY_NUM_BUILD_JOBS:-$(nproc)}"
+                export NPY_NUM_BUILD_JOBS="''${NPY_NUM_BUILD_JOBS:-$(nproc)}"
 
-            echo "✅ C/Fortran build environment ready."
-            echo "Typical commands:"
-            echo "  meson setup build"
-            echo "  meson compile -C build"
-            echo "  meson install -C build"
+                echo "✅ C/Fortran build environment ready."
+                echo "  meson setup build"
+                echo "  meson compile -C build"
+                echo "  meson install -C build"
       '';
     };
   };
