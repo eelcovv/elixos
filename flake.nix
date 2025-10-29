@@ -90,40 +90,12 @@
             home-manager.nixosModules.home-manager
           ]
           # Auto-import OS user modules based on hostUsersMap
-          ++ builtins.map (u: ./nixos/users + "/${u}.nix") users
-          # Home-Manager users only if present on this host
-          ++ (
-            if enableHM && users != []
-            then [
-              {
-                home-manager.useGlobalPkgs = true;
-                home-manager.useUserPackages = true;
-
-                # Define HM users as an attrset { eelco = { imports = [ ... ]; }; por = ...; }
-                home-manager.users = nixpkgs.lib.genAttrs users (u: {
-                  imports = [
-                    # Pass flake inputs/userModulesPath to all HM submodules
-                    {
-                      _module.args = {
-                        inherit inputs self;
-                        userModulesPath = ./home/users;
-                      };
-                    }
-
-                    # Actual HM user configuration
-                    (./home/users + "/${u}")
-                  ];
-                });
-              }
-            ]
-            else []
-          );
+          ++ builtins.map (u: ./nixos/users + "/${u}.nix") users;
       };
   in {
     ############################################################################
     # DevShells for all default systems
     ############################################################################
-    # flake.nix — devShells exported in BOTH orientations: name-first AND system-first
     devShells = let
       # Limit to Linux systems (avoids Darwin breakages, e.g., OVMF on macOS)
       systems = ["x86_64-linux" "aarch64-linux"];
@@ -159,7 +131,6 @@
               prettier
               nodejs
             ]
-            # Only on Linux (OVMF/qemu break on Darwin in your pin)
             ++ pkgs.lib.optionals pkgs.stdenv.isLinux [OVMF qemu];
 
           shellHook = ''
@@ -167,7 +138,6 @@
           '';
         };
       in
-        # Return the per-system shell set, plus your general and default aliases
         shells
         // {
           general = general_default;
@@ -180,7 +150,6 @@
       # Name-first map: devShells.{py_build,py_light,py_vtk,default,general}.${system}
       byName = flake-utils.lib.eachSystem systems mkShellSet;
     in
-      # Export both maps; keys don't collide (different top-level names)
       byName // bySystem;
 
     ############################################################################
@@ -196,13 +165,16 @@
       (
         user:
           builtins.map
-          (host: {
+          (host: let
+            pkgs = import nixpkgs {
+              inherit system;
+              config = {allowUnfree = true;};
+            };
+          in {
             name = "${user}@${host}";
             value = home-manager.lib.homeManagerConfiguration {
-              pkgs = import nixpkgs {
-                inherit system;
-                config = {allowUnfree = true;};
-              };
+              inherit pkgs;
+
               modules = [
                 # Expose inputs to HM modules
                 {
@@ -212,8 +184,14 @@
                   };
                 }
 
+                # sops module (only for Home-Manager context)
+                {
+                  _module.args = {pkgs = pkgs;};
+                  imports = [(import sops-nix {inherit pkgs;}).homeModules.sops];
+                }
+
                 # Actual HM user configuration
-                (./home/users + "/${user}")
+                ./home/users/${user}
               ];
             };
           })
