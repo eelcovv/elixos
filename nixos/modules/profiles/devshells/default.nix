@@ -221,6 +221,13 @@ in {
         mesa-demos
         patchelf
         gmp
+        cairo
+        gdk-pixbuf
+        pango
+        harfbuzz
+        libffi
+        libxml2
+        libxslt
       ];
       shellHook = ''
         ${python_consistency_hook}
