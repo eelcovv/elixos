@@ -6,7 +6,11 @@
 }: {
   imports = [
     ./default.nix
+    ./pypi.nix
   ];
+
+  elx.pypi.user = "eelco";
+
 
   sops.secrets.id_ed25519_eelco_tongfang = {
     sopsFile = ../../secrets/id_ed25519_eelco_tongfang.yaml;
