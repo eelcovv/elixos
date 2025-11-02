@@ -70,6 +70,8 @@
 
     # Core system libs
     prepend "${lib.getLib pkgs.libglvnd}/lib"
+    prepend "${lib.getLib pkgs.libGLU}/lib"
+    prepend "${lib.getLib pkgs.freeglut}/lib"
     prepend "${lib.getLib pkgs.zlib}/lib"
     prepend "${lib.getLib pkgs.e2fsprogs}/lib"
     prepend "${lib.getLib pkgs.expat}/lib"
