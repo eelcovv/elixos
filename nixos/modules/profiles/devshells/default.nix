@@ -239,6 +239,9 @@ in {
         libpng
         libjpeg
         libtiff
+        libGL
+        libGLU
+        freeglut
         zstd
         dbus
         pcre2
