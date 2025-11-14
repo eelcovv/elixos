@@ -8,7 +8,7 @@
 
   fileSystems."/home/eelco/Windows" = {
     device = "/dev/disk/by-uuid/82A41861A41859CD";
-    fsType = "ntfs3";
+    fsType = "ntfs-3g";
     options = [
       "rw"
       "nofail"
