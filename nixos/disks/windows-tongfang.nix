@@ -1,10 +1,11 @@
-{...}: {
-  # Make sure the mount point directory exists
-  systemd.tmpfiles.rules = [
-    "d /home/eelco/Windows 0755 eelco users -"
-  ];
-
+{pkgs, ...}: {
   # Mount Windows C: (nvme0n1p2) on ~/Windows via ntfs3
+  # Ensure the mount point exists before attempting to mount.
+  system.activationScripts.makeWindowsMountPoint = ''
+    mkdir -p /home/eelco/Windows
+    chown eelco:users /home/eelco/Windows
+  '';
+
   fileSystems."/home/eelco/Windows" = {
     device = "/dev/disk/by-uuid/82A41861A41859CD";
     fsType = "ntfs3";
