@@ -9,5 +9,6 @@
     spotify
     kdePackages.kdenlive
     amarok
+    ffmpeg
   ];
 }
