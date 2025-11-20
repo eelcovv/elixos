@@ -10,7 +10,6 @@
       gtk3
       gdk-pixbuf
       gsettings-desktop-schemas
-      at-spi2-core
       librsvg
     ];
   };
