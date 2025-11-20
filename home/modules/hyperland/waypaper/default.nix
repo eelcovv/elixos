@@ -47,7 +47,6 @@ in {
         imagemagick
         wallust
         matugen
-        rofi-wayland
         libnotify
         swaynotificationcenter
         git

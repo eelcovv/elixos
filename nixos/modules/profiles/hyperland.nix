@@ -12,7 +12,6 @@
     environment.systemPackages = with pkgs; [
       hyprpaper
       waybar
-      rofi-wayland
       networkmanagerapplet
       brightnessctl
       grim
