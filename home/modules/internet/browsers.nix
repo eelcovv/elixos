@@ -1,17 +1,31 @@
-{pkgs, ...}: {
+{ pkgs, ... }:
+
+{
   home.packages = with pkgs; [
-    firefox
+    #
+    # Browsers
+    #
+    brave
     chromium
     epiphany
+    firefox
     google-chrome
-    brave
+    librewolf
+    mullvad-browser
+    opera
     qutebrowser
     tor-browser
-    protonmail-desktop
-    transmission_4 # torrent client -browser
-    protonmail-desktop
-    biglybt # torrent client
-    transmission_4 # torrent client
+    vivaldi
+
+    #
+    # Bittorrent
+    #
     qbittorrent
+    transmission_4
+
+    #
+    # Mail
+    #
+    protonmail-desktop
   ];
 }

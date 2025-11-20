@@ -8,9 +8,9 @@
 }: {
   programs.git = {
     enable = true;
-    userName = userName;
-    userEmail = userEmail;
-    extraConfig = {
+    settings = {
+      user.name = userName;
+      user.email = userEmail;
       core.editor = "vim";
       color.ui = true;
 

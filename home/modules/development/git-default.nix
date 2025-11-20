@@ -1,9 +1,9 @@
 {lib, ...}: {
   programs.git = {
     enable = true;
-    userName = lib.mkDefault "Default User";
-    userEmail = lib.mkDefault "default@example.com";
-    extraConfig = {
+    settings = {
+      user.name = lib.mkDefault "Default User";
+      user.email = lib.mkDefault "default@example.com";
       core.editor = "vim";
       color.ui = true;
       pull.rebase = false;
