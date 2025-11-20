@@ -1,6 +1,4 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   home.packages = with pkgs; [
     #
     # Browsers
@@ -12,7 +10,6 @@
     google-chrome
     librewolf
     mullvad-browser
-    opera
     qutebrowser
     tor-browser
     vivaldi
