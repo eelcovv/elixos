@@ -5,6 +5,8 @@
   config = {
     services.xserver.enable = true;
     services.desktopManager.gnome.enable = true;
+    services.gnome.gnome-initial-setup.enable = false;
+    security.rtkit.enable = true;
 
     environment.sessionVariables = {
       NO_AT_BRIDGE = "1";
