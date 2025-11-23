@@ -14,17 +14,20 @@
     # This is a fixed-output derivation, which allows network access during the build.
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
-    outputHash = lib.fakeSha256; # Placeholder, Nix will tell you the real one.
+    # IMPORTANT: Replace this with the actual hash Nix provides on the first build failure.
+    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
     # The build script creates a venv in $out and uses uv to install capytaine.
     buildCommand = ''
       set -e
-      # Create a virtual environment in the output directory
-      uv venv $out
-      # Install capytaine into that environment
-      $out/bin/uv pip install capytaine
+      # Prevent uv from writing to its cache in the sandbox's home by setting a temporary home directory.
+      export HOME=$(mktemp -d)
+      # Create a virtual environment in the output directory.
+      uv venv $out --python ${pkgs.python3}/bin/python
+      # Install capytaine into that environment.
+      uv pip install capytaine --python $out/bin/python
       # As a sanity check, list installed packages
-      $out/bin/uv pip list > $out/installed-packages.txt
+      uv pip list --python $out/bin/python > $out/installed-packages.txt
     '';
   };
 
@@ -35,7 +38,7 @@
     paths = [pkgs.freecad-wayland];
     nativeBuildInputs = [pkgs.makeWrapper];
     postBuild = ''
-      wrapProgram $out/bin/freecad --prefix PYTHONPATH : "${capytaineEnv}/${pkgs.python3.sitePackages}"
+      wrapProgram $out/bin/freecad --prefix PYTHONPATH : "${capytaineEnv}/lib/python${lib.versions.majorMinor pkgs.python3.version}/site-packages"
     '';
   };
 in {
@@ -49,24 +52,21 @@ in {
   home.file.".local/share/FreeCAD/Mod/Ship" = {
     source = pkgs.fetchFromGitHub {
       owner = "FreeCAD";
-      repo = "freecad.ship";
-      # For reproducibility, it's better to use a specific commit hash instead of "master".
-      rev = "master";
-      # Replace this placeholder with the correct hash that Nix provides on the first build.
-      hash = lib.fakeSha256;
+      # IMPORTANT: Replace this placeholder with the correct hash that Nix provides on the first build.
+      sha256 = "sha256-dt21MZgwpdqVfdGonZctS+T8xRaYI1E9Dz7m+J0Guhk=";
     };
     recursive = true;
   };
 
-  #home.file.".local/share/FreeCAD/Mod/CurvedShapes" = {
-  #  source = pkgs.fetchFromGitHub {
-  #    owner = "chbergmann";
-  #    repo = "CurvedShapesWorkbench";
-  ##    # For reproducibility, it's better to use a specific commit hash instead of "master".
-  #    rev = "master";
-  #    # Replace this placeholder with the correct hash that Nix provides on the first build.
-  #    hash = lib.fakeSha256;
-  #  };
-  #  recursive = true;
-  #};
+  home.file.".local/share/FreeCAD/Mod/CurvedShapes" = {
+    source = pkgs.fetchFromGitHub {
+      owner = "chbergmann";
+      repo = "CurvedShapesWorkbench";
+      # For reproducibility, it's better to use a specific commit hash instead of "master".
+      rev = "master";
+      # IMPORTANT: Replace this placeholder with the correct hash that Nix provides on the first build.
+      sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    };
+    recursive = true;
+  };
 }
