@@ -28,13 +28,15 @@ in {
   # We fetch the source code of the workbenches from their GitHub repositories.
   # This is then placed in the correct directory where FreeCAD can find them.
   home.file.".local/share/FreeCAD/Mod/Ship" = {
-    source = (pkgs.fetchFromGitHub {
-      owner = "FreeCAD";
-      repo = "freecad.ship";
-      rev = "master";
-      # You might need to update this hash if the master branch changes.
-      sha256 = "sha256-ekkY7DAzwOAf0pPA8IcVC2iUi8b3JZ3QZ+TmHGzdvrs=";
-    }) + "/freecad/ship";
+    source =
+      (pkgs.fetchFromGitHub {
+        owner = "FreeCAD";
+        repo = "freecad.ship";
+        rev = "master";
+        # You might need to update this hash if the master branch changes.
+        sha256 = "sha256-ekkY7DAzwOAf0pPA8IcVC2iUi8b3JZ3QZ+TmHGzdvrs=";
+      })
+      + "/freecad/ship";
     recursive = true;
   };
 
