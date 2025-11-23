@@ -4,6 +4,7 @@
   ...
 }: {
   imports = [
+    ./freecad.nix
     ./openfoam.nix
     # ./paraview.nix
     # ./paraview-container.nix
@@ -16,7 +17,6 @@
     meshlab
     gmsh
     gnuplot
-    freecad-wayland
     gsettings-desktop-schemas
     hicolor-icon-theme
   ];
