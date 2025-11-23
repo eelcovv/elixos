@@ -1,8 +1,0 @@
---- a/pyproject.toml
-+++ b/pyproject.toml
-@@ -1,5 +1,6 @@
- [project]
-+version = "2.3.1"
- name = "capytaine"
- description = "Python BEM solver for linear potential flow, based on Nemoh"
- authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@mews-labs.com"}]
