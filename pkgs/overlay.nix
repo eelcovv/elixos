@@ -2,6 +2,12 @@
 #
 # This overlay adds our custom packages to the nixpkgs set.
 final: prev: {
-  # Add your custom packages here
-  capytaine = final.callPackage ./capytaine { };
+  # Add python packages to the python3Packages package set
+  python3Packages = prev.python3Packages.override {
+    overrides = final.lib.composeExtensions (prev.python3Packages.overrides or (_: _: {})) (
+      python-final: python-prev: {
+        capytaine = final.callPackage ./capytaine { };
+      }
+    );
+  };
 }

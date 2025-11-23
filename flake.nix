@@ -29,7 +29,7 @@
     # Our custom packages and modules
     elixos-overlay = import ./pkgs/overlay.nix;
 
-    # Create a nixpkgs instance with our overlays
+    # Create a nixpkgs instance with our overlays for standalone HM
     pkgs = import nixpkgs {
       inherit system;
       config = { allowUnfree = true; };
@@ -69,9 +69,12 @@
       users = hostUsersMap.${hostName} or [];
     in
       nixpkgs.lib.nixosSystem {
-        specialArgs = { inherit inputs self pkgs; userModulesPath = ./home/users; }; # pkgs is now passed here
+        specialArgs = { inherit inputs self; userModulesPath = ./home/users; }; # pkgs removed from here
         modules = [
-          { nixpkgs.hostPlatform = nixpkgs.lib.mkDefault system; } # Ensure hostPlatform
+          {
+            nixpkgs.overlays = [ elixos-overlay ]; # Overlay added here
+            nixpkgs.hostPlatform = nixpkgs.lib.mkDefault system;
+          }
           hostFiles.${hostName}                                    # Host base module
           disko.nixosModules.disko                                  # Disko module
           sops-nix.nixosModules.sops                                # sops-nix at system level
@@ -87,7 +90,7 @@
     devShells = let
       systems = ["x86_64-linux" "aarch64-linux"];
       mkShellSet = sys: let
-        # Use the top-level pkgs for shells as well
+        # Use a pkgs instance with the overlay for shells
         pkgs = import nixpkgs { system = sys; config = { allowUnfree = true; }; overlays = [ elixos-overlay ]; };
         shells = (import ./nixos/modules/profiles/devshells/default.nix { inherit pkgs inputs; system = sys; }).devShells;
         general_default = pkgs.mkShell {
@@ -117,9 +120,10 @@
           {
             name = "${user}@${host}";
             value = home-manager.lib.homeManagerConfiguration {
-              inherit pkgs; # Use the top-level pkgs
+              inherit pkgs; # Use the top-level pkgs with overlay
               modules = [
-                { _module.args = { inherit inputs self pkgs; userModulesPath = ./home/users; }; }
+                # pkgs removed from _module.args here
+                { _module.args = { inherit inputs self; userModulesPath = ./home/users; }; }
                 {}
                 ./home/users/${user}
               ];
