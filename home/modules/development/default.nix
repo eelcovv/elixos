@@ -38,6 +38,7 @@
   home.packages = with pkgs; [
     alejandra
     direnv
+    gemini-cli
     nodejs
     gnumake
     htop

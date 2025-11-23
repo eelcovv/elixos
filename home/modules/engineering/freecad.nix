@@ -19,6 +19,12 @@
     };
 
     # Dependencies for capytaine, found on its PyPI page.
+    nativeBuildInputs = with pkgs.python3Packages; [
+      meson-python
+      oldest-supported-numpy
+      charset-normalizer
+      pkgs.gfortran
+    ];
     propagatedBuildInputs = with pkgs.python3Packages; [
       numpy
       scipy
@@ -29,6 +35,10 @@
     ];
 
     # This package does not require any special build steps beyond what buildPythonPackage does.
+    postPatch = ''
+      substituteInPlace capytaine/__about__.py \
+        --replace "#!/usr/bin/env python" "#!${pkgs.python3.interpreter}"
+    '';
   };
 
   # Create a Python environment that includes the capytaine package.
