@@ -7,7 +7,7 @@
   # This is the idiomatic Nix way to handle Python dependencies.
   capytaine = pkgs.python3Packages.buildPythonPackage rec {
     pname = "capytaine";
-    version = "2.0"; # Latest version as of late 2025.
+    version = "2.3.1"; # Latest version as of late 2025.
     format = "pyproject";
 
     src = pkgs.fetchPypi {
@@ -15,7 +15,7 @@
       # IMPORTANT: This is a placeholder hash. The build will fail on the first run,
       # and Nix will output the correct hash. You need to replace this value
       # with the hash provided in the error message.
-      sha256 = "sha256-jl0dFNNR9VGXzeqjHXsTF3SaONDo4b/tbcnarT9sgUs=";
+      sha256 = "sha256-N17CmS2Cs32zP23iCfs7uRkEvMTArzRkKMiqK1x5aKA=";
     };
 
     # Dependencies for capytaine, found on its PyPI page.
@@ -34,10 +34,17 @@
       meshio
     ];
 
-    # This package does not require any special build steps beyond what buildPythonPackage does.
     postPatch = ''
-      substituteInPlace capytaine/__about__.py \
+      # The meson build executes this script to get the version.
+      # We need to fix the shebang and make it executable.
+      chmod +x src/capytaine/__about__.py
+      substituteInPlace src/capytaine/__about__.py \
         --replace "#!/usr/bin/env python" "#!${pkgs.python3.interpreter}"
+      
+      # Run the script as a test to see if it works before the build phase.
+      echo "Testing patched __about__.py script..."
+      ${pkgs.python3.interpreter} src/capytaine/__about__.py --version
+      echo "Script test successful."
     '';
   };
 
@@ -55,7 +62,6 @@
         --prefix PYTHONPATH ":" "${pythonWithCapytaine}/${pkgs.python3.sitePackages}"
     '';
   };
-
 in {
   # Installs FreeCAD with its workbenches and required Python dependencies.
 
