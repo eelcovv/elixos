@@ -64,7 +64,7 @@ in {
 
   # We fetch the source code of the workbenches from their GitHub repositories.
   # This is then placed in the correct directory where FreeCAD can find them.
-  home.file.".local/share/FreeCAD/Mod/Ship" = {
+  home.file.".local/share/FreeCAD/Mod/Ship_master" = {
     source = pkgs.fetchFromGitHub {
       owner = "FreeCAD";
       repo = "freecad.ship";
