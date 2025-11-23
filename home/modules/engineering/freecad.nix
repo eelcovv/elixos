@@ -52,6 +52,8 @@ in {
   home.file.".local/share/FreeCAD/Mod/Ship" = {
     source = pkgs.fetchFromGitHub {
       owner = "FreeCAD";
+      repo = "freecad.ship";
+      rev = "master";
       # IMPORTANT: Replace this placeholder with the correct hash that Nix provides on the first build.
       sha256 = "sha256-dt21MZgwpdqVfdGonZctS+T8xRaYI1E9Dz7m+J0Guhk=";
     };
@@ -65,7 +67,7 @@ in {
       # For reproducibility, it's better to use a specific commit hash instead of "master".
       rev = "master";
       # IMPORTANT: Replace this placeholder with the correct hash that Nix provides on the first build.
-      sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      sha256 = "sha256-dt21MZgwpdqVfdGonZctS+T8xRaYI1E9Dz7m+J0Guhk=";
     };
     recursive = true;
   };
