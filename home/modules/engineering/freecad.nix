@@ -35,16 +35,11 @@
     ];
 
     postPatch = ''
-      # The meson build executes this script to get the version.
-      # We need to fix the shebang and make it executable.
-      chmod +x src/capytaine/__about__.py
-      substituteInPlace src/capytaine/__about__.py \
-        --replace "#!/usr/bin/env python" "#!${pkgs.python3.interpreter}"
-      
-      # Run the script as a test to see if it works before the build phase.
-      echo "Testing patched __about__.py script..."
-      ${pkgs.python3.interpreter} src/capytaine/__about__.py --version
-      echo "Script test successful."
+      # The pyproject.toml file specifies that the version is dynamic, which
+      # causes the build system to run a script that fails in the Nix sandbox.
+      # We patch the file to insert the version statically, avoiding the script execution.
+      substituteInPlace pyproject.toml \
+        --replace 'dynamic = ["version"]' 'version = "${version}"'
     '';
   };
 
