@@ -14,16 +14,8 @@
     };
 
     postPatch = ''
-      echo "--- CWD ---"
-      pwd
-      echo "--- LS ---"
-      ls -la
-      echo "--- meson.build before patch ---"
-      cat meson.build
-      sed -i "/version_py = find_program/,/version: project_version/c\project('capytaine', version: '${version}')" meson.build
-      echo "--- meson.build after patch ---"
-      cat meson.build
-      echo "---------------------------------"
+      substituteInPlace meson.build \
+        --replace "run_command('src/capytaine/__about__.py', check: true).stdout().strip()" "'${version}'"
     '';
 
     # Dependencies for capytaine, found on its PyPI page.
