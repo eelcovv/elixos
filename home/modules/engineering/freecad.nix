@@ -3,40 +3,10 @@
   lib,
   ...
 }: let
-  capytaine = pkgs.python3Packages.buildPythonPackage rec {
-    pname = "capytaine";
-    version = "2.3.1"; # Latest version as of late 2025.
-    format = "pyproject";
-
-    src = pkgs.fetchPypi {
-      inherit pname version;
-      sha256 = "sha256-N17CmS2Cs32zP23iCfs7uRkEvMTArzRkKMiqK1x5aKA=";
-    };
-
-    postPatch = ''
-      substituteInPlace meson.build \
-        --replace "run_command('src/capytaine/__about__.py', check: true).stdout().strip()" "'${version}'"
-    '';
-
-    # Dependencies for capytaine, found on its PyPI page.
-    nativeBuildInputs = with pkgs.python3Packages; [
-      meson-python
-      oldest-supported-numpy
-      charset-normalizer
-      pkgs.gfortran
-    ];
-    propagatedBuildInputs = with pkgs.python3Packages; [
-      numpy
-      scipy
-      pandas
-      xarray
-      matplotlib
-      meshio
-    ];
-  };
-
-  # Create a Python environment that includes the capytaine package.
-  pythonWithCapytaine = pkgs.python3.withPackages (ps: [capytaine]);
+  # Create a Python environment that includes the capytaine package from our overlay.
+  pythonWithCapytaine = pkgs.python3.withPackages (ps: [
+    ps.capytaine
+  ]);
 
   # Since freecad-wayland does not have a `withPackages` function, we wrap it
   # to include our Python environment.
