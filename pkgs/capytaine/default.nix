@@ -3,13 +3,11 @@
   lib,
   buildPythonPackage,
   fetchPypi,
-
   # Build-time dependencies
   meson-python,
   oldest-supported-numpy,
   charset-normalizer,
   gfortran,
-
   # Runtime dependencies
   numpy,
   scipy,
@@ -53,9 +51,8 @@ buildPythonPackage rec {
     description = "A Python-based hydrodynamics code for floating bodies";
     homepage = "https://github.com/capytaine/capytaine";
     license = licenses.gpl3Only; # Please verify this license
-    maintainers = with maintainers;
-    [
-      # TODO: Add your GitHub username, e.g., "eelcodegraaf"
+    maintainers = with maintainers; [
+      eelcovv
     ];
     platforms = platforms.unix;
   };
