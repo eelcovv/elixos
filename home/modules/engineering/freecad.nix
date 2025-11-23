@@ -10,12 +10,12 @@
     version = "2.3.1"; # Latest version as of late 2025.
     format = "pyproject";
 
-    src = pkgs.fetchPypi {
-      inherit pname version;
-      # IMPORTANT: This is a placeholder hash. The build will fail on the first run,
-      # and Nix will output the correct hash. You need to replace this value
-      # with the hash provided in the error message.
-      sha256 = "sha256-N17CmS2Cs32zP23iCfs7uRkEvMTArzRkKMiqK1x5aKA=";
+    src = pkgs.applyPatches {
+      src = pkgs.fetchPypi {
+        inherit pname version;
+        sha256 = "sha256-N17CmS2Cs32zP23iCfs7uRkEvMTArzRkKMiqK1x5aKA=";
+      };
+      patches = [ ./capytaine.patch ];
     };
 
     # Dependencies for capytaine, found on its PyPI page.
@@ -33,14 +33,6 @@
       matplotlib
       meshio
     ];
-
-    postPatch = ''
-      # The pyproject.toml file specifies that the version is dynamic, which
-      # causes the build system to run a script that fails in the Nix sandbox.
-      # We patch the file to insert the version statically, avoiding the script execution.
-      substituteInPlace pyproject.toml \
-        --replace 'dynamic = ["version"]' 'version = "${version}"'
-    '';
   };
 
   # Create a Python environment that includes the capytaine package.
