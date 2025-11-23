@@ -4,7 +4,7 @@
   ...
 }: {
   imports = [
-    ./freecad.nix
+    #./freecad.nix
     ./openfoam.nix
     # ./paraview.nix
     # ./paraview-container.nix
