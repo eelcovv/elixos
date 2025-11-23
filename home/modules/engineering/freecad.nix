@@ -3,20 +3,28 @@
   lib,
   ...
 }: let
-  # Package definition for capytaine, fetched from PyPI.
-  # This is the idiomatic Nix way to handle Python dependencies.
   capytaine = pkgs.python3Packages.buildPythonPackage rec {
     pname = "capytaine";
     version = "2.3.1"; # Latest version as of late 2025.
     format = "pyproject";
 
-    src = pkgs.applyPatches {
-      src = pkgs.fetchPypi {
-        inherit pname version;
-        sha256 = "sha256-N17CmS2Cs32zP23iCfs7uRkEvMTArzRkKMiqK1x5aKA=";
-      };
-      patches = [ ./capytaine.patch ];
+    src = pkgs.fetchPypi {
+      inherit pname version;
+      sha256 = "sha256-N17CmS2Cs32zP23iCfs7uRkEvMTArzRkKMiqK1x5aKA=";
     };
+
+    postPatch = ''
+      echo "--- CWD ---"
+      pwd
+      echo "--- LS ---"
+      ls -la
+      echo "--- meson.build before patch ---"
+      cat meson.build
+      sed -i "/version_py = find_program/,/version: project_version/c\project('capytaine', version: '${version}')" meson.build
+      echo "--- meson.build after patch ---"
+      cat meson.build
+      echo "---------------------------------"
+    '';
 
     # Dependencies for capytaine, found on its PyPI page.
     nativeBuildInputs = with pkgs.python3Packages; [
