@@ -50,7 +50,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "A Python-based hydrodynamics code for floating bodies";
     homepage = "https://github.com/capytaine/capytaine";
-    license = licenses.gpl3Only; # Please verify this license
+    license = licenses.gpl3Only;
     maintainers = with maintainers; [
       eelcovv
     ];
