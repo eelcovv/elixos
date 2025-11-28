@@ -12,8 +12,7 @@
   # XDG (needed for desktop entries)
   xdg.enable = true;
 
-  # Enable PTGui
-  programs.ptgui.enable = true;
+
 
   # Default session
   home.file.".dmrc".text = ''
@@ -56,6 +55,7 @@
       ./git.nix
       ./gnome-bindings.nix
       ./nextcloud.nix
+      ./ptgui.nix
       ./zsh.nix
     ];
 }

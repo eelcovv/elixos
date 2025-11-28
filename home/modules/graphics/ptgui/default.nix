@@ -23,18 +23,45 @@
   lib,
   ...
 }: {
-  options.programs.ptgui.enable = lib.mkEnableOption "PTGui panorama stitcher";
+  options.programs.ptgui = {
+    enable = lib.mkEnableOption "PTGui panorama stitcher";
+    version = lib.mkOption {
+      type = lib.types.str;
+      default = "Pro 13.2";
+      description = "PTGui version to use.";
+    };
+    tarballPath = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to the PTGui tarball in the Nix store.";
+    };
+    sha256 = lib.mkOption {
+      type = lib.types.str;
+      default = "sha256-UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
+      description = "SHA256 hash of the PTGui tarball.";
+    };
+  };
 
   config = lib.mkIf config.programs.ptgui.enable (
     let
-      version = "Pro 13.2";
+      cfg = config.programs.ptgui;
+      version = cfg.version;
+      tarballName = "PTGui_${lib.replaceStrings [" " "Pro "] ["_" ""] version}.tar.gz";
 
       # Attempt to require the PTGui tarball; do not fail if it has not been provided.
-      _req = builtins.tryEval (pkgs.requireFile {
-        name = "PTGui_13.2.tar.gz";
-        sha256 = "sha256-UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
-        url = "https://www.ptgui.com/"; # informational only
-      });
+      _req = builtins.tryEval (
+        if cfg.tarballPath != null then
+          pkgs.fetchurl {
+            url = "file://${cfg.tarballPath}";
+            sha256 = cfg.sha256;
+          }
+        else
+          pkgs.requireFile {
+            name = tarballName;
+            sha256 = cfg.sha256;
+            url = "https://www.ptgui.com/"; # informational only
+          }
+      );
 
       src =
         if _req.success

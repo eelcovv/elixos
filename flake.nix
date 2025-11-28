@@ -123,7 +123,7 @@
               inherit pkgs; # Use the top-level pkgs with overlay
               modules = [
                 # pkgs removed from _module.args here
-                { _module.args = { inherit inputs self; userModulesPath = ./home/users; ptguiTarballPath = null; ptguiVersion = null; ptguiSha256 = null; }; }
+                { _module.args = { inherit inputs self; userModulesPath = ./home/users; }; }
                 {}
                 ./home/users/${user}
               ];
