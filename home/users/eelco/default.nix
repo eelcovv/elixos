@@ -12,6 +12,9 @@
   # XDG (needed for desktop entries)
   xdg.enable = true;
 
+  # Enable PTGui
+  programs.ptgui.enable = true;
+
   # Default session
   home.file.".dmrc".text = ''
     [Desktop]
