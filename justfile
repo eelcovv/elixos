@@ -30,6 +30,10 @@ update:
 clean:
 	sudo nix-collect-garbage -d
 
+# Optimise the Nix store
+optimise:
+	sudo nix-store --optimise -v
+
 # Format all files using pre-commit hooks
 fmt:
 	pre-commit run --all-files
