@@ -54,9 +54,9 @@
       StartLimitIntervalSec = "0";
     };
     serviceConfig = {
-      Restart = "no"; # stop met oneindig herstarten
+      Restart = "no";
       RestartSec = "15s";
-      SuccessExitStatus = [0 1];
+      SuccessExitStatus = [0];
     };
   };
 
