@@ -46,25 +46,26 @@
   ##############################################################################
   # Ensure printers service waits for network and retries
   ##############################################################################
-systemd.services.ensure-printers = {
-  after = ["NetworkManager-wait-online.service" "cups.service"];
-  wants = ["NetworkManager-wait-online.service" "cups.service"];
-  wantedBy = [ "multi-user.target" ];
-  unitConfig = {
-    StartLimitIntervalSec = "0";
+  systemd.services.ensure-printers = {
+    after = ["NetworkManager-wait-online.service" "cups.service"];
+    wants = ["NetworkManager-wait-online.service" "cups.service"];
+    wantedBy = ["multi-user.target"];
+    unitConfig = {
+      StartLimitIntervalSec = "0";
+    };
+    serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "15s";
+      SuccessExitStatus = [0];
+    };
   };
-  serviceConfig = {
-    Restart = "on-failure";
-    RestartSec = "15s";
-    SuccessExitStatus = [ 0 ];
-  };
-};
 
   ##############################################################################
   # SANE (Scanner Access Now Easy) configuration for Brother DCP-L2530DW
   ##############################################################################
   hardware.sane = {
     enable = true;
+    extraBackends = [ pkgs.brscan4 ];
     # Brother-specific SANE backend
     brscan4 = {
       enable = true;
