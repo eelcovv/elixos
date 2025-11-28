@@ -54,6 +54,5 @@
       ./gnome-bindings.nix
       ./nextcloud.nix
       ./zsh.nix
-      ./ptgui.nix
     ];
 }

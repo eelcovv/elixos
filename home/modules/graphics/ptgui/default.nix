@@ -1,55 +1,53 @@
 # ============================================
 # 🧩 PTGui Installation Instructions:
 #
-# 1. Download the PTGui tarball from www.ptgui.com (e.g. PTGui_13.3.tar.gz)
+# 1. Download the PTGui tarball from www.ptgui.com (e.g. PTGui_13.2.tar.gz)
 #
-# 2. Place the downloaded `PTGui_13.3.tar.gz` file in this directory.
+# 2. Add the file to the Nix store:
 #
-# 3. The configuration will automatically use it.
+#    nix-store --add-fixed sha256 ~/Downloads/PTGui_13.2.tar.gz
+# or
+#    nix-prefetch-url file://$HOME/Downloads/PTGui_13.2.tar.gz
 #
-# ⚠️ Note: Redistribution of PTGui binaries is not allowed.
-#    The tarball is ignored by .gitignore and should not be committed.
+# 3. Determine the sha256 hash of the store path:
+#
+#    nix hash file /nix/store/blw8slhy3z8m4c5ms1s799ni8pphf9xk-PTGui_13.2.tar.gz
+#
+# 4. Fill in the correct store path and sha256 hash below in `ptguiStorePath` and `sha256`
+#
+# ⚠️ Note: Redistribution of PTGui binaries is not allowed — avoid putting this file in public repositories.
 # ============================================
 {
   config,
   pkgs,
   lib,
-  ptguiTarballPath, # Path to the PTGui tarball
-  ptguiVersion ? "Pro 13.3", # Version of PTGui
-  ptguiSha256 ? "sha256-79cd4f3ef4cd3b8765340307d7dbc4ca351f6be70382c07af3cceea8a3f910ff", # SHA256 hash
   ...
 }: {
   options.programs.ptgui.enable = lib.mkEnableOption "PTGui panorama stitcher";
 
   config = lib.mkIf config.programs.ptgui.enable (
     let
-      # Determine the source for PTGui
+      version = "Pro 13.2";
+
+      # Attempt to require the PTGui tarball; do not fail if it has not been provided.
+      _req = builtins.tryEval (pkgs.requireFile {
+        name = "PTGui_13.2.tar.gz";
+        sha256 = "sha256-UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
+        url = "https://www.ptgui.com/"; # informational only
+      });
+
       src =
-        if ptguiTarballPath != null
-        then pkgs.fetchurl {
-          url = "file://${ptguiTarballPath}";
-          sha256 = ptguiSha256;
-        }
-        else
-          throw ''
-            PTGui tarball path not specified!
+        if _req.success
+        then _req.value
+        else (builtins.trace "⚠️ PTGui tarball not found/provided — PTGui will be skipped" null);
 
-            To enable PTGui, you must provide the path to the downloaded tarball.
-            1. Download PTGui_13.3.tar.gz from www.ptgui.com
-            2. Add it to your Nix store:
-               nix-store --add-fixed sha256 ~/Downloads/PTGui_13.3.tar.gz
-               (or use nix-prefetch-url file://$HOME/Downloads/PTGui_13.3.tar.gz)
-            3. Use the resulting store path to set 'ptguiTarballPath' in your Home Manager configuration.
-               Example in flake.nix:
-               { _module.args = { inherit inputs self; userModulesPath = ./home/users; ptguiTarballPath = "/nix/store/...-PTGui_13.3.tar.gz"; }; }
-          '';
-
-      ptgui = pkgs.callPackage ./ptgui.nix {
-        inherit src;
-        version = ptguiVersion;
-      };
+      ptgui =
+        if src != null
+        then pkgs.callPackage ./ptgui.nix {inherit src version;}
+        else null;
     in {
-      home.packages = [ptgui];
+      # Only add PTGui to home.packages if 'src' is available
+      home.packages = lib.optionals (ptgui != null) [ptgui];
     }
   );
 }
