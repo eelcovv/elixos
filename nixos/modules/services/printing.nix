@@ -65,19 +65,8 @@
   ##############################################################################
   hardware.sane = {
     enable = true;
-    extraBackends = [ pkgs.brscan4 ];
-    # Brother-specific SANE backend
-    brscan4 = {
-      enable = true;
-      netDevices = {
-        "Brother_DCP_L2530DW" = {
-          model = "DCP-L2530DW";
-          ip = "192.168.0.139";
-        };
-      };
-    };
     # sane-airscan is a universal driver for modern network scanners (eSCL/WSD)
-    # extraBackends = [ pkgs.sane-airscan ];
+    extraBackends = [ pkgs.sane-airscan ];
   };
 
   # sane-airscan uses mDNS (Avahi, already enabled) for discovery.
