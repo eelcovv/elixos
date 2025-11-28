@@ -32,8 +32,8 @@
       # Attempt to require the PTGui tarball; do not fail if it has not been provided.
       _req = builtins.tryEval (pkgs.requireFile {
         name = "PTGui_13.3.tar.gz";
-        sha256 = "sha256-UXAS06rQ10xIjf5TSqrGNjDhtz61FmVEp/732k9mMp4=";
-        url = "https://www.ptgui.com/"; # informational only
+        sha256 = "sha256-0vmCW3FIc3e310IcvodM6Kogk2athCkOg5MDPEADIDk=";
+        url = "https://www.ptgui.com/";
       });
 
       src =
