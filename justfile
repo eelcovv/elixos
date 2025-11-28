@@ -28,7 +28,7 @@ update:
 
 # Run garbage collection to clean up old builds
 clean:
-	nix-collect-garbage
+	sudo nix-collect-garbage -d
 
 # Format all files using pre-commit hooks
 fmt:
