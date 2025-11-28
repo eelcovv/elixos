@@ -49,13 +49,14 @@
 systemd.services.ensure-printers = {
   after = ["NetworkManager-wait-online.service" "cups.service"];
   wants = ["NetworkManager-wait-online.service" "cups.service"];
+  wantedBy = [ "multi-user.target" ];
   unitConfig = {
     StartLimitIntervalSec = "0";
   };
   serviceConfig = {
-    Restart = "no";                  # stop met oneindig herstarten
+    Restart = "on-failure";
     RestartSec = "15s";
-    SuccessExitStatus = [ 0 1 ];     # beschouw exit-code 1 (printer unreachable) als OK
+    SuccessExitStatus = [ 0 ];
   };
 };
 }
