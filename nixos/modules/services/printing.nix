@@ -59,4 +59,17 @@ systemd.services.ensure-printers = {
     SuccessExitStatus = [ 0 ];
   };
 };
+
+  ##############################################################################
+  # SANE (Scanner Access Now Easy) configuration for Brother DCP-L2530DW
+  ##############################################################################
+  hardware.sane = {
+    enable = true;
+    # sane-airscan is a universal driver for modern network scanners (eSCL/WSD)
+    extraBackends = [ pkgs.sane-airscan ];
+  };
+
+  # sane-airscan uses mDNS (Avahi, already enabled) for discovery.
+  # No extra firewall ports are typically needed if Avahi is correctly set up
+  # with openFirewall = true.
 }

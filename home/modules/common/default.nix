@@ -25,5 +25,8 @@
     polkit_gnome
     p7zip
     rar
+    vlc
+    gimp
+    sane-frontends
   ];
 }
