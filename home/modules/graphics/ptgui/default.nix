@@ -1,21 +1,31 @@
 # ============================================
 # 🧩 PTGui Installation Instructions:
 #
-# 1. Download the PTGui tarball from www.ptgui.com (e.g. PTGui_13.2.tar.gz)
+# This module is configured via the `programs.ptgui.*` options.
 #
-# 2. Add the file to the Nix store:
+# To use a new version of PTGui:
 #
-#    nix-store --add-fixed sha256 ~/Downloads/PTGui_13.2.tar.gz
-# or
-#    nix-prefetch-url file://$HOME/Downloads/PTGui_13.2.tar.gz
+# 1. Download the PTGui tarball from www.ptgui.com (e.g., PTGui_13.3.tar.gz).
 #
-# 3. Determine the sha256 hash of the store path:
+# 2. Add the file to the Nix store and get its sha256 hash using `nix-prefetch-url`:
 #
-#    nix hash file /nix/store/blw8slhy3z8m4c5ms1s799ni8pphf9xk-PTGui_13.2.tar.gz
+#    nix-prefetch-url file://$HOME/Downloads/PTGui_13.3.tar.gz
 #
-# 4. Fill in the correct store path and sha256 hash below in `ptguiStorePath` and `sha256`
+# 3. In your configuration, set the `programs.ptgui` options. For example:
 #
-# ⚠️ Note: Redistribution of PTGui binaries is not allowed — avoid putting this file in public repositories.
+#    programs.ptgui = {
+#      enable = true;
+#      version = "Pro 13.3";
+#      sha256 = "sha256-THE_SHA256_HASH_FROM_STEP_2";
+#    };
+#
+#    The `version` string is used to generate the expected tarball name, e.g.,
+#    "Pro 13.3" becomes "PTGui_13.3.tar.gz".
+#
+# 4. Rebuild your configuration.
+#
+# ⚠️ Note: Redistribution of PTGui binaries is not allowed — avoid putting this
+# file in public repositories.
 # ============================================
 {
   config,
