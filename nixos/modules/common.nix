@@ -86,7 +86,6 @@ This NixOS configuration module defines common system settings:
 
     environment.systemPackages = with pkgs; [
       bashInteractive
-      brscan4
       coreutils
       curl
       git
