@@ -56,7 +56,7 @@
     serviceConfig = {
       Restart = "no";
       RestartSec = "15s";
-      SuccessExitStatus = [0];
+      SuccessExitStatus = [0 1]; # with 1, you ignore a non-zero exit code
     };
   };
 
