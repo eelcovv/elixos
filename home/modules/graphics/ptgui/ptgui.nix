@@ -4,8 +4,8 @@
   lib ? pkgs.lib,
   src,
   # Visible label in menus / desktop files (what users see)
-  versionLabel ? "Pro 13.2",
-  # Optional purely-numeric upstream version (e.g., "13.2"). If omitted, parsed from versionLabel.
+  versionLabel ? "Pro 13.3",
+  # Optional purely-numeric upstream version (e.g., "13.3"). If omitted, parsed from versionLabel.
   upstreamVersion ? null,
   # Optional override for X11 fallback behavior (true/false). If null, auto policy applies.
   forceX11 ? null,
@@ -43,7 +43,7 @@ in
 
     nativeBuildInputs = [
       autoPatchelfHook
-      wrapGAppsHook
+      wrapGAppsHook3
       makeWrapper
     ];
 
