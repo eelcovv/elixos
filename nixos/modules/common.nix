@@ -104,5 +104,10 @@ This NixOS configuration module defines common system settings:
     ];
 
     system.stateVersion = "24.11";
+
+    hardware.sane = {
+      enable = true;
+      extraBackends = [pkgs.sane-airscan];
+    };
   };
 }

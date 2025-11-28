@@ -10,5 +10,7 @@
     kdePackages.kdenlive
     amarok
     ffmpeg
+    sane-frontends
+    sane-airscan
   ];
 }
