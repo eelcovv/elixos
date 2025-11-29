@@ -3,6 +3,7 @@
     ./clipboard.nix
     ./notifications.nix
     ./tray.nix
+    ./mimetypes.nix
   ];
 
   home.packages = with pkgs; [
