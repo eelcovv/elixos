@@ -20,5 +20,6 @@
       terminal = false;
       comment = "Access and synchronize files with Nextcloud";
       categories = ["Network" "FileTransfer"];
+    };
   };
 }
