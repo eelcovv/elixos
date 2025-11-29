@@ -22,16 +22,19 @@
   ##############################################################################
   # Outputs
   ##############################################################################
-  outputs = inputs @ {
-    self,
-    nixpkgs,
-    disko,
-    home-manager,
-    sops-nix,
-    flake-utils,
-    ...
-  }: let
+  outputs = inputs@{ self, nixpkgs, disko, home-manager, sops-nix, flake-utils, ... }:
+  let
     system = "x86_64-linux";
+
+    # Our custom packages and modules
+    elixos-overlay = import ./pkgs/overlay.nix;
+
+    # Create a nixpkgs instance with our overlays for standalone HM
+    pkgs = import nixpkgs {
+      inherit system;
+      config = { allowUnfree = true; };
+      overlays = [ elixos-overlay ];
+    };
 
     # Users and hosts used to auto-generate system and HM configs
     allUsers = ["eelco" "por"];
@@ -66,122 +69,42 @@
       users = hostUsersMap.${hostName} or [];
     in
       nixpkgs.lib.nixosSystem {
-        # Expose flake inputs to NixOS modules
-        specialArgs = {
-          inherit inputs self;
-          userModulesPath = ./home/users;
-        };
-
-        modules =
-          [
-            # Ensure hostPlatform is set for all hosts (required by newer NixOS)
-            {nixpkgs.hostPlatform = nixpkgs.lib.mkDefault system;}
-
-            # Host base module
-            hostFiles.${hostName}
-
-            # Disko at system level (partitioning/formatting)
-            disko.nixosModules.disko
-
-            # sops-nix at system level (provides `sops.*` options and /run/secrets)
-            sops-nix.nixosModules.sops
-
-            # Home-Manager as a NixOS module (no HM sops here)
-            home-manager.nixosModules.home-manager
-          ]
-          # Auto-import OS user modules based on hostUsersMap
-          ++ builtins.map (u: ./nixos/users + "/${u}.nix") users
-          # Home-Manager users only if present on this host
-          ++ (
-            if enableHM && users != []
-            then [
-              {
-                home-manager.useGlobalPkgs = true;
-                home-manager.useUserPackages = true;
-
-                # Define HM users as an attrset { eelco = { imports = [ ... ]; }; por = ...; }
-                home-manager.users = nixpkgs.lib.genAttrs users (u: {
-                  imports = [
-                    # Pass flake inputs/userModulesPath to all HM submodules
-                    {
-                      _module.args = {
-                        inherit inputs self;
-                        userModulesPath = ./home/users;
-                      };
-                    }
-
-                    # Actual HM user configuration
-                    (./home/users + "/${u}")
-                  ];
-                });
-              }
-            ]
-            else []
-          );
+        specialArgs = { inherit inputs self; userModulesPath = ./home/users; }; # pkgs removed from here
+        modules = [
+          {
+            nixpkgs.overlays = [ elixos-overlay ]; # Overlay added here
+            nixpkgs.hostPlatform = nixpkgs.lib.mkDefault system;
+          }
+          hostFiles.${hostName}                                    # Host base module
+          disko.nixosModules.disko                                  # Disko module
+          sops-nix.nixosModules.sops                                # sops-nix at system level
+          home-manager.nixosModules.home-manager                   # HM module
+        ]
+        ++ builtins.map (u: ./nixos/users + "/${u}.nix") users;      # Auto-import OS user modules
       };
-  in {
+  in
+  {
     ############################################################################
     # DevShells for all default systems
     ############################################################################
-    # flake.nix — devShells exported in BOTH orientations: name-first AND system-first
     devShells = let
-      # Limit to Linux systems (avoids Darwin breakages, e.g., OVMF on macOS)
       systems = ["x86_64-linux" "aarch64-linux"];
-
-      # Build the shell set for one system
       mkShellSet = sys: let
-        # Import pkgs for the target system
-        pkgs = import nixpkgs {
-          system = sys;
-          config = {allowUnfree = true;};
-        };
-
-        # Import your centralized shells (parameterized by 'system')
-        shells =
-          (import ./nixos/modules/profiles/devshells/default.nix {
-            inherit pkgs inputs;
-            system = sys;
-          }).devShells;
-
-        # General-purpose dev shell; guard Linux-only packages
+        # Use a pkgs instance with the overlay for shells
+        pkgs = import nixpkgs { system = sys; config = { allowUnfree = true; }; overlays = [ elixos-overlay ]; };
+        shells = (import ./nixos/modules/profiles/devshells/default.nix { inherit pkgs inputs; system = sys; }).devShells;
         general_default = pkgs.mkShell {
-          packages = with pkgs;
-            [
-              pre-commit
-              alejandra
-              rage
-              sops
-              yq-go
-              git
-              openssh
-              age
-              just
-              prettier
-              nodejs
-            ]
-            # Only on Linux (OVMF/qemu break on Darwin in your pin)
-            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [OVMF qemu];
-
+          packages = with pkgs; [
+            pre-commit alejandra rage sops yq-go git openssh age just prettier nodejs
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [OVMF qemu];
           shellHook = ''
             echo "DevShell ready with pre-commit, sops, rage, qemu tools etc."
           '';
         };
-      in
-        # Return the per-system shell set, plus your general and default aliases
-        shells
-        // {
-          general = general_default;
-          default = shells.py_build; # convenience default
-        };
-
-      # System-first map: devShells.${system}.{py_build,py_light,py_vtk,default,general}
+      in shells // { general = general_default; default = shells.py_build; };
       bySystem = nixpkgs.lib.genAttrs systems mkShellSet;
-
-      # Name-first map: devShells.{py_build,py_light,py_vtk,default,general}.${system}
       byName = flake-utils.lib.eachSystem systems mkShellSet;
-    in
-      # Export both maps; keys don't collide (different top-level names)
-      byName // bySystem;
+    in byName // bySystem;
 
     ############################################################################
     # NixOS hosts
@@ -192,42 +115,28 @@
     # Standalone Home-Manager profiles (outside NixOS)
     ############################################################################
     homeConfigurations = builtins.listToAttrs (
-      builtins.concatMap
-      (
-        user:
-          builtins.map
-          (host: {
+      builtins.concatMap (user:
+        builtins.map (host:
+          {
             name = "${user}@${host}";
             value = home-manager.lib.homeManagerConfiguration {
-              pkgs = import nixpkgs {
-                inherit system;
-                config = {allowUnfree = true;};
-              };
+              inherit pkgs; # Use the top-level pkgs with overlay
               modules = [
-                # Expose inputs to HM modules
-                {
-                  _module.args = {
-                    inherit inputs self;
-                    userModulesPath = ./home/users;
-                  };
-                }
-
-                # Actual HM user configuration
-                (./home/users + "/${user}")
+                # pkgs removed from _module.args here
+                { _module.args = { inherit inputs self; userModulesPath = ./home/users; }; }
+                {}
+                ./home/users/${user}
               ];
             };
-          })
-          allHosts
-      )
-      allUsers
+          }
+        ) allHosts
+      ) allUsers
     );
 
     ############################################################################
     # Convenience: buildable system derivations per host (exclude test-vm)
     ############################################################################
-    packages.${system} =
-      builtins.mapAttrs
-      (_: cfg: cfg.config.system.build.toplevel)
+    packages.${system} = builtins.mapAttrs (_: cfg: cfg.config.system.build.toplevel)
       (builtins.removeAttrs (builtins.mapAttrs (n: _: mkHost n) hostFiles) ["test-vm"]);
 
     ############################################################################
@@ -239,3 +148,4 @@
     };
   };
 }
+

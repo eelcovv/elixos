@@ -77,7 +77,7 @@ This NixOS configuration module defines common system settings:
       fontconfig.enable = true;
       packages = with pkgs; [
         noto-fonts
-        noto-fonts-emoji
+        noto-fonts-color-emoji
         font-awesome
       ];
     };

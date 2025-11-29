@@ -43,7 +43,7 @@ in
 
     nativeBuildInputs = [
       autoPatchelfHook
-      wrapGAppsHook
+      wrapGAppsHook3
       makeWrapper
     ];
 

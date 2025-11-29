@@ -5,16 +5,14 @@
   lib ? pkgs.lib,
   ...
 }: let
-  # Resolve nixGL packages for the current system (may fail on older Nix if currentTime is missing)
+  # Resolve nixGL packages for the current system
   nixGL =
     if builtins.hasAttr system inputs.nixgl.packages
     then inputs.nixgl.packages.${system}
     else inputs.nixgl.packages.${pkgs.system};
 
-  # Some Nix versions don't have builtins.currentTime; nixGL relies on it.
   hasCurrentTime = builtins ? currentTime;
 
-  # Only include nixGL wrappers when the builtin exists; otherwise we provide shell shims.
   nixGLWrappers =
     if hasCurrentTime
     then [nixGL.nixGLNvidia nixGL.nixGLIntel nixGL.nixVulkanNvidia]
@@ -23,17 +21,12 @@
   # Keep Python build environment consistent with the *active* interpreter.
   python_consistency_hook = ''
     echo "🐍  Python consistency hook (config shim + clean env)"
-
-    # Avoid leaking stdlib/site from host
     unset PYTHONHOME
     unset PYTHONPATH
     export PYTHONNOUSERSITE=1
-
-    # On NixOS: never let uv download interpreters; use system only.
     export UV_PYTHON_DOWNLOADS="''${UV_PYTHON_DOWNLOADS:-never}"
     export UV_PYTHON_PREFER_SYSTEM=1
 
-    # If a venv is active (e.g., created by uv), install a shim for python3-config
     if [ -n "$VIRTUAL_ENV" ]; then
       _pyver="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
       if [ -n "$_pyver" ] && command -v "python''${_pyver}-config" >/dev/null 2>&1; then
@@ -42,7 +35,6 @@
         export PATH="$VIRTUAL_ENV/bin:$PATH"
       fi
     else
-      # No venv: prefer matching pythonX.Y-config if current python is X.Y
       _ver="$(python -V 2>/dev/null | awk '{print $2}' | cut -d. -f1,2)"
       case "$_ver" in
         3.11|3.12|3.13|3.14)
@@ -55,11 +47,10 @@
     fi
   '';
 
-  # Shared shellHook for Qt/VTK wheel-first setup.
+  # Shared Qt/VTK runtime setup for wheel-based environments
   qt_wheel_shell_hook = lib: pkgs: ''
     echo "🖼️  Qt/VTK wheel env active"
 
-    # Backend selection
     if [ -n "$PYTEST_CURRENT_TEST" ]; then
       export QT_QPA_PLATFORM="offscreen"
       unset QT_XCB_GL_INTEGRATION
@@ -68,30 +59,27 @@
       export QT_XCB_GL_INTEGRATION="glx"
     fi
 
-    # Matplotlib: headless by default (escape $ for Nix)
     export MPLBACKEND="''${MPLBACKEND:-agg}"
-    # export QT_DEBUG_PLUGINS=1  # optional
 
-    # Helper
     prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
 
-    # manylinux compat
     COMPAT_DIR="$PWD/.nix-ld-compat"
     mkdir -p "$COMPAT_DIR"
     ln -sf "${lib.getLib pkgs.e2fsprogs}/lib/libcom_err.so.3" "$COMPAT_DIR/libcom_err.so.2"
     prepend "$COMPAT_DIR"
 
-    # Core GL + base libs
+    # Core system libs
     prepend "${lib.getLib pkgs.libglvnd}/lib"
+    prepend "${lib.getLib pkgs.libGLU}/lib"
+    prepend "${lib.getLib pkgs.freeglut}/lib"
     prepend "${lib.getLib pkgs.zlib}/lib"
     prepend "${lib.getLib pkgs.e2fsprogs}/lib"
     prepend "${lib.getLib pkgs.expat}/lib"
-    prepend "${lib.getLib pkgs.gmp}/lib"
     prepend "${lib.getLib pkgs.p11-kit}/lib"
     prepend "${lib.getLib pkgs.zstd}/lib"
     prepend "${lib.getLib pkgs.dbus}/lib"
 
-    # X11 / xcb
+    # X11 / xcb libs
     prepend "${lib.getLib pkgs.xorg.libX11}/lib"
     prepend "${lib.getLib pkgs.xorg.libXext}/lib"
     prepend "${lib.getLib pkgs.xorg.libXrender}/lib"
@@ -109,7 +97,7 @@
     prepend "${lib.getLib pkgs.xorg.xcbutilwm}/lib"
     prepend "${lib.getLib pkgs.xorg.xcbutilcursor}/lib"
 
-    # Fonts / text / wayland / crypto / ICU
+    # Fonts / Wayland / crypto
     prepend "${lib.getLib pkgs.fontconfig}/lib"
     prepend "${lib.getLib pkgs.freetype}/lib"
     prepend "${lib.getLib pkgs.harfbuzz}/lib"
@@ -123,11 +111,10 @@
     prepend "${lib.getLib pkgs.openssl}/lib"
     prepend "${lib.getLib pkgs.icu}/lib"
 
-    # Vendor GL drivers
+    # Vendor GL
     [ -d /run/opengl-driver/lib ]     && prepend "/run/opengl-driver/lib"
     [ -d /run/opengl-driver-32/lib ]  && prepend "/run/opengl-driver-32/lib"
 
-    # Wheel-only Qt plugins
     export QT_NO_PLUGIN_LOOKUP=1
 
     if [ -n "$VIRTUAL_ENV" ]; then
@@ -158,28 +145,58 @@
       unset QML2_IMPORT_PATH
     fi
   '';
+
+  # DRY helper for adding runtime libs like gmp
+  addRuntimeLibs = lib: pkgs: ''
+    prepend() { export LD_LIBRARY_PATH="$1''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; }
+    prepend "${lib.getLib pkgs.gmp}/lib"
+  '';
+
+  # ---- Global CA/TLS trust setup ----
+  caBundle = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+
+  tls_ca_hook = ''
+    # ✅ Global CA/TLS trust for all tools (Python, curl, git, nix)
+    export SSL_CERT_FILE='${caBundle}'
+    export REQUESTS_CA_BUNDLE="$SSL_CERT_FILE"
+    export GIT_SSL_CAINFO="$SSL_CERT_FILE"
+    export CURL_CA_BUNDLE="$SSL_CERT_FILE"
+    export NIX_SSL_CERT_FILE="$SSL_CERT_FILE"
+  '';
+
+  # ---- DRY mkDevShell helper ----
+  mkDevShell = {
+    extraPackages ? [],
+    extraHook ? "",
+  }:
+    pkgs.mkShell {
+      packages = [pkgs.cacert] ++ extraPackages;
+      shellHook = lib.concatStringsSep "\n" [
+        tls_ca_hook
+        python_consistency_hook
+        extraHook
+      ];
+    };
 in {
   devShells = {
-    py_light = pkgs.mkShell {
-      packages = with pkgs; [python312 uv pre-commit];
-      shellHook = ''
+    py_light = mkDevShell {
+      extraPackages = with pkgs; [python312 uv pre-commit gmp];
+      extraHook = ''
         echo "🐍 py_light active (python + uv, no compilers)"
-        ${python_consistency_hook}
+        ${addRuntimeLibs lib pkgs}
       '';
     };
 
-    py_build = pkgs.mkShell {
-      packages = with pkgs; [python312 uv gcc gfortran cmake pkg-config openblas];
-      shellHook = ''
+    py_build = mkDevShell {
+      extraPackages = with pkgs; [python312 uv gcc gfortran cmake pkg-config openblas gmp];
+      extraHook = ''
         echo "🛠️  py_build active (gcc/gfortran/cmake/pkg-config/openblas)"
-        echo "Use this shell for 'uv sync' when C/Fortran extensions are built."
-        ${python_consistency_hook}
+        ${addRuntimeLibs lib pkgs}
       '';
     };
 
-    # VTK/Qt/GL shell tuned for wheels (PySide6 + VTK) on NixOS
-    py_vtk = pkgs.mkShell {
-      packages = with pkgs; [
+    py_vtk = mkDevShell {
+      extraPackages = with pkgs; [
         python312
         uv
         vtk
@@ -224,21 +241,30 @@ in {
         libpng
         libjpeg
         libtiff
+        libGL
+        libGLU
+        freeglut
         zstd
         dbus
         pcre2
         mesa-demos
         patchelf
+        gmp
+        cairo
+        gdk-pixbuf
+        pango
+        libffi
+        libxml2
+        libxslt
       ];
-      shellHook = ''
-        ${python_consistency_hook}
+      extraHook = ''
         ${qt_wheel_shell_hook lib pkgs}
+        ${addRuntimeLibs lib pkgs}
       '';
     };
 
-    # Combined: build toolchain + VTK/Qt wheel runtime
-    py_build_vtk = pkgs.mkShell {
-      packages = with pkgs; [
+    py_build_vtk = mkDevShell {
+      extraPackages = with pkgs; [
         python312
         uv
         gcc
@@ -293,11 +319,57 @@ in {
         pcre2
         mesa-demos
         patchelf
+        gmp
       ];
-      shellHook = ''
+      extraHook = ''
         echo "🛠️🖼️  py_build_vtk active (build toolchain + Qt/VTK wheels)"
-        ${python_consistency_hook}
         ${qt_wheel_shell_hook lib pkgs}
+        ${addRuntimeLibs lib pkgs}
+      '';
+    };
+
+    py_build_c_fortran = mkDevShell {
+      extraPackages = with pkgs;
+        [
+          python312
+          uv
+          meson
+          ninja
+          pkg-config
+          gcc
+          gfortran
+        ]
+        ++ lib.optionals pkgs.stdenv.isDarwin [pkgs.llvmPackages.openmp];
+      extraHook = ''
+                echo "🛠️  py_build_c_fortran active (Meson + GCC/GFortran + f2py)"
+
+                export CC=gcc
+                export CXX=g++
+                export FC=gfortran
+
+                if [ ! -d ".venv" ]; then
+                  echo "📦 creating virtualenv with uv (system python)"
+                  uv venv --python python3
+                  . .venv/bin/activate
+                  uv pip install --upgrade pip wheel
+                  uv pip install numpy
+                else
+                  . .venv/bin/activate
+                  python - <<'PY'
+        import importlib.util, sys
+        sys.exit(0 if importlib.util.find_spec("numpy") else 1)
+        PY
+                  if [ $? -ne 0 ]; then
+                    uv pip install numpy
+                  fi
+                fi
+
+                export NPY_NUM_BUILD_JOBS="''${NPY_NUM_BUILD_JOBS:-$(nproc)}"
+
+                echo "✅ C/Fortran build environment ready."
+                echo "  meson setup build"
+                echo "  meson compile -C build"
+                echo "  meson install -C build"
       '';
     };
   };

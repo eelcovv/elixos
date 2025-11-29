@@ -9,5 +9,9 @@
     spotify
     kdePackages.kdenlive
     amarok
+    ffmpeg
+    xsane
+    sane-frontends
+    sane-airscan
   ];
 }

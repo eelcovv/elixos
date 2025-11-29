@@ -8,12 +8,13 @@
     ./ptgui
   ];
   home.packages = with pkgs; [
-    imagemagick
-    inkscape-with-extensions
+    drawio
     gimp
     graphicsmagick
-    krita
     grim
+    imagemagick
+    inkscape-with-extensions
+    krita
     slurp
     swappy
     wl-clipboard

@@ -23,6 +23,15 @@ in {
       };
     };
 
+    #testpypi = {
+    #  enable = lib.mkEnableOption "Add a 'testpypi' index entry to ~/.pypirc";
+    #  tokenPath = lib.mkOption {
+    #    type = lib.types.str;
+    #    default = config.sops.secrets.pypi_token_testpypi.path;
+    #    description = "Path to the TestPyPI API token (used with username=__token__).";
+    #  };
+    #};
+
     davelab = {
       enable = lib.mkEnableOption "Add a 'davelab' index entry to ~/.pypirc";
 
@@ -102,11 +111,9 @@ in {
         {
           echo "[distutils]"
           echo "index-servers ="
+          echo "    pypi"
           if ${lib.boolToString cfg.davelab.enable}; then
-            echo "    pypi"
             echo "    davelab"
-          else
-            echo "    pypi"
           fi
 
           echo
@@ -121,6 +128,7 @@ in {
             echo "username = $dlab_user"
             echo "password = $dlab_pass"
           fi
+
         } > "$tmp"
 
         install -m 0600 -o ${lib.escapeShellArg user} -g users "$tmp" "$outfile"

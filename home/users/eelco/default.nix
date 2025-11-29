@@ -12,6 +12,8 @@
   # XDG (needed for desktop entries)
   xdg.enable = true;
 
+
+
   # Default session
   home.file.".dmrc".text = ''
     [Desktop]
@@ -53,6 +55,7 @@
       ./git.nix
       ./gnome-bindings.nix
       ./nextcloud.nix
+      ./ptgui.nix
       ./zsh.nix
     ];
 }

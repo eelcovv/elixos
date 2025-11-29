@@ -28,7 +28,11 @@ update:
 
 # Run garbage collection to clean up old builds
 clean:
-	nix-collect-garbage
+	sudo nix-collect-garbage -d
+
+# Optimise the Nix store
+optimise:
+	sudo nix-store --optimise -v
 
 # Format all files using pre-commit hooks
 fmt:
@@ -452,6 +456,19 @@ post-boot-setup HOST USER:
 	@echo "   cd {{REPO_DIR}} && sudo nixos-rebuild switch --flake .#{{HOST}}"
 	@echo ""
 	@echo "This will activate the full configuration, including SSH key generation."
+
+
+# ========== GRAPHICS CONFIGURATION ==========
+gpu-report:
+	@echo "--- NVIDIA GPU Report ---"
+	@if command -v nvidia-smi >/dev/null 2>&1; then \
+		nvidia-smi; \
+	else \
+		echo "NVIDIA driver (nvidia-smi) not found or not installed."; \
+	fi
+	@echo ""
+	@echo "--- General Display Adapter Information ---"
+	@lspci -k | grep -EA3 'VGA|3D|Display'
 
 
 # ========== SECRET MANAGEMENT ==========

@@ -6,5 +6,5 @@
 elixos.bundle
 .tmux.conf
 install.log
-*.tar.?z
-nix-*
+nix-*/home/modules/graphics/ptgui/PTGui_13.3.tar.gz
+nix-ld-session.nix

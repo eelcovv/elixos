@@ -8,11 +8,16 @@
 }: {
   programs.git = {
     enable = true;
-    userName = userName;
-    userEmail = userEmail;
-    extraConfig = {
+    settings = {
+      user.name = userName;
+      user.email = userEmail;
       core.editor = "vim";
       color.ui = true;
+
+      # Disable pager for 'git branch' and optionally others
+      pager.branch = "false";
+      pager.diff = "false";
+      pager.log = "false";
     };
   };
 }
