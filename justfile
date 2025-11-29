@@ -458,6 +458,19 @@ post-boot-setup HOST USER:
 	@echo "This will activate the full configuration, including SSH key generation."
 
 
+# ========== GRAPHICS CONFIGURATION ==========
+gpu-report:
+	@echo "--- NVIDIA GPU Report ---"
+	@if command -v nvidia-smi >/dev/null 2>&1; then \
+		nvidia-smi; \
+	else \
+		echo "NVIDIA driver (nvidia-smi) not found or not installed."; \
+	fi
+	@echo ""
+	@echo "--- General Display Adapter Information ---"
+	@lspci -k | grep -EA3 'VGA|3D|Display'
+
+
 # ========== SECRET MANAGEMENT ==========
 # Create a new secret file
 make-secret HOST USER:
