@@ -15,6 +15,7 @@
       brlaser # Brother open driver (backup)
     ];
     browsed.enable = false; # we use a fixed queue, not autodiscovery
+    sharing = true;
   };
 
   # mDNS/Avahi optional but harmless
