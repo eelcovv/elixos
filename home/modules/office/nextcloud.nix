@@ -17,15 +17,9 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    programs.nextcloud-client = {
-      enable = true;
-      package = pkgs.nextcloud-client;
-      settings = {
-        startInBackground = true;
-        launchOnSystemStartup = true;
-        # syncFolders is optioneel, kun je toevoegen als nodig
-      };
-    };
+    home.packages = [
+      pkgs.nextcloud-client
+    ];
 
     home.sessionVariables = lib.mkMerge [
       (lib.mkIf (cfg.url != "") {
