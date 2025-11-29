@@ -1,7 +1,7 @@
-{ pkgs, ... }:
-let
-  nextcloud = import ./nextcloud.nix { inherit pkgs; };
-in {
+{ pkgs, ... }: {
+  imports = [
+    ./nextcloud-talk.nix
+  ];
   home.packages = with pkgs; [
     telegram-desktop
     wasistlos
