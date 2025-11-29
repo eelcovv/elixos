@@ -48,7 +48,7 @@ done
 PRIMARY_EXT="${EXTERNALS[0]:-}"
 
 # Tunables (adjust as needed)
-EXT_MODE="preferred"   # e.g. "3440x1440@120.00"
+EXT_MODE="3440x1440"   # e.g. "3440x1440@120.00"
 EXT_SCALE="1"
 LAP_MODE="preferred"
 LAP_SCALE="1"
