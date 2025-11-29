@@ -122,6 +122,7 @@
             value = home-manager.lib.homeManagerConfiguration {
               inherit pkgs; # Use the top-level pkgs with overlay
               modules = [
+                {xdg.enable = true;}
                 # pkgs removed from _module.args here
                 { _module.args = { inherit inputs self; userModulesPath = ./home/users; }; }
                 {}
