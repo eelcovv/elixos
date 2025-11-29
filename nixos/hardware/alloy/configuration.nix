@@ -12,6 +12,8 @@
     ./hardware-configuration.nix
   ];
 
+  system.nixos.tags = [ "nvidia" ];
+
   hardware.enableRedistributableFirmware = true;
 
   nixpkgs.hostPlatform = "x86_64-linux";
