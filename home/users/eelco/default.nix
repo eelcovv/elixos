@@ -33,7 +33,6 @@
     [
       ../../modules/common
       ../../modules/databases
-      ../../modules/desktop
       ../../modules/development
       ../../modules/editors
       ../../modules/engineering

@@ -14,12 +14,6 @@
   services.displayManager.defaultSession = "hyprland";
 
   imports =
-    # 🧩 External modules
-    [
-      inputs.home-manager.nixosModules.home-manager
-      inputs.disko.nixosModules.disko
-    ]
-    ++
     # 🧱 Basic modules
     [
       ../modules/common.nix
@@ -49,7 +43,14 @@
       ../modules/hardware/bluetooth.nix
       ../hardware/alloy/configuration.nix
       ../disks/alloy.nix
+    ]
+    ++
+    # 🧩 External modules
+    [
+      inputs.disko.nixosModules.disko
+      inputs.home-manager.nixosModules.home-manager
     ];
+
   # 👇 Enable Flatpak profile on this host (uses ../modules/profiles/flatpak.nix)
   profiles.flatpak = {
     enable = true;
@@ -59,8 +60,6 @@
     # Optional: install system-scope apps automatically:
     # systemApps = [ "org.paraview.ParaView" ];
   };
-
-  home-manager.users.eelco = import ../../home/users/eelco;
 
   profiles.session.seedRememberLast = {
     enable = true;
