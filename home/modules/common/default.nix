@@ -28,5 +28,6 @@
     vlc
     gimp
     sane-frontends
+    libva-utils
   ];
 }

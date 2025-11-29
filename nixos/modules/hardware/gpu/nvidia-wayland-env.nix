@@ -3,7 +3,7 @@
   config,
   ...
 }:
-lib.mkIf (config.hardware.nvidia.modesetting.enable && config.programs.hyprland.enable) {
+lib.mkIf (lib.elem "nvidia" config.system.nixos.tags && config.hardware.nvidia.modesetting.enable && config.programs.hyprland.enable) {
   environment.sessionVariables = {
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     LIBVA_DRIVER_NAME = "nvidia";
