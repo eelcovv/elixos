@@ -25,7 +25,7 @@
       set -e
 
       echo "=== GLMark2 (OpenGL) benchmark ==="
-      glmark2 -f || echo "glmark2 failure"
+      glmark2 --fullscreen || echo "glmark2 failure"
 
       echo
       echo "=== VkMark (Vulkan) benchmark ==="
