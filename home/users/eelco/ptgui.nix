@@ -19,7 +19,7 @@
   # 3. Update the version and sha256 below.
   # =================================================================
   programs.ptgui = {
-    enable = true;
+    enable = false;
     version = "Pro 13.3";
     sha256 = "sha256-0vmCW3FIc3e310IcvodM6Kogk2athCkOg5MDPEADIDk=";
   };
