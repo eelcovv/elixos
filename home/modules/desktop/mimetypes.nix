@@ -1,4 +1,4 @@
-{
+{ pkgs, config, ... }: {
   xdg.mimeApps.enable = true;
 
   home.file.".local/share/mime/packages/drawio.xml" = {
