@@ -3,9 +3,11 @@
 
   home.file.".local/share/mime/packages/drawio.xml" = {
     source = ./drawio-mimetype.xml;
-    # Let home-manager's xdg.mime module handle database updates
     onChange = ''
       echo "Mime type for drawio added, home-manager will update the database."
+    '';
+    postUpdate = ''
+      update-mime-database $HOME/.local/share/mime
     '';
   };
 
