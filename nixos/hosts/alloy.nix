@@ -50,6 +50,7 @@
       inputs.disko.nixosModules.disko
       inputs.home-manager.nixosModules.home-manager
     ];
+
   # 👇 Enable Flatpak profile on this host (uses ../modules/profiles/flatpak.nix)
   profiles.flatpak = {
     enable = true;

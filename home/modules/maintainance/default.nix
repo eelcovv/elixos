@@ -5,6 +5,7 @@
   ...
 }: {
   home.packages = with pkgs; [
+    alsa-utils
     pciutils
     mesa-demos
     lshw

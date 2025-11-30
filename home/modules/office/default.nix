@@ -3,6 +3,7 @@
     ./libreoffice.nix
     ./jitsi.nix
     ./thunderbird.nix
+    ./nextcloud.nix
   ];
   home.packages = with pkgs; [
     zoom-us
