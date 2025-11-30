@@ -19,9 +19,7 @@
       plenary-nvim
       nvim-treesitter # moderne syntax highlighting
       vimtex # LaTeX editing
-      nvim-lspconfig # LSP client
       nvim-cmp # autocompletion framework
-      cmp-nvim-lsp # LSP source for nvim-cmp
       cmp-buffer # buffer completion
       cmp-path # file path completion
       cmp-spell # spelling
