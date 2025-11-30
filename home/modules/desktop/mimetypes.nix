@@ -3,21 +3,7 @@
   xdg.mime.enable = true;
   xdg.mimeApps.enable = true;
 
-  # Zorg dat de packages ook echt geïnstalleerd zijn, anders werken de koppelingen niet.
-  # (Je kunt dit ook in je home.nix laten staan, maar hier is het overzichtelijker)
-  home.packages = with pkgs; [
-    drawio
-    firefox
-    evince
-    vscode      # Zorgt voor code.desktop
-    geeqie
-    vlc
-    libreoffice
-    shared-mime-info # Nodig voor de update tool
-  ];
-
-  # 1. FIX VOOR HET ICOON
-  # We linken het icoon van de app naar de map voor mimetypes
+  # make sure you can find the icon
   home.file.".local/share/icons/hicolor/128x128/mimetypes/application-x-drawio.png" = {
     source = "${pkgs.drawio}/share/icons/hicolor/128x128/apps/drawio.png";
   };
@@ -31,7 +17,7 @@
     '';
   };
 
-  # Overschrijf de drawio desktop entry om zeker te zijn dat %U wordt gebruikt
+  # Overwrite de desktop entry 
   xdg.desktopEntries.drawio = {
     name = "Draw.io";
     genericName = "Diagram Editor";
@@ -64,11 +50,12 @@
     "text/plain" = [ "code.desktop" ];
 
     # Images
-    "image/jpeg" = [ "geeqie.desktop" ];
-    "image/png" = [ "geeqie.desktop" ];
-    "image/gif" = [ "geeqie.desktop" ];
-    "image/bmp" = [ "geeqie.desktop" ];
-    "image/svg+xml" = [ "geeqie.desktop" ];
+    "image/jpeg" = [ "gwenview.desktop" ];
+    "image/png" = [ "gwenview.desktop" ];
+    "image/gif" = [ "gwenview.desktop" ];
+    "image/bmp" = [ "gwenview.desktop" ];
+    "image/webp" = [ "gwenview.desktop" ];
+    "image/svg+xml" = [ "gwenview.desktop" ];
 
     # Video
     "video/mp4" = [ "vlc.desktop" ];
